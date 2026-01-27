@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:soka/Screen/home_page.dart';
-import 'package:soka/Screen/login_screen.dart';
+import 'package:soka/screens/home_page.dart';
+import 'package:soka/screens/login_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -15,7 +15,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'SOKA',
-      initialRoute: 'homePage',
+      initialRoute: 'login',
       routes: {
         'homePage': (context) => const HomePage(),
         'login': (context) => const LoginScreen(),
