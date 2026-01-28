@@ -121,6 +121,26 @@ class RegisterScreen extends StatelessWidget {
                   child: Text('Registrarse', style: TextStyle(fontSize: 18),),
                 ),
               ),
+              const SizedBox(height: 16),
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('Already have an account?'),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pushNamed(context, 'login');
+                    },
+                    child: const Text('Login'),
+                  ),
+                  const Text('Are you a company?'),
+                  TextButton(
+                    onPressed: () {
+                      Navigator.pushNamed(context, 'registerCompany');
+                    },
+                    child: const Text('Register here'),
+                  ),
+                ],
+              ),
             ],
           ),
         ),
