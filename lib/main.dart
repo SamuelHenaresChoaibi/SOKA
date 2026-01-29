@@ -25,30 +25,30 @@ class MyApp extends StatelessWidget {
         'register': (context) => const RegisterScreen(),
         'registerCompany': (context) => const RegisterCompanyScreen(),
       },
-      theme: ThemeData(
-        primaryColor: AppColors.primary,
-        secondaryHeaderColor: const Color.fromARGB(255, 54, 57, 53),
-        scaffoldBackgroundColor: AppColors.background,
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: AppColors.secondary,
-          labelStyle: const TextStyle(color: Colors.white70),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: BorderSide.none,
-          ),
-        ),
-        textSelectionTheme: const TextSelectionThemeData(
-          cursorColor: Color.fromARGB(178, 255, 255, 255),
-          selectionColor: AppColors.accent,
-          selectionHandleColor: Color.fromARGB(255, 11, 234, 123),
-        ),
-        textButtonTheme: TextButtonThemeData(
-          style: TextButton.styleFrom(
-            foregroundColor: AppColors.accent,
-          ),
-        ),
-      ),
+      // theme: ThemeData(
+      //   primaryColor: AppColors.primary,
+      //   secondaryHeaderColor: const Color.fromARGB(255, 54, 57, 53),
+      //   scaffoldBackgroundColor: AppColors.background,
+      //   inputDecorationTheme: InputDecorationTheme(
+      //     filled: true,
+      //     fillColor: AppColors.secondary,
+      //     labelStyle: const TextStyle(color: Colors.white70),
+      //     border: OutlineInputBorder(
+      //       borderRadius: BorderRadius.circular(12),
+      //       borderSide: BorderSide.none,
+      //     ),
+      //   ),
+      //   textSelectionTheme: const TextSelectionThemeData(
+      //     cursorColor: Color.fromARGB(178, 255, 255, 255),
+      //     selectionColor: AppColors.accent,
+      //     selectionHandleColor: Color.fromARGB(255, 11, 234, 123),
+      //   ),
+      //   textButtonTheme: TextButtonThemeData(
+      //     style: TextButton.styleFrom(
+      //       foregroundColor: AppColors.accent,
+      //     ),
+      //   ),
+      // ),
     );
   }
 }

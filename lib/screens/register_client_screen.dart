@@ -37,6 +37,8 @@ class RegisterScreen extends StatelessWidget {
 
               const SizedBox(height: 40),
 
+              
+
               //NAME & SURNAME
               Row(
                 children: [
@@ -69,6 +71,48 @@ class RegisterScreen extends StatelessWidget {
               ),
 
               const SizedBox(height: 16),
+
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      decoration: InputDecoration(
+                        labelText: 'Username',
+                        prefixIcon: const Icon(Icons.person_2_outlined),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(width: 16),
+
+                  Expanded(
+                    child: TextField(
+                      decoration: InputDecoration(
+                        labelText: 'Phone',
+                        prefixIcon: const Icon(Icons.phone),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 16),
+
+
+              Row(
+                children: [
+                  Expanded(
+                    child: DatePickerDialog(
+                      firstDate: DateTime(1900), 
+                      lastDate: DateTime.now(), 
+                      initialDate: DateTime(2000),)),
+                ],),
               // EMAIL
               TextField(
                 keyboardType: TextInputType.emailAddress,

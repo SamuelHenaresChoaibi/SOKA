@@ -15,31 +15,18 @@ class LoginScreen extends StatelessWidget {
               children: [
 
                 // LOGO / TÍTULO
-                const Icon(Icons.event, size: 80, color: Color(0xFF363539),),
+                const Image(image:AssetImage('lib/assets/SOKA.png'), height: 150,),
                 const SizedBox(height: 16),
-                const Text(
-                  'SOKA',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'The Night Network',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey),
-                ),
+                
 
                 const SizedBox(height: 40),
 
                 // EMAIL
                 TextField(
-                  keyboardType: TextInputType.emailAddress,
+                  keyboardType: TextInputType.name,
                   decoration: InputDecoration(
-                    labelText: 'Email',
-                    prefixIcon: const Icon(Icons.email),
+                    labelText: 'Username',
+                    prefixIcon: const Icon(Icons.person),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),

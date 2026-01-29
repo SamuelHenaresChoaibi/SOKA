@@ -70,14 +70,14 @@ class RegisterCompanyScreen extends StatelessWidget {
                   onPressed: () {
                     // Acción al presionar el botón de registro
                   },
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 16),
-                    child: Text('Register Company', style: TextStyle(fontSize: 18)),
-                  ),
                   style: ElevatedButton.styleFrom(
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
+                  ),
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 16),
+                    child: Text('Register Company', style: TextStyle(fontSize: 18)),
                   ),
                 ),
               ],
