@@ -98,7 +98,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 children: [
                   const Image(
                     image: AssetImage('lib/assets/SOKA.png'),
-                    height: 150,
+                    height: 200,
                   ),
 
                   const SizedBox(height: 40),
@@ -163,7 +163,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                       child: isLoading
-                          ? const CircularProgressIndicator(color: Colors.white)
+                          ? const CircularProgressIndicator(color: Color.fromARGB(33, 255, 255, 255))
                           : const Text(
                               'Iniciar sesión',
                               style: TextStyle(fontSize: 16),

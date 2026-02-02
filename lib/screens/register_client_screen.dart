@@ -18,60 +18,38 @@ class RegisterScreen extends StatelessWidget {
             children: [
 
               // LOGO / TÍTULO
-              const Icon(Icons.event, size: 80, color: Color(0xFF363539),),
-              const SizedBox(height: 16),
-              const Text(
-                'SOKA',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'The Night Network',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey),
+              const Image(
+                image: AssetImage('lib/assets/SOKA.png'), 
+                height: 200,
               ),
 
-              const SizedBox(height: 40),
-
-              
-
-              //NAME & SURNAME
-              Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      decoration: InputDecoration(
-                        labelText: 'Name',
-                        prefixIcon: const Icon(Icons.person),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
+              //NAME
+              TextField(
+                  decoration: InputDecoration(
+                    labelText: 'Name',
+                    prefixIcon: const Icon(Icons.person),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-
-                  const SizedBox(width: 16),
-
-                  Expanded(
-                    child: TextField(
-                        decoration: InputDecoration(
-                          labelText: 'Surname',
-                          prefixIcon: const Icon(Icons.person),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                      ),
-                  ),
-                ],
               ),
 
               const SizedBox(height: 16),
 
+              // SURNAME
+              TextField(
+                  decoration: InputDecoration(
+                    labelText: 'Surname',
+                    prefixIcon: const Icon(Icons.person),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // USERNAME & PHONE
               Row(
                 children: [
                   Expanded(
@@ -105,14 +83,7 @@ class RegisterScreen extends StatelessWidget {
               const SizedBox(height: 16),
 
 
-              Row(
-                children: [
-                  Expanded(
-                    child: DatePickerDialog(
-                      firstDate: DateTime(1900), 
-                      lastDate: DateTime.now(), 
-                      initialDate: DateTime(2000),)),
-                ],),
+              
               // EMAIL
               TextField(
                 keyboardType: TextInputType.emailAddress,

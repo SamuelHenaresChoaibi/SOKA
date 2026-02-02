@@ -7,6 +7,7 @@ import 'package:soka/screens/login_screen.dart';
 import 'package:soka/screens/register_client_screen.dart';
 import 'package:soka/screens/register_company_screen.dart';
 import 'package:soka/services/auth_gate.dart';
+import 'package:soka/theme/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,6 +24,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      theme: AppTheme.ligthTheme,
       title: 'SOKA',
       home: const AuthGate(),
       routes: {
