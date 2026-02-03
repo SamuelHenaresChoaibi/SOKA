@@ -32,5 +32,12 @@ class AppTheme {
       bodyMedium: TextStyle(color: Color(0xFFF2F2F2)),
       bodySmall: TextStyle(color: Color(0xFFF2F2F2)),
     ),
+
+    bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+      backgroundColor: Color(0xFF262626),
+      selectedItemColor: Color.fromARGB(255, 230, 209, 28),
+      unselectedItemColor: Color(0xFF888888),
+      unselectedLabelStyle: TextStyle(color: Color(0xFF262626)),
+    ),
   );
 }
