@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:soka/services/auth_gate.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -12,7 +13,9 @@ class HomeScreen extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () {
-              Navigator.pushReplacementNamed(context, 'login');
+            //TODO: Implementar logout
+            AuthGate().signOut();
+            Navigator.pushReplacementNamed(context, '/');
             },
           ),
         ],

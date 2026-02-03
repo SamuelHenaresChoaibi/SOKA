@@ -24,12 +24,13 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.ligthTheme,
       title: 'SOKA',
-      home: const HomeScreen(),
+      initialRoute: '/',
       routes: {
         'homePage': (context) => const HomeScreen(),
         'login': (context) => const LoginScreen(),
         'register': (context) => const RegisterScreen(),
         'registerCompany': (context) => const RegisterCompanyScreen(),
+        '/': (context) => const AuthGate(),
       },
     );
   }
