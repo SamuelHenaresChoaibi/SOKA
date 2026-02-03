@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:soka/services/auth_gate.dart';
+import 'package:provider/provider.dart';
+import 'package:soka/models/models.dart';
+import 'package:soka/services/services.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final List<Client> clients = Provider.of<SokaService>(context).clients; 
+    clients.forEach((client) {
+      print(client.name);
+    });
     return Scaffold(
       appBar: AppBar(
         title: const Text('SOKA Home'),
