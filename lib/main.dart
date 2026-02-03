@@ -4,8 +4,6 @@ import 'package:soka/firebase_options.dart';
 
 import 'package:soka/screens/home_page.dart';
 import 'package:soka/screens/login_screen.dart';
-import 'package:soka/screens/register_client_screen.dart';
-import 'package:soka/screens/register_company_screen.dart';
 import 'package:soka/services/auth_gate.dart';
 import 'package:soka/theme/app_theme.dart';
 
@@ -28,8 +26,8 @@ class MyApp extends StatelessWidget {
       routes: {
         'homePage': (context) => const HomeScreen(),
         'login': (context) => const LoginScreen(),
-        'register': (context) => const RegisterScreen(),
-        'registerCompany': (context) => const RegisterCompanyScreen(),
+        // 'register': (context) => const RegisterScreen(),
+        //'registerCompany': (context) => const RegisterCompanyScreen(),
         '/': (context) => const AuthGate(),
       },
     );
