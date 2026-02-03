@@ -2,7 +2,7 @@ class Client {
   final int age;
   final DateTime createdAt;
   final String email;
-  final List<String> interests;
+  final List<String?> interests;
   final String name;
   final String phoneNumber;
   final String surname;
@@ -24,7 +24,7 @@ class Client {
       age: json['age'],
       createdAt: DateTime.parse(json['createdAt']),
       email: json['email'],
-      interests: List<String>.from(json['interests']),
+      interests: List<String?>.from(json['interests']),
       name: json['name'],
       phoneNumber: json['phoneNumber'],
       surname: json['surname'],

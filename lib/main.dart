@@ -1,18 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:provider/provider.dart';
 import 'package:soka/firebase_options.dart';
 
 import 'package:soka/screens/home_page.dart';
 import 'package:soka/screens/login_screen.dart';
 import 'package:soka/screens/register_client_screen.dart';
 import 'package:soka/screens/register_company_screen.dart';
-import 'package:soka/services/auth_gate.dart';
+import 'package:soka/services/services.dart';
 import 'package:soka/theme/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  runApp(const MyApp());
+  runApp(AppState());
+}
+
+class AppState extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MultiProvider(
+      providers: [ChangeNotifierProvider(create: (_) => SokaService())],
+      child: MyApp(),
+    );
+  }
 }
 
 class MyApp extends StatelessWidget {
