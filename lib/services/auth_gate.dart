@@ -26,12 +26,24 @@ class AuthGate extends StatelessWidget {
 
         // NO LOGUEADO
         return const LoginScreen();
-        
       },
     );
   }
+
   // SIGN OUT METHOD
   Future<void> signOut() async {
-          await FirebaseAuth.instance.signOut();
-        }
+    await FirebaseAuth.instance.signOut();
+  }
+
+  // Register Method
+  Future<UserCredential> register(
+      {required String email, 
+      required String password,
+      required String name,
+      required String phone}) async {
+    return await FirebaseAuth.instance.createUserWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
+  }
 }
