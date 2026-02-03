@@ -11,9 +11,7 @@ import 'package:soka/theme/app_theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const MyApp());
 }
 
@@ -26,9 +24,9 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.ligthTheme,
       title: 'SOKA',
-      home: const AuthGate(),
+      home: const HomeScreen(),
       routes: {
-        'homePage': (context) => const HomePage(),
+        'homePage': (context) => const HomeScreen(),
         'login': (context) => const LoginScreen(),
         'register': (context) => const RegisterScreen(),
         'registerCompany': (context) => const RegisterCompanyScreen(),

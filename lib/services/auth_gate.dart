@@ -21,7 +21,7 @@ class AuthGate extends StatelessWidget {
 
         // LOGUEADO
         if (snapshot.hasData) {
-          return const HomePage();
+          return const HomeScreen();
         }
 
         // NO LOGUEADO
