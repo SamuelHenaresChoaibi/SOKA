@@ -1,0 +1,64 @@
+{
+  "events": {
+    "bcm_00001": {
+      "category": "music",
+      "createdAt": "2026-01-29T09:30:00Z",
+      "date": "2026-07-15T22:00:00Z",
+      "description": "Electronic music party with international DJs.",
+      "location": "BCM Mallorca, Magaluf",
+      "organizerId": "BCM Mallorca",
+      "ticketTypes": {
+        "capacity": 1500,
+        "description": "Entrada general para el público, acceso a la pista principal.",
+        "price": 30,
+        "remaining": 1203,
+        "type": "General Admission"
+      },
+      "title": "BCM Summer Night",
+      "validated": true
+    }
+  },
+  "sellTickets": {
+    "eventId": "bcm_00001",
+    "holderName": "Wisdom Imade Isibor",
+    "idTicket": 1,
+    "purchaseDate": "2026-01-29T09:45:00Z",
+    "qrCode": "BCM-2026-S4M-VIP-001",
+    "scanned": false,
+    "ticketType": "VIP",
+    "userId": "s4m"
+  },
+  "users": {
+    "clients": {
+      "s4m": {
+        "age": 21,
+        "createdAt": "2026-01-29T09:30:00Z",
+        "email": "samuelhenaresch@gmail.com",
+        "interests": [
+          "Techno",
+          "House"
+        ],
+        "name": "Samuel",
+        "phoneNumber": "640140745",
+        "surname": "Henares Choaibi",
+        "userName": "s4m"
+      }
+    },
+    "companies": {
+      "BCMMallorca": {
+        "companyName": "BCMMallorca",
+        "contactInfo": {
+          "adress": "Avinguda de l'Olivera, s/n, 07181 Magaluf, Illes Balears",
+          "email": "bcmmallorca@gmail.com",
+          "instagram": "@bcmmallorca",
+          "phoneNumber": "658987432",
+          "website": "bcmmallorca.com"
+        },
+        "createdAt": "2026-01-29T09:00:00Z",
+        "description": "BCM Mallorca is the nightclub by reference of Mallorca nightlife. It is the biggest Club on the island and one of the best nightclubs in the world",
+        "verified": true
+      },
+      "superAdmins": ""
+    }
+  }
+}
