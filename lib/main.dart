@@ -3,10 +3,9 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'package:soka/firebase_options.dart';
 
-import 'package:soka/screens/home_page.dart';
+import 'package:soka/screens/home_screen.dart';
 import 'package:soka/screens/login_screen.dart';
-import 'package:soka/screens/register_client_screen.dart';
-import 'package:soka/screens/register_company_screen.dart';
+import 'package:soka/screens/signup_screen.dart';
 import 'package:soka/services/services.dart';
 import 'package:soka/theme/app_theme.dart';
 
@@ -35,12 +34,13 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.ligthTheme,
       title: 'SOKA',
-      home: const HomeScreen(),
+      initialRoute: '/',
       routes: {
         'homePage': (context) => const HomeScreen(),
         'login': (context) => const LoginScreen(),
-        'register': (context) => const RegisterScreen(),
-        'registerCompany': (context) => const RegisterCompanyScreen(),
+        'register': (context) => const SignupScreen(),
+        //'registerCompany': (context) => const RegisterCompanyScreen(),
+        '/': (context) => const AuthGate(),
       },
     );
   }
