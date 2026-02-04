@@ -49,6 +49,27 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _loginWithGoogle() async {
+    setState(() => isLoading = true);
+    try {
+      final user = await authService.signInWithGoogle();
+      if (user == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Inicio con Google cancelado')),
+        );
+      }
+      // AuthGate se encarga de la navegación
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message ?? 'Error con Google')),
+      );
+    } finally {
+      if (mounted) setState(() => isLoading = false);
+    }
+  }
+
   @override
   void dispose() {
     emailController.dispose();
@@ -89,6 +110,32 @@ class _LoginScreenState extends State<LoginScreen> {
                               color: Colors.white,
                             )
                           : const Text('Iniciar sesión'),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  Row(
+                    children: const [
+                      Expanded(child: Divider()),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 8),
+                        child: Text('o'),
+                      ),
+                      Expanded(child: Divider()),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+
+                  SizedBox(
+                    height: 50,
+                    child: OutlinedButton.icon(
+                      onPressed: isLoading ? null : _loginWithGoogle,
+                      icon: Image.asset(
+                        'lib/assets/iconfinder-new-google-favicon-682665.png',
+                        height: 24,
+                        width: 24,
+                      ),
+                      label: const Text('Continuar con Google'),
                     ),
                   ),
                   const SizedBox(height: 12),

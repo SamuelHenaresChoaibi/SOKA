@@ -39,5 +39,13 @@ class AppTheme {
       unselectedItemColor: Color(0xFF888888),
       unselectedLabelStyle: TextStyle(color: Color(0xFF262626)),
     ),
+
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        foregroundColor: const Color(0xFFF2F2F2),
+        side: const BorderSide(color: Color(0xFFF2F2F2)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+      ),
+    ),
   );
 }

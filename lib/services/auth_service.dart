@@ -1,9 +1,14 @@
+import 'dart:math';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
+import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final DatabaseReference _db = FirebaseDatabase.instance.ref();
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
 
   // Login
   Future<User?> login(String email, String password) async {
@@ -22,36 +27,56 @@ class AuthService {
   // Logout
   Future<void> logout() async {
     await _auth.signOut();
+    await _googleSignIn.signOut();
   }
-  // Registro de usuario
-  // Future<User> registerUser(AppUser user, String password) async {
-  //   final usernameRef = _db.child('usernames/${user.username}');
-  //   final snap = await usernameRef.get();
-  //   if (snap.exists) {
-  //     throw Exception('USERNAME_EXISTS');
-  //   }
 
-  //   final credential = await _auth.createUserWithEmailAndPassword(
-  //     email: user.email,
-  //     password: password,
-  //   );
+  // Login con Google
+  Future<User?> signInWithGoogle() async {
+    final googleUser = await _googleSignIn.signIn();
+    if (googleUser == null) {
+      return null;
+    }
 
-  //   final uid = credential.user!.uid;
+    final googleAuth = await googleUser.authentication;
+    final credential = GoogleAuthProvider.credential(
+      accessToken: googleAuth.accessToken,
+      idToken: googleAuth.idToken,
+    );
 
-  //   final appUser = AppUser(
-  //     uid: uid,
-  //     username: user.username,
-  //     email: user.email,
-  //     name: user.name,
-  //     surname: user.surname,
-  //     phoneNumber: user.phoneNumber,
-  //     createdAt: DateTime.now(),
-  //   );
+    final userCredential = await _auth.signInWithCredential(credential);
+    return userCredential.user;
+  }
 
-  //   await usernameRef.set(uid);
+  // Signup
+  Future<User?> signup(String email, String password) async {
+    try {
+      if (email.isEmpty || password.isEmpty) {
+        throw Exception('Email and password cannot be empty');
+      }
+    } catch (e) {
+      rethrow;
+    }
 
-  //   await _db.child('clients/$uid').set(appUser.toMap());
+    final credential = await _auth.createUserWithEmailAndPassword(
+      email: email.trim(),
+      password: password.trim(),
+    );
+    return credential.user;
+  }
 
-  //   return appUser;
-  // }
+  // Signup con Google
+  Future<User?> signupWithGoogle() async {
+    final googleUser = await _googleSignIn.signIn();
+    if (googleUser == null) {
+      return null;
+    }
+    final googleAuth = await googleUser.authentication;
+    final credential = GoogleAuthProvider.credential(
+      accessToken: googleAuth.accessToken,
+      idToken: googleAuth.idToken,
+    );
+
+    final userCredential = await _auth.signInWithCredential(credential);
+    return userCredential.user;
+  }
 }
