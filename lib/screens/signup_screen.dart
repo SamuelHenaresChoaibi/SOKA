@@ -1,6 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:soka/services/auth_service.dart';
+import 'package:soka/widgets/toggleButton_widget.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -63,29 +64,9 @@ class _SignupScreenState extends State<SignupScreen> {
                     image: AssetImage('lib/assets/SOKA.png'),
                     height: 200,
                   ),
-                  const SizedBox(height: 40),
-                  CupertinoSlidingSegmentedControl(
-                    onValueChanged: (Object? value) {  }, 
-                    children: const {
-                      0: Padding(
-                        padding:
-                            EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                        child: Text(
-                          'Client',
-                          style: TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                      ),
-                      1: Padding(
-                        padding:
-                            EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                        child: Text(
-                          'Company',
-                          style: TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                      ),
-                    },
-                  ),
-                  const SizedBox(height: 24.0),
+                  // const SizedBox(height: 40),
+                  // ToggleButtonsExampleApp(),
+                  const SizedBox(height: 40,),
                   TextFormField(
                     controller: emailController,
                     decoration: const InputDecoration(labelText: 'Email'),
