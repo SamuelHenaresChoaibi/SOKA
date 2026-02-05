@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:soka/models/models.dart';
 import 'package:soka/services/auth_gate.dart';
 import 'package:soka/services/services.dart';
+import 'package:soka/screens/account_settings_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -79,7 +80,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   subtitle: const Text("Manage your account settings"),
 
                   onTap: () {
-                    // TODO: Implement account settings navigation
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const AccountSettingsScreen(),
+                      ),
+                    );
                   },
                 ),
                 Divider(),

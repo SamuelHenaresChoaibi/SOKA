@@ -73,6 +73,8 @@ class SokaService extends ChangeNotifier {
     }
   }
 
+  
+
   Future<Client?> fetchClientById(String clientId) async {
     try {
       final url = Uri.https(_baseUrl, '/users/clients/$clientId.json');
