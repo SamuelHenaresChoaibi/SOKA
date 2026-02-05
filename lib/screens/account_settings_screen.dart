@@ -64,6 +64,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
 
   void _populateFields({Client? client, Company? company}) {
     if (_populated) return;
+    if (client == null && company == null) return;
     _populated = true;
 
     if (client != null) {
@@ -101,18 +102,23 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
         };
         await sokaService.updateClient(_user!.uid, updatedData);
       } else if (company != null) {
+        final websiteText = companyWebsiteController.text.trim();
+        final instagramText = companyInstagramController.text.trim();
         final updatedData = <String, dynamic>{
           'companyName': companyNameController.text.trim(),
           'description': companyDescriptionController.text.trim(),
           'contactInfo': {
             'adress': companyAddressController.text.trim(),
-            'email': _user?.email ?? '',
-            'instagram': companyInstagramController.text.trim(),
+            'email': _user?.email ?? company.contactInfo.email,
+            'instagram': instagramText.isEmpty
+                ? company.contactInfo.instagram
+                : instagramText,
             'phoneNumber': companyPhoneController.text.trim(),
-            'website': companyWebsiteController.text.trim(),
+            'website':
+                websiteText.isEmpty ? company.contactInfo.website : websiteText,
           },
         };
-        await sokaService.updateClient(_user!.uid, updatedData);
+        await sokaService.updateCompany(_user!.uid, updatedData);
       }
 
       if (!mounted) return;
@@ -141,8 +147,6 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           final Company? company =
               snapshot.data != null ? snapshot.data![1] as Company? : null;
 
-          _populateFields(client: client, company: company);
-
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
@@ -150,6 +154,8 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           if (client == null && company == null) {
             return const Center(child: Text('No se encontró el perfil.'));
           }
+
+          _populateFields(client: client, company: company);
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
@@ -185,11 +191,11 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
 
   List<Widget> _buildClientFields() {
     return [
-      _textInput(controller: nameController, label: 'Nombre'),
+      _textInput(controller: nameController, label: 'Nombre', required: false),
       const SizedBox(height: 16),
-      _textInput(controller: surnameController, label: 'Apellido'),
+      _textInput(controller: surnameController, label: 'Apellido', required: false),
       const SizedBox(height: 16),
-      _textInput(controller: userNameController, label: 'Username'),
+      _textInput(controller: userNameController, label: 'Username', required: false),
       const SizedBox(height: 16),
       _textInput(
         controller: phoneController,
@@ -201,19 +207,19 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
 
   List<Widget> _buildCompanyFields() {
     return [
-      _textInput(controller: companyNameController, label: 'Nombre empresa'),
+      _textInput(controller: companyNameController, label: 'Company Name', required: false),
       const SizedBox(height: 16),
       _textInput(
         controller: companyPhoneController,
-        label: 'Teléfono',
+        label: 'Phone',
         keyboardType: TextInputType.phone,
       ),
       const SizedBox(height: 16),
-      _textInput(controller: companyAddressController, label: 'Dirección'),
+      _textInput(controller: companyAddressController, label: 'Address', required: false),
       const SizedBox(height: 16),
       _textInput(
         controller: companyWebsiteController,
-        label: 'Sitio web',
+        label: 'Website',
         required: false,
       ),
       const SizedBox(height: 16),
@@ -225,14 +231,8 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       const SizedBox(height: 16),
       TextFormField(
         controller: companyDescriptionController,
-        decoration: const InputDecoration(labelText: 'Descripción'),
+        decoration: const InputDecoration(labelText: 'Description'),
         maxLines: 3,
-        validator: (value) {
-          if (value == null || value.isEmpty) {
-            return 'Campo obligatorio';
-          }
-          return null;
-        },
       ),
     ];
   }
