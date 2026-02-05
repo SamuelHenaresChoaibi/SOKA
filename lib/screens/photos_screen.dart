@@ -5,6 +5,9 @@ class PhotosScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Placeholder();
+    return Scaffold(
+      appBar: AppBar(title: const Text('Photos Page')),
+      body: const Center(child: Text('This is the Photos Screen')),
+    );
   }
 }
