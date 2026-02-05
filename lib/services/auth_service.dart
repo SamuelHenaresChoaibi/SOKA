@@ -1,13 +1,8 @@
-import 'dart:math';
-
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_database/firebase_database.dart';
-import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final DatabaseReference _db = FirebaseDatabase.instance.ref();
   final GoogleSignIn _googleSignIn = GoogleSignIn();
 
   // Login

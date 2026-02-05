@@ -26,11 +26,68 @@ class SokaService extends ChangeNotifier {
   //-----------------------------------------
   //-----------------------------------------
   //CLIENTS
-  void createClient(String name) {}
+  Future<int> createClientWithId(String clientId, Client newClient) async {
+    final url = Uri.https(_baseUrl, '/users/clients/$clientId.json');
 
-  void deleteClient(String userId) {}
+    final response = await http.put(url, body: json.encode(newClient.toJson()));
 
-  void updateClient(String userId, Map<String, dynamic> updatedData) {}
+    if (response.statusCode == 200) {
+      await fetchClients();
+    }
+
+    return response.statusCode;
+  }
+
+  Future<void> deleteClient(String clientId) async {
+    try {
+      final url = Uri.https(_baseUrl, '/users/clients/$clientId.json');
+      final response = await http.delete(url);
+      if (response.statusCode == 200) {
+        print('Client deleted successfully');
+        await fetchClients();
+      } else {
+        throw Exception('Failed to delete client');
+      }
+    } catch (e) {
+      print('ERROR deleteClient: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> updateClient(
+    String clientId,
+    Map<String, dynamic> updatedData,
+  ) async {
+    try {
+      final url = Uri.https(_baseUrl, '/users/clients/$clientId.json');
+      final response = await http.patch(url, body: json.encode(updatedData));
+      if (response.statusCode == 200) {
+        print('Client updated successfully');
+        await fetchClients();
+      } else {
+        throw Exception('Failed to update client');
+      }
+    } catch (e) {
+      print('ERROR updateClient: $e');
+      rethrow;
+    }
+  }
+
+  Future<Client?> fetchClientById(String clientId) async {
+    try {
+      final url = Uri.https(_baseUrl, '/users/clients/$clientId.json');
+      final response = await http.get(url);
+
+      if (response.statusCode == 200 && response.body != 'null') {
+        final Map<String, dynamic> clientMap = json.decode(response.body);
+        return Client.fromJson(clientMap);
+      }
+      return null;
+    } catch (e) {
+      print('ERROR fetchClientById: $e');
+      rethrow;
+    }
+  }
 
   Future<List<Client>> fetchClients() async {
     try {
@@ -56,18 +113,102 @@ class SokaService extends ChangeNotifier {
   //-----------------------------------------
   //-----------------------------------------
 
-
-
-
-
   //-----------------------------------------
   //-----------------------------------------
   //COMPANIES
-  void createCompany(String companyName) {}
+  Future<int> createCompany(String companyId, Company newCompany) async {
+    try {
+      for (var company in companies) {
+        if (company.companyName == newCompany.companyName) {
+          throw Exception(
+            'Company with name "${newCompany.companyName}" already exists',
+          );
+        } else if (company.contactInfo.email == newCompany.contactInfo.email) {
+          throw Exception(
+            'Company with email "${newCompany.contactInfo.email}" already exists',
+          );
+        } else if (company.contactInfo.phoneNumber ==
+            newCompany.contactInfo.phoneNumber) {
+          throw Exception(
+            'Company with phone number "${newCompany.contactInfo.phoneNumber}" already exists',
+          );
+        }
+      }
+      companies.clear();
+      final url = Uri.https(_baseUrl, '/users/companies/$companyId.json');
+      final response = await http.put(
+        url,
+        body: json.encode({
+          'companyName': newCompany.companyName,
+          'contactInfo': newCompany.contactInfo.toJson(),
+          'createdAt': newCompany.createdAt.toIso8601String(),
+          'description': newCompany.description,
+          'verified': newCompany.verified,
+        }),
+      );
+      if (response.statusCode == 200) {
+        print('Company created successfully: ${response.body}');
+        await fetchCompanies();
+      } else {
+        print(
+          'Failed to create company. Status code: ${response.statusCode}, Response body: ${response.body}',
+        );
+        throw Exception('Failed to create company');
+      }
+      return response.statusCode;
+    } catch (e) {
+      print('ERROR createCompany: $e');
+      rethrow;
+    }
+  }
 
-  void deleteCompany(String companyId) {}
+  void deleteCompany(String companyId) async {
+    try {
+      final url = Uri.https(_baseUrl, '/users/companies/$companyId.json');
+      final response = await http.delete(url);
+      if (response.statusCode == 200) {
+        print('Company deleted successfully');
+        await fetchCompanies();
+      } else {
+        throw Exception('Failed to delete company');
+      }
+    } catch (e) {
+      print('ERROR deleteCompany: $e');
+      rethrow;
+    }
+  }
 
-  void updateCompany(String companyId, Map<String, dynamic> updatedData) {}
+  void updateCompany(String companyId, Map<String, dynamic> updatedData) async {
+    try {
+      final url = Uri.https(_baseUrl, '/users/companies/$companyId.json');
+      final response = await http.patch(url, body: json.encode(updatedData));
+      if (response.statusCode == 200) {
+        print('Company updated successfully');
+        await fetchCompanies();
+      } else {
+        throw Exception('Failed to update company');
+      }
+    } catch (e) {
+      print('ERROR updateCompany: $e');
+      rethrow;
+    }
+  }
+
+  Future<Company?> fetchCompanyById(String companyId) async {
+    try {
+      final url = Uri.https(_baseUrl, '/users/companies/$companyId.json');
+      final response = await http.get(url);
+
+      if (response.statusCode == 200 && response.body != 'null') {
+        final Map<String, dynamic> companyMap = json.decode(response.body);
+        return Company.fromJson(companyMap);
+      }
+      return null;
+    } catch (e) {
+      print('ERROR fetchCompanyById: $e');
+      rethrow;
+    }
+  }
 
   Future<List<Company>> fetchCompanies() async {
     try {
@@ -92,20 +233,86 @@ class SokaService extends ChangeNotifier {
   //-----------------------------------------
   //-----------------------------------------
 
-
-
-
   //-----------------------------------------
   //-----------------------------------------
   //EVENTS
-  void createEvent(String title) {}
+  Future<int> createEvent(Event newEvent) async {
+    try {
+      events.clear();
+      final url = Uri.https(_baseUrl, '/events.json');
+      final response = await http.post(
+        url,
+        body: json.encode(newEvent.toJson()),
+      );
+      if (response.statusCode == 200) {
+        print('Event created successfully: ${response.body}');
+        await fetchEvents();
+      } else {
+        print(
+          'Failed to create event. Status code: ${response.statusCode}, Response body: ${response.body}',
+        );
+        throw Exception('Failed to create event');
+      }
+      return response.statusCode;
+    } catch (e) {
+      print('ERROR createEvent: $e');
+      rethrow;
+    }
+  }
 
-  void deleteEvent(String eventId) {}
+  Future<void> deleteEvent(String eventId) async {
+    try {
+      final url = Uri.https(_baseUrl, '/events/$eventId.json');
+      final response = await http.delete(url);
+      if (response.statusCode == 200) {
+        print('Event deleted successfully');
+        await fetchEvents();
+      } else {
+        throw Exception('Failed to delete event');
+      }
+    } catch (e) {
+      print('ERROR deleteEvent: $e');
+      rethrow;
+    }
+  }
 
-  void updateEvent(String eventId, Map<String, dynamic> updatedData) {}
+  Future<void> updateEvent(
+    String eventId,
+    Map<String, dynamic> updatedData,
+  ) async {
+    try {
+      final url = Uri.https(_baseUrl, '/events/$eventId.json');
+      final response = await http.patch(url, body: json.encode(updatedData));
+      if (response.statusCode == 200) {
+        print('Event updated successfully');
+        await fetchEvents();
+      } else {
+        throw Exception('Failed to update event');
+      }
+    } catch (e) {
+      print('ERROR updateEvent: $e');
+      rethrow;
+    }
+  }
+
+  Future<Event?> fetchEventById(String eventId) async {
+    try {
+      final url = Uri.https(_baseUrl, '/events/$eventId.json');
+      final response = await http.get(url);
+
+      if (response.statusCode == 200 && response.body != 'null') {
+        final Map<String, dynamic> eventMap = json.decode(response.body);
+        return Event.fromJson(eventMap);
+      }
+      return null;
+    } catch (e) {
+      print('ERROR fetchEventById: $e');
+      rethrow;
+    }
+  }
 
   Future<List<Event>> fetchEvents() async {
-        try {
+    try {
       events.clear();
       final url = Uri.https(_baseUrl, '/events.json');
       final response = await http.get(url);
@@ -126,15 +333,84 @@ class SokaService extends ChangeNotifier {
   //-----------------------------------------
   //-----------------------------------------
 
-
-
-
   //-----------------------------------------
   //-----------------------------------------
   //SOLD TICKETS
-  void createSoldTicket(String holderName) {}
-  void deleteSoldTicket(String ticketId) {}
-  void updateSoldTicket(String ticketId, Map<String, dynamic> updatedData) {}
+  Future<int> createSoldTicket(SoldTicket newTicket) async {
+    try {
+      soldTickets.clear();
+      final url = Uri.https(_baseUrl, '/soldTickets.json');
+      final response = await http.post(
+        url,
+        body: json.encode(newTicket.toJson()),
+      );
+      if (response.statusCode == 200) {
+        print('Sold ticket created successfully: ${response.body}');
+        await fetchSoldTickets();
+      } else {
+        print(
+          'Failed to create sold ticket. Status code: ${response.statusCode}, Response body: ${response.body}',
+        );
+        throw Exception('Failed to create sold ticket');
+      }
+      return response.statusCode;
+    } catch (e) {
+      print('ERROR createSoldTicket: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> deleteSoldTicket(String ticketId) async {
+    try {
+      final url = Uri.https(_baseUrl, '/soldTickets/$ticketId.json');
+      final response = await http.delete(url);
+      if (response.statusCode == 200) {
+        print('Sold ticket deleted successfully');
+        await fetchSoldTickets();
+      } else {
+        throw Exception('Failed to delete sold ticket');
+      }
+    } catch (e) {
+      print('ERROR deleteSoldTicket: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> updateSoldTicket(
+    String ticketId,
+    Map<String, dynamic> updatedData,
+  ) async {
+    try {
+      final url = Uri.https(_baseUrl, '/soldTickets/$ticketId.json');
+      final response = await http.patch(url, body: json.encode(updatedData));
+      if (response.statusCode == 200) {
+        print('Sold ticket updated successfully');
+        await fetchSoldTickets();
+      } else {
+        throw Exception('Failed to update sold ticket');
+      }
+    } catch (e) {
+      print('ERROR updateSoldTicket: $e');
+      rethrow;
+    }
+  }
+
+  Future<SoldTicket?> fetchSoldTicketById(String ticketId) async {
+    try {
+      final url = Uri.https(_baseUrl, '/soldTickets/$ticketId.json');
+      final response = await http.get(url);
+
+      if (response.statusCode == 200 && response.body != 'null') {
+        final Map<String, dynamic> ticketMap = json.decode(response.body);
+        return SoldTicket.fromJson(ticketMap);
+      }
+      return null;
+    } catch (e) {
+      print('ERROR fetchSoldTicketById: $e');
+      rethrow;
+    }
+  }
+
   Future<List<SoldTicket>> fetchSoldTickets() async {
     try {
       soldTickets.clear();
@@ -156,7 +432,7 @@ class SokaService extends ChangeNotifier {
       rethrow;
     }
   }
-  //-----------------------------------------
-  //-----------------------------------------
 
+  //-----------------------------------------
+  //-----------------------------------------
 }
