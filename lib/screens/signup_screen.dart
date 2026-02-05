@@ -35,6 +35,7 @@ class _SignupScreenState extends State<SignupScreen> {
 
   Future<void> _signup() async {
     if (!_formKey.currentState!.validate()) return;
+    if (isLoading) return;
 
     setState(() => isLoading = true);
 
@@ -62,7 +63,10 @@ class _SignupScreenState extends State<SignupScreen> {
           surname: surnameController.text.trim(),
           userName: userNameController.text.trim(),
         );
-        await sokaService.createClientWithId(user.uid, client);
+        final status = await sokaService.createClientWithId(user.uid, client);
+        if (status == 200) {
+          await sokaService.deleteCompany(user.uid);
+        }
       } else {
         final company = Company(
           companyName: companyNameController.text.trim(),
@@ -77,7 +81,10 @@ class _SignupScreenState extends State<SignupScreen> {
           description: companyDescriptionController.text.trim(),
           verified: false,
         );
-        await sokaService.createCompany(user.uid, company);
+        final status = await sokaService.createCompany(user.uid, company);
+        if (status == 200) {
+          await sokaService.deleteClient(user.uid);
+        }
       }
     } catch (e) {
       // Handle error, e.g., show a snackbar or print the error
