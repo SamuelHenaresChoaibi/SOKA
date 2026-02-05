@@ -1,10 +1,12 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
+  final DatabaseReference _db = FirebaseDatabase.instance.ref();
 
   // Login
   Future<User?> login(String email, String password) async {
@@ -71,6 +73,14 @@ class AuthService {
       email: email.trim(),
       password: password.trim(),
     );
+
+    final String uid = credential.user!.uid;
+    debugPrint('User created with UID: $uid');
+
+    await _db.child('users/$uid').set({
+      'email': email.trim(),
+      'createdAt': DateTime.now().toIso8601String(),
+    });
     return credential.user;
   }
 
