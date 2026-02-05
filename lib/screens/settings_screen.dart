@@ -15,6 +15,7 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   late final User? _user;
   late final Future<Client?> _clientFuture;
+  late final Future<Company?> _companyFuture;
 
   @override
   void initState() {
@@ -23,6 +24,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _clientFuture = _user == null
         ? Future.value(null)
         : context.read<SokaService>().fetchClientById(_user!.uid);
+    _companyFuture = _user == null
+        ? Future.value(null)
+        : context.read<SokaService>().fetchCompanyById(_user!.uid);
   }
 
   @override
@@ -32,12 +36,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
       body: Column(
         children: [
           Card(
-            child: FutureBuilder<Client?>(
-              future: _clientFuture,
+            child: FutureBuilder<List<dynamic>>(
+              future: Future.wait<dynamic>([_clientFuture, _companyFuture]),
               builder: (context, snapshot) {
-                final client = snapshot.data;
-                final name =
-                    client?.userName ?? _user?.displayName ?? 'Usuario';
+                final Client? client =
+                    snapshot.data != null ? snapshot.data![0] as Client? : null;
+                final Company? company =
+                    snapshot.data != null ? snapshot.data![1] as Company? : null;
+
+                final displayName = company?.companyName ??
+                    client?.userName ??
+                    _user?.displayName ??
+                    'Usuario';
                 final email = _user?.email ?? client?.email ?? 'Sin correo';
 
                 return ListTile(
@@ -45,7 +55,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   title: Text(
                     snapshot.connectionState == ConnectionState.waiting
                         ? 'Cargando...'
-                        : name,
+                        : displayName,
                   ),
                   subtitle: Text(
                     snapshot.connectionState == ConnectionState.waiting
