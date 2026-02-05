@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:soka/screens/login_screen.dart';
 import 'package:soka/services/auth_gate.dart';
 
 class SettingsScreen extends StatelessWidget {
