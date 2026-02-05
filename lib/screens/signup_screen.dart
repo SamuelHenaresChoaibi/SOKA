@@ -1,7 +1,6 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:soka/services/auth_service.dart';
-import 'package:soka/widgets/toggleButton_widget.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
