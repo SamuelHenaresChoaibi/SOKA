@@ -338,22 +338,24 @@ class _SignupScreenState extends State<SignupScreen> {
       const SizedBox(height: 16.0),
       _textInput(
         controller: companyAddressController,
-        label: 'Dirección',
+        label: 'Address',
       ),
       const SizedBox(height: 16.0),
       _textInput(
         controller: companyWebsiteController,
-        label: 'Sitio web',
+        label: 'Website',
+        required: false,
       ),
       const SizedBox(height: 16.0),
       _textInput(
         controller: companyInstagramController,
         label: 'Instagram',
+        required: false,
       ),
       const SizedBox(height: 16.0),
       TextFormField(
         controller: companyDescriptionController,
-        decoration: const InputDecoration(labelText: 'Descripción'),
+        decoration: const InputDecoration(labelText: 'Description'),
         maxLines: 3,
         validator: (value) {
           if (value == null || value.isEmpty) {
@@ -371,6 +373,7 @@ class _SignupScreenState extends State<SignupScreen> {
     TextInputType? keyboardType,
     bool readOnly = false,
     VoidCallback? onTap,
+    bool required = true,
   }) {
     return TextFormField(
       controller: controller,
@@ -378,7 +381,7 @@ class _SignupScreenState extends State<SignupScreen> {
       readOnly: readOnly,
       onTap: onTap,
       validator: (value) {
-        if (value == null || value.isEmpty) {
+        if (required && (value == null || value.isEmpty)) {
           return 'Campo obligatorio';
         }
         return null;
