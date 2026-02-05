@@ -18,15 +18,16 @@
       "validated": true
     }
   },
-  "sellTickets": {
-    "eventId": "bcm_00001",
-    "holderName": "Wisdom Imade Isibor",
-    "idTicket": 1,
-    "purchaseDate": "2026-01-29T09:45:00Z",
-    "qrCode": "BCM-2026-S4M-VIP-001",
-    "scanned": false,
-    "ticketType": "VIP",
-    "userId": "s4m"
+  "soldTickets": {
+    "ticket_0000001": {
+      "eventId": "bcm_00001",
+      "idTicket": 1,
+      "purchaseDate": "2026-01-29T09:45:00Z",
+      "qrCode": "BCM-2026-S4M-VIP-001",
+      "scanned": false,
+      "ticketType": "VIP",
+      "userId": "s4m"
+    }
   },
   "users": {
     "clients": {
@@ -57,8 +58,7 @@
         "createdAt": "2026-01-29T09:00:00Z",
         "description": "BCM Mallorca is the nightclub by reference of Mallorca nightlife. It is the biggest Club on the island and one of the best nightclubs in the world",
         "verified": true
-      },
-      "superAdmins": ""
+      }
     }
   }
 }

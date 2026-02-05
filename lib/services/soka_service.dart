@@ -20,7 +20,7 @@ class SokaService extends ChangeNotifier {
     await fetchClients();
     await fetchCompanies();
     await fetchEvents();
-    //await fetchSoldTickets();
+    await fetchSoldTickets();
   }
 
   //-----------------------------------------
@@ -133,8 +133,29 @@ class SokaService extends ChangeNotifier {
   //-----------------------------------------
   //SOLD TICKETS
   void createSoldTicket(String holderName) {}
-
+  void deleteSoldTicket(String ticketId) {}
   void updateSoldTicket(String ticketId, Map<String, dynamic> updatedData) {}
+  Future<List<SoldTicket>> fetchSoldTickets() async {
+    try {
+      soldTickets.clear();
+      final url = Uri.https(_baseUrl, '/soldTickets.json');
+      final response = await http.get(url);
+
+      if (response.statusCode == 200 && response.body != 'null') {
+        print('Response Body: ${response.body}');
+        final Map<String, dynamic> ticketsMap = json.decode(response.body);
+        ticketsMap.forEach((key, value) {
+          soldTickets.add(SoldTicket.fromJson(value));
+        });
+      }
+
+      notifyListeners();
+      return soldTickets;
+    } catch (e) {
+      print('ERROR fetchSoldTickets: $e');
+      rethrow;
+    }
+  }
   //-----------------------------------------
   //-----------------------------------------
 
