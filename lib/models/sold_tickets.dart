@@ -21,14 +21,14 @@ class SoldTicket {
 
   factory SoldTicket.fromJson(Map<String, dynamic> json) {
     return SoldTicket(
-      eventId: json['eventId'],
-      holderName: json['holderName'],
-      idTicket: json['idTicket'],
-      purchaseDate: DateTime.parse(json['purchaseDate']),
-      qrCode: json['qrCode'],
-      scanned: json['scanned'],
-      ticketType: json['ticketType'],
-      userId: json['userId'],
+      eventId: json['eventId']?.toString() ?? '',
+      holderName: json['holderName']?.toString() ?? '',
+      idTicket: _parseInt(json['idTicket']),
+      purchaseDate: _parseDate(json['purchaseDate']),
+      qrCode: json['qrCode']?.toString() ?? '',
+      scanned: json['scanned'] == true,
+      ticketType: json['ticketType']?.toString() ?? '',
+      userId: json['userId']?.toString() ?? '',
     );
   }
 
@@ -43,5 +43,19 @@ class SoldTicket {
       'ticketType': ticketType,
       'userId': userId,
     };
+  }
+
+  /// Helpers seguros
+  static int _parseInt(dynamic value) {
+    if (value is int) return value;
+    if (value is String) return int.tryParse(value) ?? 0;
+    return 0;
+  }
+
+  static DateTime _parseDate(dynamic value) {
+    if (value is String && value.isNotEmpty) {
+      return DateTime.tryParse(value) ?? DateTime.now();
+    }
+    return DateTime.now();
   }
 }

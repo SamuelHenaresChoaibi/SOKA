@@ -50,25 +50,46 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _loginWithGoogle() async {
-    setState(() => isLoading = true);
-    try {
-      final user = await authService.signInWithGoogle();
-      if (user == null) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Inicio con Google cancelado')),
-        );
-      }
-      // AuthGate se encarga de la navegación
-    } on FirebaseAuthException catch (e) {
+  if (!mounted) return;
+
+  setState(() => isLoading = true);
+
+  try {
+    final user = await authService.signInWithGoogle();
+
+    if (user == null) {
       if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message ?? 'Error con Google')),
+        const SnackBar(
+          content: Text('Inicio de sesión con Google cancelado'),
+        ),
       );
-    } finally {
-      if (mounted) setState(() => isLoading = false);
+      return;
+    }
+  } on FirebaseAuthException catch (e) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(e.message ?? 'Error al iniciar sesión con Google'),
+      ),
+    );
+  } catch (e) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Error inesperado. Intenta nuevamente.'),
+      ),
+    );
+  } finally {
+    if (mounted) {
+      setState(() => isLoading = false);
     }
   }
+}
+
 
   @override
   void dispose() {

@@ -1,8 +1,29 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:soka/models/models.dart';
 import 'package:soka/services/auth_gate.dart';
+import 'package:soka/services/services.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  late final User? _user;
+  late final Future<Client?> _clientFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _user = FirebaseAuth.instance.currentUser;
+    _clientFuture = _user == null
+        ? Future.value(null)
+        : context.read<SokaService>().fetchClientById(_user!.uid);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -11,13 +32,30 @@ class SettingsScreen extends StatelessWidget {
       body: Column(
         children: [
           Card(
-            child: ListTile(
-              leading: const Icon(Icons.account_circle, size: 40),
-              title: const Text("Username"),
-              subtitle: const Text("correo@gmail.com"),
+            child: FutureBuilder<Client?>(
+              future: _clientFuture,
+              builder: (context, snapshot) {
+                final client = snapshot.data;
+                final name =
+                    client?.userName ?? _user?.displayName ?? 'Usuario';
+                final email = _user?.email ?? client?.email ?? 'Sin correo';
 
-              onTap: () {
-                // Navigate to account settings page
+                return ListTile(
+                  leading: const Icon(Icons.account_circle, size: 40),
+                  title: Text(
+                    snapshot.connectionState == ConnectionState.waiting
+                        ? 'Cargando...'
+                        : name,
+                  ),
+                  subtitle: Text(
+                    snapshot.connectionState == ConnectionState.waiting
+                        ? 'Cargando...'
+                        : email,
+                  ),
+                  onTap: () {
+                    // Navigate to account settings page
+                  },
+                );
               },
             ),
           ),

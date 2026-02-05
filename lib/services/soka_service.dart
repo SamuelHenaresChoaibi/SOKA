@@ -162,7 +162,7 @@ class SokaService extends ChangeNotifier {
     }
   }
 
-  void deleteCompany(String companyId) async {
+  Future<void> deleteCompany(String companyId) async {
     try {
       final url = Uri.https(_baseUrl, '/users/companies/$companyId.json');
       final response = await http.delete(url);
