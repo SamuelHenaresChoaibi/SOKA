@@ -34,7 +34,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.ligthTheme,
       title: 'SOKA',
-      initialRoute: '/',
+      initialRoute: 'homePage',
       routes: {
         'homePage': (context) => const HomeScreen(),
         'login': (context) => const LoginScreen(),
