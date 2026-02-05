@@ -32,19 +32,6 @@ class _HomeScreenState extends State<HomeScreen> {
     ];
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('SOKA Home'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () async {
-              await AuthGate().signOut();
-            },
-          ),
-        ],
-      ),
-
-      drawer: Drawer(child: ListView(padding: EdgeInsets.zero)),
 
       body: pages[_selectedIndex],
 
