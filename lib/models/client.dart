@@ -21,14 +21,16 @@ class Client {
 
   factory Client.fromJson(Map<String, dynamic> json) {
     return Client(
-      age: json['age'],
-      createdAt: DateTime.parse(json['createdAt']),
-      email: json['email'],
-      interests: List<String?>.from(json['interests']),
-      name: json['name'],
-      phoneNumber: json['phoneNumber'],
-      surname: json['surname'],
-      userName: json['userName'],
+      age: (json['age'] ?? 0) as int,
+      createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
+          DateTime.now(),
+      email: json['email'] ?? '',
+      interests:
+          List<String?>.from((json['interests'] ?? const <String?>[])),
+      name: json['name'] ?? '',
+      phoneNumber: json['phoneNumber'] ?? '',
+      surname: json['surname'] ?? '',
+      userName: json['userName'] ?? '',
     );
   }
 
