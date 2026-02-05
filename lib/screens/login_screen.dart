@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:soka/theme/app_colors.dart';
 import '../services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -80,6 +81,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -107,7 +109,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       onPressed: isLoading ? null : _login,
                       child: isLoading
                           ? const CircularProgressIndicator(
-                              color: Colors.white,
+                              color: AppColors.surface,
                             )
                           : const Text('Iniciar sesión'),
                     ),
@@ -116,12 +118,12 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   Row(
                     children: const [
-                      Expanded(child: Divider()),
+                      Expanded(child: Divider(color: AppColors.border)),
                       Padding(
                         padding: EdgeInsets.symmetric(horizontal: 8),
                         child: Text('o'),
                       ),
-                      Expanded(child: Divider()),
+                      Expanded(child: Divider(color: AppColors.border)),
                     ],
                   ),
                   const SizedBox(height: 12),
@@ -193,6 +195,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return TextFormField(
       controller: controller,
       obscureText: obscure,
+      style: const TextStyle(color: AppColors.textPrimary),
       validator: (value) {
         if (value == null || value.isEmpty) {
           return 'Campo obligatorio';
@@ -207,9 +210,10 @@ class _LoginScreenState extends State<LoginScreen> {
       },
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: icon != null ? Icon(icon) : null,
+        prefixIcon: icon != null ? Icon(icon, color: AppColors.textSecondary) : null,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.border),
         ),
       ),
     );

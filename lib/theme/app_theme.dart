@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:soka/theme/app_colors.dart';
 
 class AppTheme {
   static ThemeData ligthTheme = ThemeData(
-    primaryColor: const Color(0xFF222222),
-    scaffoldBackgroundColor: const Color.fromARGB(255, 34, 34, 34),
+    primaryColor: AppColors.primary,
+    scaffoldBackgroundColor: AppColors.background,
     appBarTheme: const AppBarTheme(
-      backgroundColor: Color(0xFFF2F2F2),
-      foregroundColor: Color(0xFF262626),
+      backgroundColor: AppColors.surface,
+      foregroundColor: AppColors.textPrimary,
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: const Color(0xFFF2F2F2),
+      fillColor: AppColors.secondary,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(8),
         borderSide: BorderSide.none,
@@ -18,32 +19,32 @@ class AppTheme {
     ),
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFF262626),
-        foregroundColor: const Color(0xFFF2F2F2),
+        backgroundColor: AppColors.primary,
+        foregroundColor: AppColors.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
     ),
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
-        foregroundColor: const Color.fromARGB(255, 230, 209, 28),
+        foregroundColor: AppColors.accent,
       ),
     ),
     textTheme: const TextTheme(
-      bodyMedium: TextStyle(color: Color(0xFFF2F2F2)),
-      bodySmall: TextStyle(color: Color(0xFFF2F2F2)),
+      bodyMedium: TextStyle(color: AppColors.textPrimary),
+      bodySmall: TextStyle(color: AppColors.textSecondary),
     ),
 
     bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-      backgroundColor: Color(0xFF262626),
-      selectedItemColor: Color.fromARGB(255, 230, 209, 28),
-      unselectedItemColor: Color(0xFF888888),
-      unselectedLabelStyle: TextStyle(color: Color(0xFF262626)),
+      backgroundColor: AppColors.primary,
+      selectedItemColor: AppColors.accent,
+      unselectedItemColor: AppColors.textMuted,
+      unselectedLabelStyle: TextStyle(color: AppColors.textSecondary),
     ),
 
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
-        foregroundColor: const Color(0xFFF2F2F2),
-        side: const BorderSide(color: Color(0xFFF2F2F2)),
+        foregroundColor: AppColors.textPrimary,
+        side: const BorderSide(color: AppColors.border),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       ),
     ),
