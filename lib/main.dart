@@ -6,6 +6,8 @@ import 'package:soka/firebase_options.dart';
 import 'package:soka/screens/home_screen.dart';
 import 'package:soka/screens/login_screen.dart';
 import 'package:soka/screens/signup_screen.dart';
+import 'package:soka/screens/event_details_screen.dart';
+import 'package:soka/models/models.dart';
 import 'package:soka/services/services.dart';
 import 'package:soka/theme/app_theme.dart';
 
@@ -41,6 +43,15 @@ class MyApp extends StatelessWidget {
         'register': (context) => const SignupScreen(),
         //'registerCompany': (context) => const RegisterCompanyScreen(),
         '/': (context) => const AuthGate(),
+      },
+      onGenerateRoute: (settings) {
+        if (settings.name == 'details') {
+          final event = settings.arguments as Event;
+          return MaterialPageRoute(
+            builder: (context) => EventDetailsScreen(event: event),
+          );
+        }
+        return null;
       },
     );
   }

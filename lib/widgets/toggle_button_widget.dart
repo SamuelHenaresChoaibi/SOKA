@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:soka/theme/app_colors.dart';
 
 /// Flutter code sample for [ToggleButtons].
 
@@ -54,10 +55,10 @@ class _ToggleButtonsSampleState extends State<ToggleButtonsSample> {
                   });
                 },
                 borderRadius: const BorderRadius.all(Radius.circular(8)),
-                selectedBorderColor: Colors.red[700],
-                selectedColor: Colors.white,
-                fillColor: Colors.red[200],
-                color: Colors.red[400],
+                selectedBorderColor: AppColors.primary,
+                selectedColor: AppColors.primary,
+                fillColor: AppColors.accent,
+                color: AppColors.textSecondary,
                 constraints: const BoxConstraints(minHeight: 40.0, minWidth: 80.0),
                 isSelected: _selectedUserType,
                 children: userType,
@@ -75,10 +76,10 @@ class _ToggleButtonsSampleState extends State<ToggleButtonsSample> {
                   });
                 },
                 borderRadius: const BorderRadius.all(Radius.circular(8)),
-                selectedBorderColor: Colors.green[700],
-                selectedColor: Colors.white,
-                fillColor: Colors.green[200],
-                color: Colors.green[400],
+                selectedBorderColor: AppColors.primary,
+                selectedColor: AppColors.primary,
+                fillColor: AppColors.accent,
+                color: AppColors.textSecondary,
                 constraints: const BoxConstraints(minHeight: 40.0, minWidth: 80.0),
                 isSelected: _selectedUserType,
                 children: userType,
@@ -98,10 +99,10 @@ class _ToggleButtonsSampleState extends State<ToggleButtonsSample> {
                   });
                 },
                 borderRadius: const BorderRadius.all(Radius.circular(8)),
-                selectedBorderColor: Colors.blue[700],
-                selectedColor: Colors.white,
-                fillColor: Colors.blue[200],
-                color: Colors.blue[400],
+                selectedBorderColor: AppColors.primary,
+                selectedColor: AppColors.primary,
+                fillColor: AppColors.accent,
+                color: AppColors.textSecondary,
                 isSelected: _selectedUserType,
                 children: userType,
               ),

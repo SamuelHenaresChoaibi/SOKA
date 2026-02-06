@@ -127,6 +127,7 @@ class _SignupScreenState extends State<SignupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -172,6 +173,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   const SizedBox(height: 16.0),
                   TextFormField(
                     controller: emailController,
+                    style: const TextStyle(color: AppColors.textPrimary),
                     decoration: const InputDecoration(labelText: 'Email'),
                     keyboardType: TextInputType.emailAddress,
                     validator: (value) {
@@ -190,6 +192,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   const SizedBox(height: 16.0),
                   TextFormField(
                     controller: passwordController,
+                    style: const TextStyle(color: AppColors.textPrimary),
                     decoration: const InputDecoration(labelText: 'Password'),
                     obscureText: true,
                     validator: (value) {
@@ -213,12 +216,12 @@ class _SignupScreenState extends State<SignupScreen> {
                   const SizedBox(height: 16.0),
                   Row(
                     children: const [
-                      Expanded(child: Divider()),
+                      Expanded(child: Divider(color: AppColors.border)),
                       Padding(
                         padding: EdgeInsets.symmetric(horizontal: 8),
                         child: Text('o'),
                       ),
-                      Expanded(child: Divider()),
+                      Expanded(child: Divider(color: AppColors.border)),
                     ],
                   ),
                   const SizedBox(height: 12),
