@@ -30,34 +30,49 @@ class AuthService {
 
   // Login/Signup con Google (Firebase crea la cuenta si no existe)
   Future<User?> signInWithGoogle() async {
-    try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+  try {
+    // Ensure fresh login (important!)
+    await _googleSignIn.signOut();
 
-      if (googleUser == null) {
-        // El usuario canceló el login
-        return null;
-      }
+    final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
 
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
-
-      final AuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-
-      final UserCredential userCredential =
-          await _auth.signInWithCredential(credential);
-
-      return userCredential.user;
-    } on FirebaseAuthException catch (e) {
-      debugPrint('FirebaseAuthException: ${e.code} - ${e.message}');
-      rethrow;
-    } catch (e) {
-      debugPrint('Google Sign-In error: $e');
-      rethrow;
+    if (googleUser == null) {
+      // User cancelled the login
+      return null;
     }
+
+    final GoogleSignInAuthentication googleAuth =
+        await googleUser.authentication;
+
+    if (googleAuth.idToken == null) {
+      throw FirebaseAuthException(
+        code: 'missing-id-token',
+        message: 'Google ID token is null',
+      );
+    }
+
+    final AuthCredential credential = GoogleAuthProvider.credential(
+      accessToken: googleAuth.accessToken,
+      idToken: googleAuth.idToken,
+    );
+
+    final UserCredential userCredential =
+        await FirebaseAuth.instance.signInWithCredential(credential);
+
+    return userCredential.user;
+  } on FirebaseAuthException catch (e) {
+    debugPrint('FirebaseAuthException');
+    debugPrint('Code: ${e.code}');
+    debugPrint('Message: ${e.message}');
+    rethrow;
+  } catch (e, stackTrace) {
+    debugPrint('Google Sign-In error');
+    debugPrint(e.toString());
+    debugPrint(stackTrace.toString());
+    rethrow;
   }
+}
+
 
   // Signup
   Future<User?> signup(String email, String password) async {
