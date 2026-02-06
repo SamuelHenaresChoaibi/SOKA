@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
+<<<<<<< HEAD
 import 'package:table_calendar/table_calendar.dart';
+=======
+>>>>>>> UI
 
 class CalendarScreen extends StatelessWidget {
   const CalendarScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+<<<<<<< HEAD
     return Scaffold(
       appBar: AppBar(
         title: const Text('Calendar Page')),
@@ -33,5 +37,8 @@ class CalendarScreen extends StatelessWidget {
         ],
       ),
     );
+=======
+    return const Placeholder();
+>>>>>>> UI
   }
 }
