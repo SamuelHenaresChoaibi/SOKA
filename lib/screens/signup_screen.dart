@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:soka/models/models.dart';
 import 'package:soka/services/auth_service.dart';
 import 'package:soka/services/services.dart';
+import 'package:soka/theme/app_colors.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
