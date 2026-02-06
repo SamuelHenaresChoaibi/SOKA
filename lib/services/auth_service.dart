@@ -1,9 +1,12 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
+import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
+  final DatabaseReference _db = FirebaseDatabase.instance.ref();
 
   // Login
   Future<User?> login(String email, String password) async {
@@ -25,21 +28,35 @@ class AuthService {
     await _googleSignIn.signOut();
   }
 
-  // Login con Google
+  // Login/Signup con Google (Firebase crea la cuenta si no existe)
   Future<User?> signInWithGoogle() async {
-    final googleUser = await _googleSignIn.signIn();
-    if (googleUser == null) {
-      return null;
+    try {
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+
+      if (googleUser == null) {
+        // El usuario canceló el login
+        return null;
+      }
+
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
+      final AuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      final UserCredential userCredential =
+          await _auth.signInWithCredential(credential);
+
+      return userCredential.user;
+    } on FirebaseAuthException catch (e) {
+      debugPrint('FirebaseAuthException: ${e.code} - ${e.message}');
+      rethrow;
+    } catch (e) {
+      debugPrint('Google Sign-In error: $e');
+      rethrow;
     }
-
-    final googleAuth = await googleUser.authentication;
-    final credential = GoogleAuthProvider.credential(
-      accessToken: googleAuth.accessToken,
-      idToken: googleAuth.idToken,
-    );
-
-    final userCredential = await _auth.signInWithCredential(credential);
-    return userCredential.user;
   }
 
   // Signup
@@ -56,22 +73,20 @@ class AuthService {
       email: email.trim(),
       password: password.trim(),
     );
+
+    final String uid = credential.user!.uid;
+    debugPrint('User created with UID: $uid');
+
+    await _db.child('users/$uid').set({
+      'email': email.trim(),
+      'createdAt': DateTime.now().toIso8601String(),
+    });
     return credential.user;
   }
 
-  // Signup con Google
+  // Signup con Google (alias del login con Google)
   Future<User?> signupWithGoogle() async {
-    final googleUser = await _googleSignIn.signIn();
-    if (googleUser == null) {
-      return null;
-    }
-    final googleAuth = await googleUser.authentication;
-    final credential = GoogleAuthProvider.credential(
-      accessToken: googleAuth.accessToken,
-      idToken: googleAuth.idToken,
-    );
-
-    final userCredential = await _auth.signInWithCredential(credential);
-    return userCredential.user;
+    return signInWithGoogle();
   }
+
 }

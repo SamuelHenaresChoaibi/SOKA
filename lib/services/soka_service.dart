@@ -73,6 +73,27 @@ class SokaService extends ChangeNotifier {
     }
   }
 
+  Future<void> updateCompany(
+    String companyId,
+    Map<String, dynamic> updatedData,
+  ) async {
+    try {
+      final url = Uri.https(_baseUrl, '/users/companies/$companyId.json');
+      final response = await http.patch(url, body: json.encode(updatedData));
+      if (response.statusCode == 200) {
+        print('Company updated successfully');
+        await fetchCompanies();
+      } else {
+        throw Exception('Failed to update company');
+      }
+    } catch (e) {
+      print('ERROR updateCompany: $e');
+      rethrow;
+    }
+  }
+
+  
+
   Future<Client?> fetchClientById(String clientId) async {
     try {
       final url = Uri.https(_baseUrl, '/users/clients/$clientId.json');
@@ -162,7 +183,7 @@ class SokaService extends ChangeNotifier {
     }
   }
 
-  void deleteCompany(String companyId) async {
+  Future<void> deleteCompany(String companyId) async {
     try {
       final url = Uri.https(_baseUrl, '/users/companies/$companyId.json');
       final response = await http.delete(url);
@@ -174,22 +195,6 @@ class SokaService extends ChangeNotifier {
       }
     } catch (e) {
       print('ERROR deleteCompany: $e');
-      rethrow;
-    }
-  }
-
-  void updateCompany(String companyId, Map<String, dynamic> updatedData) async {
-    try {
-      final url = Uri.https(_baseUrl, '/users/companies/$companyId.json');
-      final response = await http.patch(url, body: json.encode(updatedData));
-      if (response.statusCode == 200) {
-        print('Company updated successfully');
-        await fetchCompanies();
-      } else {
-        throw Exception('Failed to update company');
-      }
-    } catch (e) {
-      print('ERROR updateCompany: $e');
       rethrow;
     }
   }

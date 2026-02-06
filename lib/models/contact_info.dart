@@ -15,11 +15,11 @@ class ContactInfo {
 
   factory ContactInfo.fromJson(Map<String, dynamic> json) {
     return ContactInfo(
-      adress: json['adress'],
-      email: json['email'],
-      instagram: json['instagram'],
-      phoneNumber: json['phoneNumber'],
-      website: json['website'],
+      adress: json['adress'] ?? '',
+      email: json['email'] ?? '',
+      instagram: json['instagram'] ?? '',
+      phoneNumber: json['phoneNumber'] ?? '',
+      website: json['website'] ?? '',
     );
   }
 

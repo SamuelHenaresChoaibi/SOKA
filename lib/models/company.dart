@@ -17,11 +17,14 @@ class Company {
 
   factory Company.fromJson(Map<String, dynamic> json) {
     return Company(
-      companyName: json['companyName'],
-      contactInfo: ContactInfo.fromJson(json['contactInfo']),
-      createdAt: DateTime.parse(json['createdAt']),
-      description: json['description'],
-      verified: json['verified'],
+      companyName: json['companyName'] ?? '',
+      contactInfo: ContactInfo.fromJson(
+        (json['contactInfo'] ?? {}) as Map<String, dynamic>,
+      ),
+      createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
+          DateTime.now(),
+      description: json['description'] ?? '',
+      verified: json['verified'] ?? false,
     );
   }
 
