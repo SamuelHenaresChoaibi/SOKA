@@ -5,6 +5,7 @@ import 'package:soka/models/models.dart';
 import 'package:soka/services/auth_gate.dart';
 import 'package:soka/services/services.dart';
 import 'package:soka/screens/account_settings_screen.dart';
+import 'package:soka/theme/app_colors.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -37,12 +38,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: Column(
           children: [
             Stack(
+              clipBehavior: Clip.none,
               children: [
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.fromLTRB(20, 56, 20, 72),
                   decoration: const BoxDecoration(
-                    color: Color(0xFF1E2B45),
+                    color: AppColors.primary,
                     borderRadius: BorderRadius.only(
                       bottomLeft: Radius.circular(28),
                       bottomRight: Radius.circular(28),
@@ -108,7 +110,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _user?.displayName ??
                 'Usuario';
             final email = _user?.email ?? client?.email ?? 'Sin correo';
-            final tagLabel = company != null ? 'Empresa' : 'Usuario';
+            final userType = company != null ? 'Empresa' : 'Usuario';
             final initials = (displayName.isNotEmpty)
                 ? displayName.trim().substring(0, 1).toUpperCase()
                 : 'U';
@@ -120,7 +122,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   children: [
                     CircleAvatar(
                       radius: 30,
-                      backgroundColor: const Color(0xFF6B7A99),
+                      backgroundColor: AppColors.accent,
                       child: Text(
                         initials,
                         style: const TextStyle(
@@ -176,23 +178,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFEFF3FA),
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: Text(
-                          tagLabel,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Color(0xFF1E2B45),
-                            fontWeight: FontWeight.w600,
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            snapshot.connectionState == ConnectionState.waiting
+                                ? 'Cargando...'
+                                : '',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF5F6C87),
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
-                        ),
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEFF3FA),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Text(
+                              snapshot.connectionState ==
+                                      ConnectionState.waiting
+                                  ? '...'
+                                  : userType,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF1E2B45),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
