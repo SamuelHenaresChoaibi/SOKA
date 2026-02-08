@@ -7,6 +7,7 @@ import 'package:soka/screens/home_screen.dart';
 import 'package:soka/screens/login_screen.dart';
 import 'package:soka/screens/signup_screen.dart';
 import 'package:soka/screens/event_details_screen.dart';
+import 'package:soka/screens/notifications_screen.dart';
 import 'package:soka/models/models.dart';
 import 'package:soka/services/services.dart';
 import 'package:soka/theme/app_theme.dart';
@@ -41,6 +42,7 @@ class MyApp extends StatelessWidget {
         'homePage': (context) => const HomeScreen(),
         'login': (context) => const LoginScreen(),
         'register': (context) => const SignupScreen(),
+        'notifications': (context) => const NotificationsScreen(),
         //'registerCompany': (context) => const RegisterCompanyScreen(),
         '/': (context) => const AuthGate(),
       },

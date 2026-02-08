@@ -63,7 +63,9 @@ class HomeHeader extends StatelessWidget {
                   const SizedBox(width: 12),
                   HeaderIconButton(
                     icon: Icons.notifications_none_rounded,
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.pushNamed(context, 'notifications');
+                    },
                   ),
                 ],
               ),
