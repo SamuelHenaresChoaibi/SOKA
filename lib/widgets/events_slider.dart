@@ -119,7 +119,7 @@ class _EventPosterState extends State<_EventPoster>
                       ),
                       child: SizedBox.expand(
                         child: FadeInImage(
-                          placeholder: const AssetImage('assets/no-image.jpg'),
+                          placeholder: const AssetImage('lib/assets/SOKA.png'),
                           image: NetworkImage(
                             'https://placehold.co/300x400/png',
                           ),

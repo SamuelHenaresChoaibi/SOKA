@@ -215,7 +215,7 @@ class _Hero extends StatelessWidget {
       children: [
         SizedBox.expand(
           child: FadeInImage(
-            placeholder: const AssetImage('assets/no-image.jpg'),
+            placeholder: const AssetImage('lib/assets/SOKA.png'),
             image: const NetworkImage('https://placehold.co/900x600/png'),
             fit: BoxFit.cover,
           ),
@@ -538,4 +538,3 @@ class _KeyValueRow extends StatelessWidget {
     );
   }
 }
-

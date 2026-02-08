@@ -18,6 +18,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late final User? _user;
   late final Future<Client?> _clientFuture;
   late final Future<Company?> _companyFuture;
+  bool _shareProfile = true;
+  bool _showEmail = false;
 
   @override
   void initState() {
@@ -256,7 +258,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   title: const Text("Privacy"),
                   subtitle: const Text("Manage your privacy settings"),
                   onTap: () {
-                    // TODO: Implement privacy settings navigation
+                    _showPrivacySheet(context);
                   },
                 ),
                 const Divider(height: 1),
@@ -303,6 +305,80 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 24),
         ],
       ),
+    );
+  }
+
+  void _showPrivacySheet(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Privacy',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                  ),
+                  const SizedBox(height: 12),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Share my profile'),
+                    subtitle: const Text('Allow others to see your public profile'),
+                    value: _shareProfile,
+                    onChanged: (value) {
+                      setModalState(() => _shareProfile = value);
+                      setState(() => _shareProfile = value);
+                    },
+                  ),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Show my email'),
+                    subtitle: const Text('Display email on my public profile'),
+                    value: _showEmail,
+                    onChanged: (value) {
+                      setModalState(() => _showEmail = value);
+                      setState(() => _showEmail = value);
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('Close'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            ScaffoldMessenger.of(this.context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Privacy settings updated'),
+                              ),
+                            );
+                          },
+                          child: const Text('Save'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }

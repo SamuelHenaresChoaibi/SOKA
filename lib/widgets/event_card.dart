@@ -51,7 +51,7 @@ class _EventCardState extends State<EventCard> {
               Stack(
                 children: [
                   FadeInImage(
-                    placeholder: const AssetImage('assets/no-image.jpg'),
+                    placeholder: const AssetImage('lib/assets/SOKA.png'),
                     image: const NetworkImage(
                       'https://placehold.co/800x500/png',
                     ),
