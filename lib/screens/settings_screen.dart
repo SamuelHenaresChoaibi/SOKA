@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
 import 'package:soka/models/models.dart';
 import 'package:soka/services/auth_gate.dart';
@@ -20,6 +21,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late final Future<Company?> _companyFuture;
   bool _shareProfile = true;
   bool _showEmail = false;
+  final TextEditingController _supportSubjectController =
+      TextEditingController();
+  final TextEditingController _supportMessageController =
+      TextEditingController();
+  final TextEditingController _supportEmailController = TextEditingController();
+
+  @override
+  void dispose() {
+    _supportSubjectController.dispose();
+    _supportMessageController.dispose();
+    _supportEmailController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -267,7 +281,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   title: const Text("Notifications"),
                   subtitle: const Text("Manage your notification settings"),
                   onTap: () {
-                    // TODO: Implement notification settings navigation
+                    Navigator.pushNamed(context, 'notifications');
                   },
                 ),
               ],
@@ -283,7 +297,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               title: const Text("Help & Support"),
               subtitle: const Text("Get help and support"),
               onTap: () {
-                //TODO: Implement help and support navigation
+                _showSupportSheet(context);
               },
             ),
           ),
@@ -377,6 +391,158 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             );
           },
+        );
+      },
+    );
+  }
+
+  Future<void> _showSupportSheet(BuildContext context) async {
+    final formKey = GlobalKey<FormState>();
+    final user = FirebaseAuth.instance.currentUser;
+    _supportEmailController.text = user?.email?.trim() ?? '';
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+
+        return Padding(
+          padding: EdgeInsets.fromLTRB(16, 16, 16, 24 + bottomInset),
+          child: Form(
+            key: formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Help & Support',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _supportEmailController,
+                  keyboardType: TextInputType.emailAddress,
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(
+                    labelText: 'Email de contacto',
+                  ),
+                  validator: (value) {
+                    final trimmed = value?.trim() ?? '';
+                    if (trimmed.isEmpty) {
+                      return 'Ingresa tu email de contacto';
+                    }
+                    if (!trimmed.contains('@')) {
+                      return 'Email inválido';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _supportSubjectController,
+                  textInputAction: TextInputAction.next,
+                  decoration: const InputDecoration(
+                    labelText: 'Asunto',
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Escribe un asunto';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _supportMessageController,
+                  keyboardType: TextInputType.multiline,
+                  maxLines: 5,
+                  decoration: const InputDecoration(
+                    labelText: 'Mensaje',
+                    alignLabelWithHint: true,
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Escribe tu mensaje';
+                    }
+                    if (value.trim().length < 10) {
+                      return 'Escribe un poco mas de detalle';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        child: const Text('Cancelar'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          if (!formKey.currentState!.validate()) {
+                            return;
+                          }
+
+                          final subject =
+                              _supportSubjectController.text.trim();
+                          final message =
+                              _supportMessageController.text.trim();
+                          final contactEmail =
+                              _supportEmailController.text.trim();
+
+                          final body = [
+                            'Email de contacto: $contactEmail',
+                            if (user?.uid != null) 'User ID: ${user!.uid}',
+                            if (user?.email != null)
+                              'Email registrado: ${user!.email}',
+                            '',
+                            message,
+                          ].join('\n');
+
+                          final uri = Uri(
+                            scheme: 'mailto',
+                            path: 'samuelhenaresch@gmail.com',
+                            queryParameters: <String, String>{
+                              'subject': subject,
+                              'body': body,
+                            },
+                          );
+
+                          final launched = await launchUrl(uri);
+                          if (!launched) {
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(this.context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'No se pudo abrir el correo en este dispositivo',
+                                ),
+                              ),
+                            );
+                            return;
+                          }
+
+                          _supportSubjectController.clear();
+                          _supportMessageController.clear();
+                          _supportEmailController.clear();
+                          if (!mounted) return;
+                          Navigator.pop(context);
+                        },
+                        child: const Text('Enviar'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
         );
       },
     );
