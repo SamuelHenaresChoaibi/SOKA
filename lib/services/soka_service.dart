@@ -307,7 +307,7 @@ class SokaService extends ChangeNotifier {
 
       if (response.statusCode == 200 && response.body != 'null') {
         final Map<String, dynamic> eventMap = json.decode(response.body);
-        return Event.fromJson(eventMap);
+        return Event.fromJson(eventMap, id: eventId);
       }
       return null;
     } catch (e) {
@@ -324,7 +324,7 @@ class SokaService extends ChangeNotifier {
       if (response.statusCode == 200 && response.body != 'null') {
         final Map<String, dynamic> eventsMap = json.decode(response.body);
         eventsMap.forEach((key, value) {
-          events.add(Event.fromJson(value));
+          events.add(Event.fromJson(value, id: key));
         });
       }
 

@@ -1,6 +1,7 @@
 import 'models.dart';
 
 class Event {
+  final String id;
   final String category;
   final DateTime createdAt;
   final DateTime date;
@@ -12,6 +13,7 @@ class Event {
   final bool validated;
 
   Event({
+    required this.id,
     required this.category,
     required this.createdAt,
     required this.date,
@@ -23,8 +25,9 @@ class Event {
     required this.validated,
   });
 
-  factory Event.fromJson(Map<String, dynamic> json) {
+  factory Event.fromJson(Map<String, dynamic> json, {required String id}) {
     return Event(
+      id: id,
       category: json['category'],
       createdAt: DateTime.parse(json['createdAt']),
       date: DateTime.parse(json['date']),

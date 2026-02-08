@@ -58,6 +58,8 @@ class _SignupScreenState extends State<SignupScreen> {
           age: age,
           createdAt: DateTime.now(),
           email: emailController.text.trim(),
+          favoriteEventIds: const [],
+          historyEventIds: const [],
           interests: [],
           name: nameController.text.trim(),
           phoneNumber: phoneController.text.trim(),

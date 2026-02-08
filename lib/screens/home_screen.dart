@@ -1,6 +1,9 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:soka/models/models.dart';
 import 'package:soka/screens/calendar_screen.dart';
+import 'package:soka/screens/favorites_history_screen.dart';
 import 'package:soka/screens/photos_screen.dart';
 import 'package:soka/screens/settings_screen.dart';
 import 'package:soka/services/services.dart';
@@ -20,11 +23,17 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = false;
   String? _errorMessage;
   String _query = '';
+  String? _userId;
+  Client? _client;
+  bool _isProfileLoading = false;
 
   @override
   void initState() {
     super.initState();
-    Future.microtask(_loadEvents);
+    Future.microtask(() async {
+      await _loadEvents();
+      await _loadUserProfile();
+    });
   }
 
   Future<void> _loadEvents() async {
@@ -41,8 +50,112 @@ class _HomeScreenState extends State<HomeScreen> {
         _errorMessage = 'No se pudieron cargar los eventos.';
       });
     } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _loadUserProfile() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+
+    setState(() {
+      _isProfileLoading = true;
+      _userId = user.uid;
+    });
+
+    try {
+      final sokaService = context.read<SokaService>();
+      final client = await sokaService.fetchClientById(user.uid);
       if (!mounted) return;
-      setState(() => _isLoading = false);
+      setState(() => _client = client);
+
+      if (client != null) {
+        await _syncHistoryFromTickets(client);
+      }
+    } catch (_) {
+      // no-op
+    } finally {
+      if (mounted) {
+        setState(() => _isProfileLoading = false);
+      }
+    }
+  }
+
+  Future<void> _syncHistoryFromTickets(Client client) async {
+    final clientId = _userId;
+    if (clientId == null) return;
+
+    final sokaService = context.read<SokaService>();
+
+    try {
+      await sokaService.fetchSoldTickets();
+    } catch (_) {
+      return;
+    }
+
+    final ticketEventIds = sokaService.soldTickets
+        .where((t) => t.userId == clientId || t.userId == client.userName)
+        .map((t) => t.eventId.trim())
+        .where((id) => id.isNotEmpty)
+        .toList();
+
+    if (ticketEventIds.isEmpty) return;
+
+    final updatedHistory = List<String>.from(client.historyEventIds);
+    for (final id in ticketEventIds) {
+      if (!updatedHistory.contains(id)) {
+        updatedHistory.add(id);
+      }
+    }
+
+    if (updatedHistory.length == client.historyEventIds.length) return;
+
+    final updatedClient = client.copyWith(historyEventIds: updatedHistory);
+    if (!mounted) return;
+    setState(() => _client = updatedClient);
+
+    try {
+      await sokaService.updateClient(
+        clientId,
+        {'historyEventIds': updatedHistory},
+      );
+    } catch (_) {
+      // no-op
+    }
+  }
+
+  Future<void> _toggleFavorite(String eventId) async {
+    final clientId = _userId;
+    final currentClient = _client;
+    if (clientId == null || currentClient == null) return;
+
+    final previousFavorites = List<String>.from(currentClient.favoriteEventIds);
+    final updatedFavorites = List<String>.from(previousFavorites);
+    if (updatedFavorites.contains(eventId)) {
+      updatedFavorites.remove(eventId);
+    } else {
+      updatedFavorites.add(eventId);
+    }
+
+    setState(() {
+      _client = currentClient.copyWith(favoriteEventIds: updatedFavorites);
+    });
+
+    try {
+      await context.read<SokaService>().updateClient(
+        clientId,
+        {'favoriteEventIds': updatedFavorites},
+      );
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _client = currentClient.copyWith(favoriteEventIds: previousFavorites);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se pudo actualizar favoritos')),
+      );
     }
   }
 
@@ -50,6 +163,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final events = Provider.of<SokaService>(context).events;
     final theme = Theme.of(context);
+    final isClientUser = _client != null;
     final categorySet = <String>{...events.map((event) => event.category)};
     final categories = <String>['Todos', ...categorySet];
     final safeSelectedIndex = _selectedCategoryIndex
@@ -198,8 +312,23 @@ class _HomeScreenState extends State<HomeScreen> {
                 else
                   SliverList(
                     delegate: SliverChildBuilderDelegate(
-                      (context, index) =>
-                          EventCard(event: filteredEvents[index]),
+                      (context, index) {
+                        final event = filteredEvents[index];
+                        final isFavorite = isClientUser &&
+                            (_client?.favoriteEventIds.contains(event.id) ??
+                                false);
+
+                        return EventCard(
+                          event: event,
+                          showFavoriteButton: isClientUser,
+                          isFavorite: isFavorite,
+                          onToggleFavorite: isClientUser
+                              ? () {
+                                  _toggleFavorite(event.id);
+                                }
+                              : null,
+                        );
+                      },
                       childCount: filteredEvents.length,
                     ),
                   ),
@@ -212,7 +341,15 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
       const CalendarScreen(),
-      const PhotosScreen(),
+      if (_isProfileLoading && _userId != null && _client == null)
+        const Center(child: CircularProgressIndicator())
+      else if (isClientUser)
+        FavoritesHistoryScreen(
+          client: _client!,
+          onToggleFavorite: _toggleFavorite,
+        )
+      else
+        const PhotosScreen(),
       const SettingsScreen(),
     ];
 
@@ -236,23 +373,30 @@ class _HomeScreenState extends State<HomeScreen> {
             );
           },
         ),
-        destinations: const [
-          NavigationDestination(
+        destinations: [
+          const NavigationDestination(
             icon: Icon(Icons.home_outlined),
             selectedIcon: Icon(Icons.home),
             label: 'Home',
           ),
-          NavigationDestination(
+          const NavigationDestination(
             icon: Icon(Icons.calendar_month_outlined),
             selectedIcon: Icon(Icons.calendar_month),
             label: 'Calendario',
           ),
-          NavigationDestination(
-            icon: Icon(Icons.camera_alt_outlined),
-            selectedIcon: Icon(Icons.camera_alt),
-            label: 'Fotos',
-          ),
-          NavigationDestination(
+          if (isClientUser)
+            const NavigationDestination(
+              icon: Icon(Icons.favorite_border),
+              selectedIcon: Icon(Icons.favorite),
+              label: 'Favoritos',
+            )
+          else
+            const NavigationDestination(
+              icon: Icon(Icons.camera_alt_outlined),
+              selectedIcon: Icon(Icons.camera_alt),
+              label: 'Fotos',
+            ),
+          const NavigationDestination(
             icon: Icon(Icons.settings_outlined),
             selectedIcon: Icon(Icons.settings),
             label: 'Ajustes',
