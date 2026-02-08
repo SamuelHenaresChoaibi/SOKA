@@ -25,10 +25,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _user = FirebaseAuth.instance.currentUser;
     _clientFuture = _user == null
         ? Future.value(null)
-        : context.read<SokaService>().fetchClientById(_user!.uid);
+        : context.read<SokaService>().fetchClientById(_user.uid);
     _companyFuture = _user == null
         ? Future.value(null)
-        : context.read<SokaService>().fetchCompanyById(_user!.uid);
+        : context.read<SokaService>().fetchCompanyById(_user.uid);
   }
 
   @override

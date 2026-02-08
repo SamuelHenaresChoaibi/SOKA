@@ -40,10 +40,10 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     _user = FirebaseAuth.instance.currentUser;
     _clientFuture = _user == null
         ? Future.value(null)
-        : context.read<SokaService>().fetchClientById(_user!.uid);
+        : context.read<SokaService>().fetchClientById(_user.uid);
     _companyFuture = _user == null
         ? Future.value(null)
-        : context.read<SokaService>().fetchCompanyById(_user!.uid);
+        : context.read<SokaService>().fetchCompanyById(_user.uid);
   }
 
   @override
@@ -100,7 +100,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           'userName': userNameController.text.trim(),
           'phoneNumber': phoneController.text.trim(),
         };
-        await sokaService.updateClient(_user!.uid, updatedData);
+        await sokaService.updateClient(_user.uid, updatedData);
       } else if (company != null) {
         final websiteText = companyWebsiteController.text.trim();
         final instagramText = companyInstagramController.text.trim();
@@ -109,7 +109,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           'description': companyDescriptionController.text.trim(),
           'contactInfo': {
             'adress': companyAddressController.text.trim(),
-            'email': _user?.email ?? company.contactInfo.email,
+            'email': _user.email ?? company.contactInfo.email,
             'instagram': instagramText.isEmpty
                 ? company.contactInfo.instagram
                 : instagramText,
@@ -118,7 +118,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                 websiteText.isEmpty ? company.contactInfo.website : websiteText,
           },
         };
-        await sokaService.updateCompany(_user!.uid, updatedData);
+        await sokaService.updateCompany(_user.uid, updatedData);
       }
 
       if (!mounted) return;
