@@ -2,12 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:soka/models/models.dart';
 import 'package:soka/services/auth_service.dart';
-<<<<<<< HEAD
 import 'package:soka/services/services.dart';
 import 'package:soka/theme/app_colors.dart';
-=======
-import 'package:soka/widgets/toggleButton_widget.dart';
->>>>>>> UI
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -146,7 +142,6 @@ class _SignupScreenState extends State<SignupScreen> {
                     image: AssetImage('lib/assets/SOKA.png'),
                     height: 200,
                   ),
-<<<<<<< HEAD
                   const SizedBox(height: 24),
                   ToggleButtons(
                     isSelected: [
@@ -177,11 +172,6 @@ class _SignupScreenState extends State<SignupScreen> {
                     ],
                   ),
                   const SizedBox(height: 16.0),
-=======
-                  // const SizedBox(height: 40),
-                  // ToggleButtonsExampleApp(),
-                  const SizedBox(height: 40,),
->>>>>>> UI
                   TextFormField(
                     controller: emailController,
                     style: const TextStyle(color: AppColors.textPrimary),

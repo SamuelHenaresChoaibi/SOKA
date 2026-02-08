@@ -1,9 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-<<<<<<< HEAD
-=======
-import 'package:soka/models/models.dart';
->>>>>>> UI
 import 'package:soka/screens/calendar_screen.dart';
 import 'package:soka/screens/photos_screen.dart';
 import 'package:soka/screens/settings_screen.dart';
@@ -20,7 +16,6 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
-<<<<<<< HEAD
   int _selectedCategoryIndex = 0;
   bool _isLoading = false;
   String? _errorMessage;
@@ -219,22 +214,6 @@ class _HomeScreenState extends State<HomeScreen> {
       const CalendarScreen(),
       const PhotosScreen(),
       const SettingsScreen(),
-=======
-
-  @override
-  Widget build(BuildContext context) {
-    final List<Client> clients = Provider.of<SokaService>(context).clients;
-    clients.forEach((client) {
-      print(client.name);
-    });
-
-    // Contenido según la página seleccionada
-    final List<Widget> pages = [
-      const Center(child: Text('SOKA Home')),
-      const CalendarScreen(),
-      const PhotosScreen(),
-      const SettingsScreen()
->>>>>>> UI
     ];
 
     return Scaffold(
@@ -280,7 +259,6 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-<<<<<<< HEAD
     );
   }
 }
@@ -308,33 +286,5 @@ class _HomeHeaderDelegate extends SliverPersistentHeaderDelegate {
   @override
   bool shouldRebuild(covariant _HomeHeaderDelegate oldDelegate) {
     return oldDelegate.child != child;
-=======
-
-      drawer: Drawer(child: ListView(padding: EdgeInsets.zero)),
-
-      body: pages[_selectedIndex],
-
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-        },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_month),
-            label: 'Calendar',
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.camera), label: 'Photos'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Settings',
-          ),
-        ],
-      ),
-    );
->>>>>>> UI
   }
 }
