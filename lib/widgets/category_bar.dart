@@ -6,7 +6,7 @@ class CategoryBar extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onSelected;
 
-  const CategoryBar({
+  const CategoryBar({super.key, 
     required this.categories,
     required this.selectedIndex,
     required this.onSelected,
@@ -24,7 +24,7 @@ class CategoryBar extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           scrollDirection: Axis.horizontal,
           itemCount: categories.length,
-          separatorBuilder: (_, __) => const SizedBox(width: 10),
+          separatorBuilder: (_, _) => const SizedBox(width: 10),
           itemBuilder: (context, index) {
             final isSelected = index == selectedIndex;
             return ChoiceChip(
