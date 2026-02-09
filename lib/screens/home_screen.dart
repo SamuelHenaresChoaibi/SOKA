@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -5,7 +7,6 @@ import 'package:soka/models/models.dart';
 import 'package:soka/screens/calendar_screen.dart';
 import 'package:soka/screens/company_events_screen.dart';
 import 'package:soka/screens/favorites_history_screen.dart';
-import 'package:soka/screens/photos_screen.dart';
 import 'package:soka/screens/settings_screen.dart';
 import 'package:soka/services/services.dart';
 import 'package:soka/theme/app_colors.dart';
@@ -28,14 +29,44 @@ class _HomeScreenState extends State<HomeScreen> {
   Client? _client;
   Company? _company;
   bool _isProfileLoading = false;
+  StreamSubscription<User?>? _authSubscription;
 
   @override
   void initState() {
     super.initState();
-    Future.microtask(() async {
-      await _loadEvents();
-      await _loadUserProfile();
+
+    _authSubscription =
+        FirebaseAuth.instance.authStateChanges().listen((user) async {
+      if (!mounted) return;
+
+      if (user == null) {
+        setState(() {
+          _userId = null;
+          _client = null;
+          _company = null;
+          _isProfileLoading = false;
+        });
+        return;
+      }
+
+      if (_isProfileLoading && _userId == user.uid) return;
+      await _loadUserProfile(user: user);
     });
+
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser != null) {
+      Future.microtask(() {
+        _loadUserProfile(user: currentUser);
+      });
+    }
+
+    Future.microtask(_loadEvents);
+  }
+
+  @override
+  void dispose() {
+    _authSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadEvents() async {
@@ -58,23 +89,33 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  Future<void> _loadUserProfile() async {
-    final user = FirebaseAuth.instance.currentUser;
+  Future<void> _loadUserProfile({User? user}) async {
+    user ??= FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
+    if (!mounted) return;
     setState(() {
       _isProfileLoading = true;
-      _userId = user.uid;
+      _userId = user!.uid;
     });
 
+    final sokaService = context.read<SokaService>();
+    Client? client;
+    Company? company;
+
     try {
-      final sokaService = context.read<SokaService>();
-      final results = await Future.wait<dynamic>([
-        sokaService.fetchClientById(user.uid),
-        sokaService.fetchCompanyById(user.uid),
-      ]);
-      final client = results[0] as Client?;
-      final company = results[1] as Company?;
+      try {
+        client = await sokaService.fetchClientById(user.uid);
+      } catch (_) {
+        // no-op (we still want to try loading the company profile)
+      }
+
+      try {
+        company = await sokaService.fetchCompanyById(user.uid);
+      } catch (_) {
+        // no-op
+      }
+
       if (!mounted) return;
       setState(() {
         _client = client;
@@ -84,8 +125,6 @@ class _HomeScreenState extends State<HomeScreen> {
       if (client != null && company == null) {
         await _syncHistoryFromTickets(client);
       }
-    } catch (_) {
-      // no-op
     } finally {
       if (mounted) {
         setState(() => _isProfileLoading = false);
@@ -352,10 +391,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
       const CalendarScreen(),
-      if (_isProfileLoading &&
-          _userId != null &&
-          _client == null &&
-          _company == null)
+      if (_isProfileLoading && _userId != null)
         const Center(child: CircularProgressIndicator())
       else if (isClientUser)
         FavoritesHistoryScreen(
@@ -371,9 +407,35 @@ class _HomeScreenState extends State<HomeScreen> {
           },
         )
       else
-        const PhotosScreen(),
+        _NoProfileScreen(
+          onRetry: () {
+            _loadUserProfile();
+          },
+        ),
       const SettingsScreen(),
     ];
+
+    final thirdDestination = NavigationDestination(
+      icon: Icon(
+        isClientUser
+            ? Icons.favorite_border
+            : isCompanyUser
+                ? Icons.event_note_outlined
+                : Icons.person_outline,
+      ),
+      selectedIcon: Icon(
+        isClientUser
+            ? Icons.favorite
+            : isCompanyUser
+                ? Icons.event_note
+                : Icons.person,
+      ),
+      label: isClientUser
+          ? 'Favoritos'
+          : isCompanyUser
+              ? 'Mis eventos'
+              : 'Cuenta',
+    );
 
     return Scaffold(
       body: pages[_selectedIndex],
@@ -406,24 +468,7 @@ class _HomeScreenState extends State<HomeScreen> {
             selectedIcon: Icon(Icons.calendar_month),
             label: 'Calendario',
           ),
-          if (isClientUser)
-            const NavigationDestination(
-              icon: Icon(Icons.favorite_border),
-              selectedIcon: Icon(Icons.favorite),
-              label: 'Favoritos',
-            )
-          else if (isCompanyUser)
-            const NavigationDestination(
-              icon: Icon(Icons.event_note_outlined),
-              selectedIcon: Icon(Icons.event_note),
-              label: 'Eventos',
-            )
-          else
-            const NavigationDestination(
-              icon: Icon(Icons.camera_alt_outlined),
-              selectedIcon: Icon(Icons.camera_alt),
-              label: 'Fotos',
-            ),
+          thirdDestination,
           const NavigationDestination(
             icon: Icon(Icons.settings_outlined),
             selectedIcon: Icon(Icons.settings),
@@ -458,5 +503,50 @@ class _HomeHeaderDelegate extends SliverPersistentHeaderDelegate {
   @override
   bool shouldRebuild(covariant _HomeHeaderDelegate oldDelegate) {
     return oldDelegate.child != child;
+  }
+}
+
+class _NoProfileScreen extends StatelessWidget {
+  final VoidCallback onRetry;
+
+  const _NoProfileScreen({required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.person_off_outlined,
+              size: 56,
+              color: AppColors.cursorColor,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'No se encontró un perfil de usuario o empresa para esta cuenta.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: AppColors.cursorColor,
+                fontWeight: FontWeight.w600,
+                height: 1.35,
+              ),
+            ),
+            const SizedBox(height: 14),
+            SizedBox(
+              height: 44,
+              child: OutlinedButton.icon(
+                onPressed: onRetry,
+                icon: const Icon(Icons.refresh_rounded),
+                label: const Text('Reintentar'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
