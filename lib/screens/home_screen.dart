@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:soka/models/models.dart';
 import 'package:soka/screens/calendar_screen.dart';
+import 'package:soka/screens/company_events_screen.dart';
 import 'package:soka/screens/favorites_history_screen.dart';
 import 'package:soka/screens/photos_screen.dart';
 import 'package:soka/screens/settings_screen.dart';
@@ -25,6 +26,7 @@ class _HomeScreenState extends State<HomeScreen> {
   String _query = '';
   String? _userId;
   Client? _client;
+  Company? _company;
   bool _isProfileLoading = false;
 
   @override
@@ -67,11 +69,19 @@ class _HomeScreenState extends State<HomeScreen> {
 
     try {
       final sokaService = context.read<SokaService>();
-      final client = await sokaService.fetchClientById(user.uid);
+      final results = await Future.wait<dynamic>([
+        sokaService.fetchClientById(user.uid),
+        sokaService.fetchCompanyById(user.uid),
+      ]);
+      final client = results[0] as Client?;
+      final company = results[1] as Company?;
       if (!mounted) return;
-      setState(() => _client = client);
+      setState(() {
+        _client = client;
+        _company = company;
+      });
 
-      if (client != null) {
+      if (client != null && company == null) {
         await _syncHistoryFromTickets(client);
       }
     } catch (_) {
@@ -163,7 +173,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final events = Provider.of<SokaService>(context).events;
     final theme = Theme.of(context);
-    final isClientUser = _client != null;
+    final isCompanyUser = _company != null;
+    final isClientUser = _client != null && !isCompanyUser;
     final categorySet = <String>{...events.map((event) => event.category)};
     final categories = <String>['Todos', ...categorySet];
     final safeSelectedIndex = _selectedCategoryIndex
@@ -341,12 +352,23 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
       const CalendarScreen(),
-      if (_isProfileLoading && _userId != null && _client == null)
+      if (_isProfileLoading &&
+          _userId != null &&
+          _client == null &&
+          _company == null)
         const Center(child: CircularProgressIndicator())
       else if (isClientUser)
         FavoritesHistoryScreen(
           client: _client!,
           onToggleFavorite: _toggleFavorite,
+        )
+      else if (isCompanyUser)
+        CompanyEventsScreen(
+          companyId: _userId!,
+          company: _company!,
+          onCompanyUpdated: (company) {
+            setState(() => _company = company);
+          },
         )
       else
         const PhotosScreen(),
@@ -389,6 +411,12 @@ class _HomeScreenState extends State<HomeScreen> {
               icon: Icon(Icons.favorite_border),
               selectedIcon: Icon(Icons.favorite),
               label: 'Favoritos',
+            )
+          else if (isCompanyUser)
+            const NavigationDestination(
+              icon: Icon(Icons.event_note_outlined),
+              selectedIcon: Icon(Icons.event_note),
+              label: 'Eventos',
             )
           else
             const NavigationDestination(

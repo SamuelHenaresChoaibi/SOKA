@@ -81,6 +81,7 @@ class _SignupScreenState extends State<SignupScreen> {
             website: companyWebsiteController.text.trim(),
           ),
           createdAt: DateTime.now(),
+          createdEventIds: const [],
           description: companyDescriptionController.text.trim(),
           verified: false,
         );

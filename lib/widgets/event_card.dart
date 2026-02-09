@@ -59,14 +59,9 @@ class _EventCardState extends State<EventCard> {
             children: [
               Stack(
                 children: [
-                  FadeInImage(
-                    placeholder: const AssetImage('lib/assets/SOKA.png'),
-                    image: const NetworkImage(
-                      'https://placehold.co/800x500/png',
-                    ),
+                  _EventImage(
+                    imageUrl: widget.event.imageUrl,
                     height: 200,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
                   ),
                   Positioned(
                     top: 14,
@@ -258,5 +253,36 @@ class _EventCardState extends State<EventCard> {
     final hour = date.hour.toString().padLeft(2, '0');
     final minute = date.minute.toString().padLeft(2, '0');
     return '$hour:$minute';
+  }
+}
+
+class _EventImage extends StatelessWidget {
+  final String imageUrl;
+  final double height;
+
+  const _EventImage({
+    required this.imageUrl,
+    required this.height,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final url = imageUrl.trim();
+    if (url.isEmpty) {
+      return Image.asset(
+        'lib/assets/SOKA.png',
+        height: height,
+        width: double.infinity,
+        fit: BoxFit.cover,
+      );
+    }
+
+    return FadeInImage(
+      placeholder: const AssetImage('lib/assets/SOKA.png'),
+      image: NetworkImage(url),
+      height: height,
+      width: double.infinity,
+      fit: BoxFit.cover,
+    );
   }
 }

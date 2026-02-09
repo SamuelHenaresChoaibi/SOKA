@@ -6,6 +6,7 @@ class Event {
   final DateTime createdAt;
   final DateTime date;
   final String description;
+  final String imageUrl;
   final String location;
   final String organizerId;
   final TicketType ticketTypes;
@@ -18,6 +19,7 @@ class Event {
     required this.createdAt,
     required this.date,
     required this.description,
+    required this.imageUrl,
     required this.location,
     required this.organizerId,
     required this.ticketTypes,
@@ -32,6 +34,7 @@ class Event {
       createdAt: DateTime.parse(json['createdAt']),
       date: DateTime.parse(json['date']),
       description: json['description'],
+      imageUrl: json['imageUrl']?.toString() ?? '',
       location: json['location'],
       organizerId: json['organizerId'],
       ticketTypes: TicketType.fromJson(json['ticketTypes']),
@@ -46,6 +49,7 @@ class Event {
       'createdAt': createdAt.toIso8601String(),
       'date': date.toIso8601String(),
       'description': description,
+      'imageUrl': imageUrl,
       'location': location,
       'organizerId': organizerId,
       'ticketTypes': ticketTypes.toJson(),
