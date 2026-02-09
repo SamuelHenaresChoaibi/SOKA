@@ -70,7 +70,10 @@ class EventDetailsScreen extends StatelessWidget {
             ],
             flexibleSpace: FlexibleSpaceBar(
               collapseMode: CollapseMode.parallax,
-              background: _Hero(priceLabel: priceLabel),
+              background: _Hero(
+                priceLabel: priceLabel,
+                imageUrl: event.imageUrl,
+              ),
             ),
           ),
           SliverToBoxAdapter(
@@ -205,20 +208,24 @@ class EventDetailsScreen extends StatelessWidget {
 
 class _Hero extends StatelessWidget {
   final String priceLabel;
+  final String imageUrl;
 
-  const _Hero({required this.priceLabel});
+  const _Hero({required this.priceLabel, required this.imageUrl});
 
   @override
   Widget build(BuildContext context) {
+    final url = imageUrl.trim();
     return Stack(
       fit: StackFit.expand,
       children: [
         SizedBox.expand(
-          child: FadeInImage(
-            placeholder: const AssetImage('lib/assets/SOKA.png'),
-            image: const NetworkImage('https://placehold.co/900x600/png'),
-            fit: BoxFit.cover,
-          ),
+          child: url.isEmpty
+              ? Image.asset('lib/assets/SOKA.png', fit: BoxFit.cover)
+              : FadeInImage(
+                  placeholder: const AssetImage('lib/assets/SOKA.png'),
+                  image: NetworkImage(url),
+                  fit: BoxFit.cover,
+                ),
         ),
         DecoratedBox(
           decoration: BoxDecoration(

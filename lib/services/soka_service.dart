@@ -163,6 +163,7 @@ class SokaService extends ChangeNotifier {
           'companyName': newCompany.companyName,
           'contactInfo': newCompany.contactInfo.toJson(),
           'createdAt': newCompany.createdAt.toIso8601String(),
+          'createdEventIds': newCompany.createdEventIds,
           'description': newCompany.description,
           'verified': newCompany.verified,
         }),
@@ -241,7 +242,7 @@ class SokaService extends ChangeNotifier {
   //-----------------------------------------
   //-----------------------------------------
   //EVENTS
-  Future<int> createEvent(Event newEvent) async {
+  Future<String?> createEvent(Event newEvent) async {
     try {
       events.clear();
       final url = Uri.https(_baseUrl, '/events.json');
@@ -251,14 +252,17 @@ class SokaService extends ChangeNotifier {
       );
       if (response.statusCode == 200) {
         print('Event created successfully: ${response.body}');
+        final decoded = json.decode(response.body);
+        final createdEventId =
+            decoded is Map ? decoded['name']?.toString() : null;
         await fetchEvents();
+        return createdEventId;
       } else {
         print(
           'Failed to create event. Status code: ${response.statusCode}, Response body: ${response.body}',
         );
         throw Exception('Failed to create event');
       }
-      return response.statusCode;
     } catch (e) {
       print('ERROR createEvent: $e');
       rethrow;
@@ -307,7 +311,7 @@ class SokaService extends ChangeNotifier {
 
       if (response.statusCode == 200 && response.body != 'null') {
         final Map<String, dynamic> eventMap = json.decode(response.body);
-        return Event.fromJson(eventMap);
+        return Event.fromJson(eventMap, id: eventId);
       }
       return null;
     } catch (e) {
@@ -324,7 +328,7 @@ class SokaService extends ChangeNotifier {
       if (response.statusCode == 200 && response.body != 'null') {
         final Map<String, dynamic> eventsMap = json.decode(response.body);
         eventsMap.forEach((key, value) {
-          events.add(Event.fromJson(value));
+          events.add(Event.fromJson(value, id: key));
         });
       }
 

@@ -4,8 +4,17 @@ import 'package:soka/theme/app_colors.dart';
 
 class EventCard extends StatefulWidget {
   final Event event;
+  final bool showFavoriteButton;
+  final bool isFavorite;
+  final VoidCallback? onToggleFavorite;
 
-  const EventCard({super.key, required this.event});
+  const EventCard({
+    super.key,
+    required this.event,
+    this.showFavoriteButton = false,
+    this.isFavorite = false,
+    this.onToggleFavorite,
+  });
 
   @override
   State<EventCard> createState() => _EventCardState();
@@ -50,41 +59,69 @@ class _EventCardState extends State<EventCard> {
             children: [
               Stack(
                 children: [
-                  FadeInImage(
-                    placeholder: const AssetImage('lib/assets/SOKA.png'),
-                    image: const NetworkImage(
-                      'https://placehold.co/800x500/png',
-                    ),
+                  _EventImage(
+                    imageUrl: widget.event.imageUrl,
                     height: 200,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
                   ),
                   Positioned(
                     top: 14,
                     right: 14,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        borderRadius: BorderRadius.circular(18),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.08),
-                            blurRadius: 8,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            borderRadius: BorderRadius.circular(18),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.08),
+                                blurRadius: 8,
+                              ),
+                            ],
+                          ),
+                          child: Text(
+                            widget.event.category,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textPrimary,
+                            ),
+                          ),
+                        ),
+                        if (widget.showFavoriteButton) ...[
+                          const SizedBox(width: 10),
+                          SizedBox(
+                            height: 34,
+                            width: 34,
+                            child: Material(
+                              color: AppColors.surface,
+                              shape: const CircleBorder(),
+                              elevation: 2,
+                              child: IconButton(
+                                onPressed: widget.onToggleFavorite,
+                                padding: EdgeInsets.zero,
+                                iconSize: 20,
+                                tooltip: widget.isFavorite
+                                    ? 'Quitar de favoritos'
+                                    : 'Añadir a favoritos',
+                                icon: Icon(
+                                  widget.isFavorite
+                                      ? Icons.favorite
+                                      : Icons.favorite_border,
+                                  color: widget.isFavorite
+                                      ? Colors.redAccent
+                                      : AppColors.textPrimary,
+                                ),
+                              ),
+                            ),
                           ),
                         ],
-                      ),
-                      child: Text(
-                        widget.event.category,
-                        style: const TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
+                      ],
                     ),
                   ),
                   Positioned(
@@ -216,5 +253,36 @@ class _EventCardState extends State<EventCard> {
     final hour = date.hour.toString().padLeft(2, '0');
     final minute = date.minute.toString().padLeft(2, '0');
     return '$hour:$minute';
+  }
+}
+
+class _EventImage extends StatelessWidget {
+  final String imageUrl;
+  final double height;
+
+  const _EventImage({
+    required this.imageUrl,
+    required this.height,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final url = imageUrl.trim();
+    if (url.isEmpty) {
+      return Image.asset(
+        'lib/assets/SOKA.png',
+        height: height,
+        width: double.infinity,
+        fit: BoxFit.cover,
+      );
+    }
+
+    return FadeInImage(
+      placeholder: const AssetImage('lib/assets/SOKA.png'),
+      image: NetworkImage(url),
+      height: height,
+      width: double.infinity,
+      fit: BoxFit.cover,
+    );
   }
 }

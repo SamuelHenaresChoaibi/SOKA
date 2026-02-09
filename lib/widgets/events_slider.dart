@@ -118,13 +118,7 @@ class _EventPosterState extends State<_EventPoster>
                         top: Radius.circular(22),
                       ),
                       child: SizedBox.expand(
-                        child: FadeInImage(
-                          placeholder: const AssetImage('lib/assets/SOKA.png'),
-                          image: NetworkImage(
-                            'https://placehold.co/300x400/png',
-                          ),
-                          fit: BoxFit.cover,
-                        ),
+                        child: _PosterImage(imageUrl: widget.event.imageUrl),
                       ),
                     ),
                     Positioned(
@@ -201,6 +195,26 @@ class _EventPosterState extends State<_EventPoster>
           ),
         ),
       ),
+    );
+  }
+}
+
+class _PosterImage extends StatelessWidget {
+  final String imageUrl;
+
+  const _PosterImage({required this.imageUrl});
+
+  @override
+  Widget build(BuildContext context) {
+    final url = imageUrl.trim();
+    if (url.isEmpty) {
+      return Image.asset('lib/assets/SOKA.png', fit: BoxFit.cover);
+    }
+
+    return FadeInImage(
+      placeholder: const AssetImage('lib/assets/SOKA.png'),
+      image: NetworkImage(url),
+      fit: BoxFit.cover,
     );
   }
 }
