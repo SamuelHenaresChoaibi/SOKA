@@ -1,5 +1,9 @@
+import 'dart:io';
+
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
 import 'package:soka/models/models.dart';
@@ -17,10 +21,9 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   late final User? _user;
-  late final Future<Client?> _clientFuture;
-  late final Future<Company?> _companyFuture;
-  bool _shareProfile = true;
-  bool _showEmail = false;
+  late Future<Client?> _clientFuture;
+  late Future<Company?> _companyFuture;
+  bool _isUploadingPhoto = false;
   final TextEditingController _supportSubjectController =
       TextEditingController();
   final TextEditingController _supportMessageController =
@@ -113,20 +116,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
       borderRadius: BorderRadius.circular(18),
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: FutureBuilder<List<dynamic>>(
+              child: FutureBuilder<List<dynamic>>(
           future: Future.wait<dynamic>([_clientFuture, _companyFuture]),
           builder: (context, snapshot) {
-            final Client? client =
-                snapshot.data != null ? snapshot.data![0] as Client? : null;
-            final Company? company =
-                snapshot.data != null ? snapshot.data![1] as Company? : null;
+            final data = snapshot.data;
+            final Client? client = (data != null &&
+                    data.isNotEmpty &&
+                    data[0] is Client)
+                ? data[0] as Client
+                : null;
+            final Company? company = (data != null &&
+                    data.length > 1 &&
+                    data[1] is Company)
+                ? data[1] as Company
+                : null;
 
-            final displayName = company?.companyName ??
-                client?.userName ??
-                _user?.displayName ??
-                'Usuario';
-            final email = _user?.email ?? client?.email ?? 'Sin correo';
+            final displayName = _safeString(
+              company?.companyName ??
+                  client?.userName ??
+                  _user?.displayName,
+              fallback: 'Usuario',
+            );
+            final email = _safeString(
+              _user?.email ?? client?.email,
+              fallback: 'Sin correo',
+            );
             final userType = company != null ? 'Empresa' : 'Usuario';
+            final photoUrl = _safeString(
+              company?.photoUrl ?? client?.photoUrl ?? _user?.photoURL,
+            );
             final initials = (displayName.isNotEmpty)
                 ? displayName.trim().substring(0, 1).toUpperCase()
                 : 'U';
@@ -139,30 +157,45 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     CircleAvatar(
                       radius: 30,
                       backgroundColor: AppColors.accent,
-                      child: Text(
-                        initials,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 22,
-                        ),
-                      ),
+                      backgroundImage:
+                          photoUrl.isNotEmpty ? NetworkImage(photoUrl) : null,
+                      child: photoUrl.isNotEmpty
+                          ? null
+                          : Text(
+                              initials,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 22,
+                              ),
+                            ),
                     ),
                     Positioned(
                       right: -2,
                       bottom: -2,
-                      child: Container(
-                        height: 20,
-                        width: 20,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1E2B45),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.white, width: 2),
-                        ),
-                        child: const Icon(
-                          Icons.camera_alt,
-                          size: 12,
-                          color: Colors.white,
+                      child: GestureDetector(
+                        onTap: _isUploadingPhoto ? null : _pickAndUploadPhoto,
+                        child: Container(
+                          height: 20,
+                          width: 20,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1E2B45),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.white, width: 2),
+                          ),
+                          child: _isUploadingPhoto
+                              ? const Padding(
+                                  padding: EdgeInsets.all(3),
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Icon(
+                                  Icons.camera_alt,
+                                  size: 12,
+                                  color: Colors.white,
+                                ),
                         ),
                       ),
                     ),
@@ -242,6 +275,69 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Future<void> _pickAndUploadPhoto() async {
+    final user = _user;
+    if (user == null) return;
+
+    final picker = ImagePicker();
+    final picked = await picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 1024,
+      maxHeight: 1024,
+      imageQuality: 85,
+    );
+
+    if (picked == null) return;
+
+    setState(() => _isUploadingPhoto = true);
+    try {
+      final file = File(picked.path);
+      final ref = FirebaseStorage.instance
+          .ref()
+          .child('users/${user.uid}/profile.jpg');
+      await ref.putFile(file);
+      final url = await ref.getDownloadURL();
+
+      final results =
+          await Future.wait<dynamic>([_clientFuture, _companyFuture]);
+      final Client? client = results[0] as Client?;
+      final Company? company = results[1] as Company?;
+
+      if (company != null) {
+        await context
+            .read<SokaService>()
+            .updateCompany(user.uid, {'photoUrl': url});
+      } else if (client != null) {
+        await context
+            .read<SokaService>()
+            .updateClient(user.uid, {'photoUrl': url});
+      }
+
+      if (mounted) {
+        setState(() {
+          _clientFuture = _user == null
+              ? Future.value(null)
+              : context.read<SokaService>().fetchClientById(_user!.uid);
+          _companyFuture = _user == null
+              ? Future.value(null)
+              : context.read<SokaService>().fetchCompanyById(_user!.uid);
+        });
+      }
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Foto de perfil actualizada')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se pudo actualizar la foto')),
+      );
+    } finally {
+      if (mounted) setState(() => _isUploadingPhoto = false);
+    }
+  }
+
   Widget _settingsSections(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -264,24 +360,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         builder: (_) => const AccountSettingsScreen(),
                       ),
                     );
-                  },
-                ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: const Icon(Icons.lock),
-                  title: const Text("Privacy"),
-                  subtitle: const Text("Manage your privacy settings"),
-                  onTap: () {
-                    _showPrivacySheet(context);
-                  },
-                ),
-                const Divider(height: 1),
-                ListTile(
-                  leading: const Icon(Icons.notifications),
-                  title: const Text("Notifications"),
-                  subtitle: const Text("Manage your notification settings"),
-                  onTap: () {
-                    Navigator.pushNamed(context, 'notifications');
                   },
                 ),
               ],
@@ -322,78 +400,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _showPrivacySheet(BuildContext context) {
-    showModalBottomSheet<void>(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Privacy',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(height: 12),
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Share my profile'),
-                    subtitle: const Text('Allow others to see your public profile'),
-                    value: _shareProfile,
-                    onChanged: (value) {
-                      setModalState(() => _shareProfile = value);
-                      setState(() => _shareProfile = value);
-                    },
-                  ),
-                  SwitchListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Show my email'),
-                    subtitle: const Text('Display email on my public profile'),
-                    value: _showEmail,
-                    onChanged: (value) {
-                      setModalState(() => _showEmail = value);
-                      setState(() => _showEmail = value);
-                    },
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text('Close'),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                            ScaffoldMessenger.of(this.context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Privacy settings updated'),
-                              ),
-                            );
-                          },
-                          child: const Text('Save'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
-    );
+  String _safeString(Object? value, {String fallback = ''}) {
+    if (value == null) return fallback;
+    final text = value.toString();
+    return text == 'null' ? fallback : text;
   }
 
   Future<void> _showSupportSheet(BuildContext context) async {

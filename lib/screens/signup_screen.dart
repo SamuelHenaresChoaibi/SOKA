@@ -60,6 +60,7 @@ class _SignupScreenState extends State<SignupScreen> {
           email: emailController.text.trim(),
           interests: [],
           name: nameController.text.trim(),
+          photoUrl: '',
           phoneNumber: phoneController.text.trim(),
           surname: surnameController.text.trim(),
           userName: userNameController.text.trim(),
@@ -80,6 +81,7 @@ class _SignupScreenState extends State<SignupScreen> {
           ),
           createdAt: DateTime.now(),
           description: companyDescriptionController.text.trim(),
+          photoUrl: '',
           verified: false,
         );
         final status = await sokaService.createCompany(user.uid, company);

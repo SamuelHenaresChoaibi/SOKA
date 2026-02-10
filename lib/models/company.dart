@@ -5,6 +5,7 @@ class Company {
   final ContactInfo contactInfo;
   final DateTime createdAt;
   final String description;
+  final String photoUrl;
   final bool verified;
 
   Company({
@@ -12,6 +13,7 @@ class Company {
     required this.contactInfo,
     required this.createdAt,
     required this.description,
+    required this.photoUrl,
     required this.verified,
   });
 
@@ -24,6 +26,7 @@ class Company {
       createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
           DateTime.now(),
       description: json['description'] ?? '',
+      photoUrl: json['photoUrl'] ?? '',
       verified: json['verified'] ?? false,
     );
   }
@@ -34,6 +37,7 @@ class Company {
       'contactInfo': contactInfo.toJson(),
       'createdAt': createdAt.toIso8601String(),
       'description': description,
+      'photoUrl': photoUrl,
       'verified': verified,
     };
   }

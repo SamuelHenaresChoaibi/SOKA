@@ -4,6 +4,7 @@ class Client {
   final String email;
   final List<String?> interests;
   final String name;
+  final String photoUrl;
   final String phoneNumber;
   final String surname;
   final String userName;
@@ -14,6 +15,7 @@ class Client {
     required this.email,
     required this.interests,
     required this.name,
+    required this.photoUrl,
     required this.phoneNumber,
     required this.surname,
     required this.userName,
@@ -28,6 +30,7 @@ class Client {
       interests:
           List<String?>.from((json['interests'] ?? const <String?>[])),
       name: json['name'] ?? '',
+      photoUrl: json['photoUrl'] ?? '',
       phoneNumber: json['phoneNumber'] ?? '',
       surname: json['surname'] ?? '',
       userName: json['userName'] ?? '',
@@ -41,6 +44,7 @@ class Client {
       'email': email,
       'interests': interests,
       'name': name,
+      'photoUrl': photoUrl,
       'phoneNumber': phoneNumber,
       'surname': surname,
       'userName': userName,

@@ -164,6 +164,7 @@ class SokaService extends ChangeNotifier {
           'contactInfo': newCompany.contactInfo.toJson(),
           'createdAt': newCompany.createdAt.toIso8601String(),
           'description': newCompany.description,
+          'photoUrl': newCompany.photoUrl,
           'verified': newCompany.verified,
         }),
       );
