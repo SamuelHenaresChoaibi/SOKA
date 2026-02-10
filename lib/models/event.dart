@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'models.dart';
 
 class Event {
@@ -42,45 +44,13 @@ class Event {
   });
 
   factory Event.fromJson(Map<String, dynamic> json, {required String id}) {
-    final rawTicketTypes = json['ticketTypes'];
-    Map<String, dynamic> ticketMap;
-    if (rawTicketTypes is Map<String, dynamic>) {
-      ticketMap = rawTicketTypes;
-    } else if (rawTicketTypes is Map) {
-      ticketMap = rawTicketTypes.map(
-        (key, value) => MapEntry(key.toString(), value),
-      );
-    } else if (rawTicketTypes is List && rawTicketTypes.isNotEmpty) {
-      final first = rawTicketTypes.first;
-      if (first is Map<String, dynamic>) {
-        ticketMap = first;
-      } else if (first is Map) {
-        ticketMap = first.map((key, value) => MapEntry(key.toString(), value));
-      } else {
-        ticketMap = const {};
-      }
-    } else {
-      ticketMap = const {};
-    }
-
-    TicketType ticketTypes;
-    try {
-      ticketTypes = TicketType.fromJson(ticketMap);
-    } catch (_) {
-      ticketTypes = TicketType(
-        capacity: 0,
-        description: '',
-        price: 0,
-        remaining: 0,
-        type: 'General',
-      );
-    }
+    final ticketTypes = TicketType.listFromJson(json['ticketTypes']);
 
     return Event(
       id: id,
       category: json['category']?.toString() ?? '',
-      createdAt: DateTime.parse(json['createdAt']?.toString() ?? ''),
-      date: DateTime.parse(json['date']?.toString() ?? ''),
+      createdAt: _parseDate(json['createdAt']),
+      date: _parseDate(json['date']),
       description: json['description']?.toString() ?? '',
       imageUrl: json['imageUrl']?.toString() ?? '',
       location: json['location']?.toString() ?? '',
@@ -123,5 +93,31 @@ class Event {
   String get locationLabel {
     final formatted = locationFormatted?.trim() ?? '';
     return formatted.isNotEmpty ? formatted : location;
+  }
+
+  bool get hasTicketTypes => ticketTypes.isNotEmpty;
+
+  int get minTicketPrice {
+    if (!hasTicketTypes) return 0;
+    return ticketTypes.map((e) => e.price).reduce(min);
+  }
+
+  int get maxTicketPrice {
+    if (!hasTicketTypes) return 0;
+    return ticketTypes.map((e) => e.price).reduce(max);
+  }
+
+  int get totalRemaining {
+    if (!hasTicketTypes) return 0;
+    return ticketTypes.fold(0, (sum, e) => sum + e.remaining);
+  }
+
+  static DateTime _parseDate(dynamic value) {
+    if (value is DateTime) return value;
+    if (value is int) {
+      return DateTime.fromMillisecondsSinceEpoch(value);
+    }
+    final parsed = DateTime.tryParse(value?.toString() ?? '');
+    return parsed ?? DateTime.fromMillisecondsSinceEpoch(0);
   }
 }

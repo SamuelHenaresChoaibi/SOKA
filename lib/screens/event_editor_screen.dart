@@ -82,20 +82,14 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
       text: _selectedDateTime == null ? '' : _formatDateTime(_selectedDateTime!),
     );
 
-    _ticketTypeController =
-        TextEditingController(text: event?.ticketTypes.type ?? 'General');
-    _ticketDescriptionController = TextEditingController(
-      text: event?.ticketTypes.description ?? '',
-    );
-    _ticketPriceController = TextEditingController(
-      text: event == null ? '' : event.ticketTypes.price.toString(),
-    );
-    _ticketCapacityController = TextEditingController(
-      text: event == null ? '' : event.ticketTypes.capacity.toString(),
-    );
-    _ticketRemainingController = TextEditingController(
-      text: event == null ? '' : event.ticketTypes.remaining.toString(),
-    );
+    final existingTickets = event?.ticketTypes ?? const [];
+    if (existingTickets.isNotEmpty) {
+      _ticketTypeControllers.addAll(
+        existingTickets.map(_TicketTypeControllers.fromTicketType),
+      );
+    } else {
+      _ticketTypeControllers.add(_TicketTypeControllers(type: 'General'));
+    }
 
     _initialLocation = _locationController.text.trim();
   }
@@ -190,21 +184,10 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
       return;
     }
 
-    final ticketPrice = int.tryParse(_ticketPriceController.text.trim()) ?? 0;
-    final capacity = int.tryParse(_ticketCapacityController.text.trim()) ?? 0;
-    final remaining = int.tryParse(_ticketRemainingController.text.trim()) ??
-        (widget.event?.ticketTypes.remaining ?? capacity);
-
     final location = _locationController.text.trim();
     final locationSuggestion = _selectedLocation;
 
-    final ticketTypes = TicketType(
-      capacity: capacity,
-      description: _ticketDescriptionController.text.trim(),
-      price: ticketPrice,
-      remaining: remaining,
-      type: _ticketTypeController.text.trim(),
-    );
+    final ticketTypes = _buildTicketTypes();
 
     final sokaService = context.read<SokaService>();
 
@@ -225,7 +208,7 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
           'locationPostcode': locationSuggestion?.postcode,
           'locationCountry': locationSuggestion?.country,
           'organizerId': widget.organizerId,
-          'ticketTypes': ticketTypes.toJson(),
+          'ticketTypes': ticketTypes.map((e) => e.toJson()).toList(),
           'title': _titleController.text.trim(),
           'validated': event.validated,
         };
@@ -649,10 +632,42 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
     _ignoreLocationChange = false;
 
     setState(() {
-    _selectedLocation = suggestion;
+      _selectedLocation = suggestion;
       _locationSuggestions.clear();
       _isFetchingSuggestions = false;
     });
+  }
+
+  List<TicketType> _buildTicketTypes() {
+    final types = <TicketType>[];
+    for (final c in _ticketTypeControllers) {
+      final type = c.type.text.trim();
+      final description = c.description.text.trim();
+      final price = int.tryParse(c.price.text.trim()) ?? 0;
+      final capacity = int.tryParse(c.capacity.text.trim()) ?? 0;
+      final remainingText = c.remaining.text.trim();
+      final remaining =
+          remainingText.isEmpty ? capacity : int.tryParse(remainingText) ?? capacity;
+
+      if (type.isEmpty &&
+          description.isEmpty &&
+          price == 0 &&
+          capacity == 0 &&
+          remaining == 0) {
+        continue;
+      }
+
+      types.add(
+        TicketType(
+          capacity: capacity,
+          description: description,
+          price: price,
+          remaining: remaining,
+          type: type.isEmpty ? 'General' : type,
+        ),
+      );
+    }
+    return types;
   }
 
   Future<bool> _validateLocation() async {
