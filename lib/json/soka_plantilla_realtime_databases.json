@@ -7,13 +7,22 @@
       "description": "Electronic music party with international DJs.",
       "location": "BCM Mallorca, Magaluf",
       "organizerId": "BCM Mallorca",
-      "ticketTypes": {
-        "capacity": 1500,
-        "description": "Entrada general para el público, acceso a la pista principal.",
-        "price": 30,
-        "remaining": 1203,
-        "type": "General Admission"
-      },
+      "ticketTypes": [
+        {
+          "capacity": 1500,
+          "description": "Entrada general para el público, acceso a la pista principal.",
+          "price": 30,
+          "remaining": 1203,
+          "type": "General"
+        },
+        {
+          "capacity": 200,
+          "description": "Acceso VIP con zona reservada.",
+          "price": 60,
+          "remaining": 141,
+          "type": "VIP"
+        }
+      ],
       "title": "BCM Summer Night",
       "validated": true
     }
