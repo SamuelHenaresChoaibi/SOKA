@@ -92,7 +92,50 @@ class SokaService extends ChangeNotifier {
     }
   }
 
-  
+
+  //-----------------------------------------
+  //-----------------------------------------
+  //USER SETTINGS
+  Future<Map<String, dynamic>?> fetchUserSettings(String userId) async {
+    try {
+      final url = Uri.https(_baseUrl, '/users/settings/$userId.json');
+      final response = await http.get(url);
+
+      if (response.statusCode == 200 && response.body != 'null') {
+        final decoded = json.decode(response.body);
+        if (decoded is Map<String, dynamic>) {
+          return decoded;
+        }
+        if (decoded is Map) {
+          return decoded.map(
+            (key, value) => MapEntry(key.toString(), value),
+          );
+        }
+      }
+      return null;
+    } catch (e) {
+      print('ERROR fetchUserSettings: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> updateUserSettings(
+    String userId,
+    Map<String, dynamic> updatedData,
+  ) async {
+    try {
+      final url = Uri.https(_baseUrl, '/users/settings/$userId.json');
+      final response = await http.patch(url, body: json.encode(updatedData));
+      if (response.statusCode == 200) {
+        print('Settings updated successfully');
+      } else {
+        throw Exception('Failed to update settings');
+      }
+    } catch (e) {
+      print('ERROR updateUserSettings: $e');
+      rethrow;
+    }
+  }
 
   Future<Client?> fetchClientById(String clientId) async {
     try {

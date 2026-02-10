@@ -138,7 +138,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Account')),
+      appBar: AppBar(title: const Text('Cuenta')),
       body: FutureBuilder<List<dynamic>>(
         future: Future.wait<dynamic>([_clientFuture, _companyFuture]),
         builder: (context, snapshot) {
@@ -207,19 +207,27 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
 
   List<Widget> _buildCompanyFields() {
     return [
-      _textInput(controller: companyNameController, label: 'Company Name', required: false),
+      _textInput(
+        controller: companyNameController,
+        label: 'Nombre de la empresa',
+        required: false,
+      ),
       const SizedBox(height: 16),
       _textInput(
         controller: companyPhoneController,
-        label: 'Phone',
+        label: 'Teléfono',
         keyboardType: TextInputType.phone,
       ),
       const SizedBox(height: 16),
-      _textInput(controller: companyAddressController, label: 'Address', required: false),
+      _textInput(
+        controller: companyAddressController,
+        label: 'Dirección',
+        required: false,
+      ),
       const SizedBox(height: 16),
       _textInput(
         controller: companyWebsiteController,
-        label: 'Website',
+        label: 'Web',
         required: false,
       ),
       const SizedBox(height: 16),
@@ -231,7 +239,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       const SizedBox(height: 16),
       TextFormField(
         controller: companyDescriptionController,
-        decoration: const InputDecoration(labelText: 'Description'),
+        decoration: const InputDecoration(labelText: 'Descripción'),
         maxLines: 3,
       ),
     ];
