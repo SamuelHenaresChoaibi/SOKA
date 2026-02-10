@@ -8,6 +8,13 @@ class Event {
   final String description;
   final String imageUrl;
   final String location;
+  final String? locationFormatted;
+  final double? locationLat;
+  final double? locationLng;
+  final String? locationCity;
+  final String? locationState;
+  final String? locationPostcode;
+  final String? locationCountry;
   final String organizerId;
   final List<TicketType> ticketTypes;
   final String title;
@@ -21,6 +28,13 @@ class Event {
     required this.description,
     required this.imageUrl,
     required this.location,
+    this.locationFormatted,
+    this.locationLat,
+    this.locationLng,
+    this.locationCity,
+    this.locationState,
+    this.locationPostcode,
+    this.locationCountry,
     required this.organizerId,
     required this.ticketTypes,
     required this.title,
@@ -28,21 +42,59 @@ class Event {
   });
 
   factory Event.fromJson(Map<String, dynamic> json, {required String id}) {
-    final rawTicketTypes =
-        json['ticketTypes'] ?? json['ticketsType'] ?? json['ticketsTypes'];
+    final rawTicketTypes = json['ticketTypes'];
+    Map<String, dynamic> ticketMap;
+    if (rawTicketTypes is Map<String, dynamic>) {
+      ticketMap = rawTicketTypes;
+    } else if (rawTicketTypes is Map) {
+      ticketMap = rawTicketTypes.map(
+        (key, value) => MapEntry(key.toString(), value),
+      );
+    } else if (rawTicketTypes is List && rawTicketTypes.isNotEmpty) {
+      final first = rawTicketTypes.first;
+      if (first is Map<String, dynamic>) {
+        ticketMap = first;
+      } else if (first is Map) {
+        ticketMap = first.map((key, value) => MapEntry(key.toString(), value));
+      } else {
+        ticketMap = const {};
+      }
+    } else {
+      ticketMap = const {};
+    }
+
+    TicketType ticketTypes;
+    try {
+      ticketTypes = TicketType.fromJson(ticketMap);
+    } catch (_) {
+      ticketTypes = TicketType(
+        capacity: 0,
+        description: '',
+        price: 0,
+        remaining: 0,
+        type: 'General',
+      );
+    }
 
     return Event(
       id: id,
-      category: json['category'],
-      createdAt: DateTime.parse(json['createdAt']),
-      date: DateTime.parse(json['date']),
-      description: json['description'],
+      category: json['category']?.toString() ?? '',
+      createdAt: DateTime.parse(json['createdAt']?.toString() ?? ''),
+      date: DateTime.parse(json['date']?.toString() ?? ''),
+      description: json['description']?.toString() ?? '',
       imageUrl: json['imageUrl']?.toString() ?? '',
-      location: json['location'],
-      organizerId: json['organizerId'],
-      ticketTypes: TicketType.listFromJson(rawTicketTypes),
-      title: json['title'],
-      validated: json['validated'],
+      location: json['location']?.toString() ?? '',
+      locationFormatted: json['locationFormatted']?.toString(),
+      locationLat: (json['locationLat'] as num?)?.toDouble(),
+      locationLng: (json['locationLng'] as num?)?.toDouble(),
+      locationCity: json['locationCity']?.toString(),
+      locationState: json['locationState']?.toString(),
+      locationPostcode: json['locationPostcode']?.toString(),
+      locationCountry: json['locationCountry']?.toString(),
+      organizerId: json['organizerId']?.toString() ?? '',
+      ticketTypes: ticketTypes,
+      title: json['title']?.toString() ?? '',
+      validated: json['validated'] == true,
     );
   }
 
@@ -54,6 +106,13 @@ class Event {
       'description': description,
       'imageUrl': imageUrl,
       'location': location,
+      'locationFormatted': locationFormatted,
+      'locationLat': locationLat,
+      'locationLng': locationLng,
+      'locationCity': locationCity,
+      'locationState': locationState,
+      'locationPostcode': locationPostcode,
+      'locationCountry': locationCountry,
       'organizerId': organizerId,
       'ticketTypes': ticketTypes.map((e) => e.toJson()).toList(),
       'title': title,
@@ -61,26 +120,8 @@ class Event {
     };
   }
 
-  bool get hasTicketTypes => ticketTypes.isNotEmpty;
-
-  int get totalRemaining =>
-      ticketTypes.fold<int>(0, (sum, t) => sum + t.remaining);
-
-  int get minTicketPrice {
-    if (ticketTypes.isEmpty) return 0;
-    var minPrice = ticketTypes.first.price;
-    for (final t in ticketTypes.skip(1)) {
-      if (t.price < minPrice) minPrice = t.price;
-    }
-    return minPrice;
-  }
-
-  int get maxTicketPrice {
-    if (ticketTypes.isEmpty) return 0;
-    var maxPrice = ticketTypes.first.price;
-    for (final t in ticketTypes.skip(1)) {
-      if (t.price > maxPrice) maxPrice = t.price;
-    }
-    return maxPrice;
+  String get locationLabel {
+    final formatted = locationFormatted?.trim() ?? '';
+    return formatted.isNotEmpty ? formatted : location;
   }
 }

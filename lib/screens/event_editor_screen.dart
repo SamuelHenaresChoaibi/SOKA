@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -26,12 +28,31 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
 
   late final TextEditingController _titleController;
   late final TextEditingController _categoryController;
+  late final TextEditingController _otherCategoryController;
   late final TextEditingController _locationController;
   late final TextEditingController _descriptionController;
   late final TextEditingController _imageUrlController;
   late final TextEditingController _dateTimeController;
 
   final List<_TicketTypeControllers> _ticketTypeControllers = [];
+
+  final GeoapifyService _geoapifyService = GeoapifyService();
+  final List<GeoapifySuggestion> _locationSuggestions = [];
+  GeoapifySuggestion? _selectedLocation;
+  String _initialLocation = '';
+  bool _isFetchingSuggestions = false;
+  Timer? _locationDebounce;
+  bool _ignoreLocationChange = false;
+
+  static const List<String> _categoryOptions = [
+    'Verbena',
+    'Discoteca',
+    'Festival',
+    'ChillOut',
+    'Pubs',
+    'Otro',
+  ];
+  String _selectedCategory = 'Verbena';
 
   DateTime? _selectedDateTime;
   bool _isSaving = false;
@@ -44,7 +65,15 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
     _selectedDateTime = event?.date;
 
     _titleController = TextEditingController(text: event?.title ?? '');
-    _categoryController = TextEditingController(text: event?.category ?? '');
+    final initialCategory = event?.category ?? '';
+    _categoryController = TextEditingController(text: initialCategory);
+    _otherCategoryController = TextEditingController(
+      text: _categoryOptions.contains(initialCategory) ? '' : initialCategory,
+    );
+    _selectedCategory =
+        _categoryOptions.contains(initialCategory) && initialCategory.isNotEmpty
+            ? initialCategory
+            : 'Otro';
     _locationController = TextEditingController(text: event?.location ?? '');
     _descriptionController =
         TextEditingController(text: event?.description ?? '');
@@ -53,24 +82,30 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
       text: _selectedDateTime == null ? '' : _formatDateTime(_selectedDateTime!),
     );
 
-    final initialTicketTypes = event?.ticketTypes ?? const <TicketType>[];
-    if (initialTicketTypes.isEmpty) {
-      _ticketTypeControllers.add(
-        _TicketTypeControllers(type: 'General'),
-      );
-    } else {
-      for (final t in initialTicketTypes) {
-        _ticketTypeControllers.add(
-          _TicketTypeControllers.fromTicketType(t),
-        );
-      }
-    }
+    _ticketTypeController =
+        TextEditingController(text: event?.ticketTypes.type ?? 'General');
+    _ticketDescriptionController = TextEditingController(
+      text: event?.ticketTypes.description ?? '',
+    );
+    _ticketPriceController = TextEditingController(
+      text: event == null ? '' : event.ticketTypes.price.toString(),
+    );
+    _ticketCapacityController = TextEditingController(
+      text: event == null ? '' : event.ticketTypes.capacity.toString(),
+    );
+    _ticketRemainingController = TextEditingController(
+      text: event == null ? '' : event.ticketTypes.remaining.toString(),
+    );
+
+    _initialLocation = _locationController.text.trim();
   }
 
   @override
   void dispose() {
+    _locationDebounce?.cancel();
     _titleController.dispose();
     _categoryController.dispose();
+    _otherCategoryController.dispose();
     _locationController.dispose();
     _descriptionController.dispose();
     _imageUrlController.dispose();
@@ -140,51 +175,36 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
 
     setState(() => _isSaving = true);
 
-    final previousTypes = widget.event?.ticketTypes ?? const <TicketType>[];
-    final ticketTypes = <TicketType>[];
-    for (var i = 0; i < _ticketTypeControllers.length; i++) {
-      final c = _ticketTypeControllers[i];
-      final ticketPrice = int.tryParse(c.price.text.trim()) ?? 0;
-      final capacity = int.tryParse(c.capacity.text.trim()) ?? 0;
-      final fallbackRemaining = i < previousTypes.length
-          ? previousTypes[i].remaining
-          : capacity;
-      final remaining =
-          int.tryParse(c.remaining.text.trim()) ?? fallbackRemaining;
-
-      ticketTypes.add(
-        TicketType(
-          capacity: capacity,
-          description: c.description.text.trim(),
-          price: ticketPrice,
-          remaining: remaining,
-          type: c.type.text.trim(),
-        ),
-      );
+    final locationValid = await _validateLocation();
+    if (!locationValid) {
+      if (mounted) setState(() => _isSaving = false);
+      return;
     }
 
-    if (ticketTypes.isEmpty) {
+    final resolvedCategory = _resolveCategory();
+    if (resolvedCategory == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Añade al menos un tipo de entrada')),
+        const SnackBar(content: Text('Selecciona una categoria valida')),
       );
       setState(() => _isSaving = false);
       return;
     }
 
-    for (final t in ticketTypes) {
-      if (t.capacity > 0 && t.remaining > t.capacity) {
-        final typeLabel = t.type.trim().isEmpty ? 'este tipo' : t.type.trim();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              'En "$typeLabel": las disponibles no pueden ser mayores que el aforo',
-            ),
-          ),
-        );
-        setState(() => _isSaving = false);
-        return;
-      }
-    }
+    final ticketPrice = int.tryParse(_ticketPriceController.text.trim()) ?? 0;
+    final capacity = int.tryParse(_ticketCapacityController.text.trim()) ?? 0;
+    final remaining = int.tryParse(_ticketRemainingController.text.trim()) ??
+        (widget.event?.ticketTypes.remaining ?? capacity);
+
+    final location = _locationController.text.trim();
+    final locationSuggestion = _selectedLocation;
+
+    final ticketTypes = TicketType(
+      capacity: capacity,
+      description: _ticketDescriptionController.text.trim(),
+      price: ticketPrice,
+      remaining: remaining,
+      type: _ticketTypeController.text.trim(),
+    );
 
     final sokaService = context.read<SokaService>();
 
@@ -192,34 +212,48 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
       if (widget.isEditing) {
         final event = widget.event!;
         final updatedData = <String, dynamic>{
-          'category': _categoryController.text.trim(),
+          'category': resolvedCategory,
           'date': _selectedDateTime!.toIso8601String(),
           'description': _descriptionController.text.trim(),
-           'imageUrl': _imageUrlController.text.trim(),
-           'location': _locationController.text.trim(),
-           'organizerId': widget.organizerId,
-           'ticketTypes': ticketTypes.map((e) => e.toJson()).toList(),
-           'title': _titleController.text.trim(),
-           'validated': event.validated,
-         };
-         await sokaService.updateEvent(event.id, updatedData);
-         if (!mounted) return;
+          'imageUrl': _imageUrlController.text.trim(),
+          'location': location,
+          'locationFormatted': locationSuggestion?.formatted,
+          'locationLat': locationSuggestion?.lat,
+          'locationLng': locationSuggestion?.lon,
+          'locationCity': locationSuggestion?.city,
+          'locationState': locationSuggestion?.state,
+          'locationPostcode': locationSuggestion?.postcode,
+          'locationCountry': locationSuggestion?.country,
+          'organizerId': widget.organizerId,
+          'ticketTypes': ticketTypes.toJson(),
+          'title': _titleController.text.trim(),
+          'validated': event.validated,
+        };
+        await sokaService.updateEvent(event.id, updatedData);
+        if (!mounted) return;
         Navigator.pop(context, event.id);
       } else {
         final now = DateTime.now();
         final event = Event(
           id: '',
-          category: _categoryController.text.trim(),
+          category: resolvedCategory,
           createdAt: now,
           date: _selectedDateTime!,
           description: _descriptionController.text.trim(),
-           imageUrl: _imageUrlController.text.trim(),
-           location: _locationController.text.trim(),
-           organizerId: widget.organizerId,
-           ticketTypes: ticketTypes,
-           title: _titleController.text.trim(),
-           validated: false,
-         );
+          imageUrl: _imageUrlController.text.trim(),
+          location: location,
+          locationFormatted: locationSuggestion?.formatted,
+          locationLat: locationSuggestion?.lat,
+          locationLng: locationSuggestion?.lon,
+          locationCity: locationSuggestion?.city,
+          locationState: locationSuggestion?.state,
+          locationPostcode: locationSuggestion?.postcode,
+          locationCountry: locationSuggestion?.country,
+          organizerId: widget.organizerId,
+          ticketTypes: ticketTypes,
+          title: _titleController.text.trim(),
+          validated: false,
+        );
 
         final createdEventId = await sokaService.createEvent(event);
         if (!mounted) return;
@@ -276,15 +310,68 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
                               label: 'Nombre del evento',
                             ),
                             const SizedBox(height: 14),
-                            _textField(
-                              controller: _categoryController,
-                              label: 'Categoría',
+                            DropdownButtonFormField<String>(
+                              value: _selectedCategory,
+                              items: _categoryOptions
+                                  .map(
+                                    (category) => DropdownMenuItem(
+                                      value: category,
+                                      child: Text(category),
+                                    ),
+                                  )
+                                  .toList(),
+                              onChanged: (value) {
+                                if (value == null) return;
+                                setState(() {
+                                  _selectedCategory = value;
+                                  if (value != 'Otro') {
+                                    _categoryController.text = value;
+                                    _otherCategoryController.clear();
+                                  }
+                                });
+                              },
+                              validator: (value) {
+                                if (value == null || value.trim().isEmpty) {
+                                  return 'Campo obligatorio';
+                                }
+                                return null;
+                              },
+                              decoration:
+                                  const InputDecoration(labelText: 'Categoría'),
                             ),
+                            if (_selectedCategory == 'Otro') ...[
+                              const SizedBox(height: 10),
+                              _textField(
+                                controller: _otherCategoryController,
+                                label: 'Otra categoría',
+                              ),
+                            ],
                             const SizedBox(height: 14),
                             _textField(
                               controller: _locationController,
                               label: 'Ubicación',
+                              onChanged: _onLocationChanged,
                             ),
+                            if (_isFetchingSuggestions)
+                              const Padding(
+                                padding: EdgeInsets.only(top: 12),
+                                child: LinearProgressIndicator(minHeight: 2),
+                              ),
+                            if (_locationSuggestions.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8),
+                                child: _SuggestionsList(
+                                  suggestions: _locationSuggestions,
+                                  onTap: _applySuggestion,
+                                ),
+                              ),
+                            if (_selectedLocation != null)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8),
+                                child: _LocationDetails(
+                                  suggestion: _selectedLocation!,
+                                ),
+                              ),
                             const SizedBox(height: 14),
                             _textField(
                               controller: _dateTimeController,
@@ -485,6 +572,7 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
     required String label,
     bool readOnly = false,
     VoidCallback? onTap,
+    ValueChanged<String>? onChanged,
     bool required = true,
     TextInputType? keyboardType,
     int maxLines = 1,
@@ -494,6 +582,7 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
       controller: controller,
       readOnly: readOnly,
       onTap: onTap,
+      onChanged: onChanged,
       keyboardType: keyboardType,
       maxLines: maxLines,
       inputFormatters: inputFormatters,
@@ -512,6 +601,231 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
     String two(int v) => v.toString().padLeft(2, '0');
     return '${two(date.day)}/${two(date.month)}/${date.year} · '
         '${two(date.hour)}:${two(date.minute)}';
+  }
+
+  String? _resolveCategory() {
+    if (_selectedCategory == 'Otro') {
+      final other = _otherCategoryController.text.trim();
+      return other.isEmpty ? null : other;
+    }
+    return _selectedCategory.trim().isEmpty ? null : _selectedCategory;
+  }
+
+  void _onLocationChanged(String value) {
+    if (_ignoreLocationChange) return;
+    _selectedLocation = null;
+
+    final trimmed = value.trim();
+    if (trimmed.length < 3 || !GeoapifyService.hasApiKey) {
+      if (_locationSuggestions.isNotEmpty || _isFetchingSuggestions) {
+        setState(() {
+          _locationSuggestions.clear();
+          _isFetchingSuggestions = false;
+        });
+      }
+      return;
+    }
+
+    _locationDebounce?.cancel();
+    _locationDebounce = Timer(const Duration(milliseconds: 300), () async {
+      if (!mounted) return;
+      setState(() => _isFetchingSuggestions = true);
+
+      final suggestions = await _geoapifyService.suggest(trimmed, limit: 5);
+
+      if (!mounted) return;
+      setState(() {
+        _locationSuggestions
+          ..clear()
+          ..addAll(suggestions);
+        _isFetchingSuggestions = false;
+      });
+    });
+  }
+
+  Future<void> _applySuggestion(GeoapifySuggestion suggestion) async {
+    _ignoreLocationChange = true;
+    _locationController.text = suggestion.displayLabel;
+    _ignoreLocationChange = false;
+
+    setState(() {
+    _selectedLocation = suggestion;
+      _locationSuggestions.clear();
+      _isFetchingSuggestions = false;
+    });
+  }
+
+  Future<bool> _validateLocation() async {
+    final location = _locationController.text.trim();
+    if (location.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('La ubicacion no puede estar vacia.')),
+      );
+      return false;
+    }
+
+    if (!GeoapifyService.hasApiKey) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Configura GEOAPIFY_API_KEY para validar la ubicacion.'),
+        ),
+      );
+      return false;
+    }
+
+    if (_selectedLocation != null) {
+      return true;
+    }
+
+    if (location == _initialLocation && widget.isEditing) {
+      return true;
+    }
+
+    try {
+      final suggestions = await _geoapifyService.suggest(location, limit: 1);
+      if (suggestions.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('No encontramos esa ubicacion.'),
+          ),
+        );
+        return false;
+      }
+      _selectedLocation = suggestions.first;
+      return true;
+    } catch (_) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se pudo validar la ubicacion')),
+      );
+      return false;
+    }
+  }
+}
+
+class _SuggestionsList extends StatelessWidget {
+  final List<GeoapifySuggestion> suggestions;
+  final ValueChanged<GeoapifySuggestion> onTap;
+
+  const _SuggestionsList({
+    required this.suggestions,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: ListView.separated(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: suggestions.length,
+        separatorBuilder: (_, __) => const Divider(height: 1),
+        itemBuilder: (context, index) {
+          final suggestion = suggestions[index];
+          return ListTile(
+            dense: true,
+            title: Text(
+              suggestion.name,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            subtitle: suggestion.displayLabel == suggestion.name
+                ? null
+                : Text(
+                    suggestion.displayLabel,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+            onTap: () => onTap(suggestion),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _LocationDetails extends StatelessWidget {
+  final GeoapifySuggestion suggestion;
+
+  const _LocationDetails({required this.suggestion});
+
+  @override
+  Widget build(BuildContext context) {
+    final city = suggestion.city?.trim();
+    final state = suggestion.state?.trim();
+    final postcode = suggestion.postcode?.trim();
+    final country = suggestion.country?.trim();
+
+    final rows = <MapEntry<String, String>>[];
+    if (city != null && city.isNotEmpty) {
+      rows.add(MapEntry('Ciudad', city));
+    }
+    if (state != null && state.isNotEmpty) {
+      rows.add(MapEntry('Provincia', state));
+    }
+    if (postcode != null && postcode.isNotEmpty) {
+      rows.add(MapEntry('CP', postcode));
+    }
+    if (country != null && country.isNotEmpty) {
+      rows.add(MapEntry('País', country));
+    }
+
+    if (rows.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: rows
+            .map(
+              (entry) => Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Row(
+                  children: [
+                    Text(
+                      entry.key.toUpperCase(),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textMuted,
+                        letterSpacing: 0.6,
+                      ),
+                    ),
+                    const Spacer(),
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        entry.value,
+                        textAlign: TextAlign.right,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            )
+            .toList(),
+      ),
+    );
   }
 }
 

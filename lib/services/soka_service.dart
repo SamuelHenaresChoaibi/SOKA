@@ -160,10 +160,20 @@ class SokaService extends ChangeNotifier {
       final response = await http.get(url);
 
       if (response.statusCode == 200 && response.body != 'null') {
-        final Map<String, dynamic> clientsMap = json.decode(response.body);
-        clientsMap.forEach((key, value) {
-          clients.add(Client.fromJson(value));
-        });
+        final decoded = json.decode(response.body);
+        if (decoded is Map<String, dynamic>) {
+          decoded.forEach((key, value) {
+            if (value == null) return;
+            clients.add(Client.fromJson(value));
+          });
+        } else if (decoded is List) {
+          for (final value in decoded) {
+            if (value == null) continue;
+            if (value is Map<String, dynamic>) {
+              clients.add(Client.fromJson(value));
+            }
+          }
+        }
       }
 
       notifyListeners();
@@ -266,10 +276,20 @@ class SokaService extends ChangeNotifier {
       final response = await http.get(url);
 
       if (response.statusCode == 200 && response.body != 'null') {
-        final Map<String, dynamic> companiesMap = json.decode(response.body);
-        companiesMap.forEach((key, value) {
-          companies.add(Company.fromJson(value));
-        });
+        final decoded = json.decode(response.body);
+        if (decoded is Map<String, dynamic>) {
+          decoded.forEach((key, value) {
+            if (value == null) return;
+            companies.add(Company.fromJson(value));
+          });
+        } else if (decoded is List) {
+          for (final value in decoded) {
+            if (value == null) continue;
+            if (value is Map<String, dynamic>) {
+              companies.add(Company.fromJson(value));
+            }
+          }
+        }
       }
 
       notifyListeners();
@@ -369,10 +389,21 @@ class SokaService extends ChangeNotifier {
       final url = Uri.https(_baseUrl, '/events.json');
       final response = await http.get(url);
       if (response.statusCode == 200 && response.body != 'null') {
-        final Map<String, dynamic> eventsMap = json.decode(response.body);
-        eventsMap.forEach((key, value) {
-          events.add(Event.fromJson(value, id: key));
-        });
+        final decoded = json.decode(response.body);
+        if (decoded is Map<String, dynamic>) {
+          decoded.forEach((key, value) {
+            if (value == null) return;
+            events.add(Event.fromJson(value, id: key));
+          });
+        } else if (decoded is List) {
+          for (var i = 0; i < decoded.length; i++) {
+            final value = decoded[i];
+            if (value == null) continue;
+            if (value is Map<String, dynamic>) {
+              events.add(Event.fromJson(value, id: i.toString()));
+            }
+          }
+        }
       }
 
       notifyListeners();
@@ -471,10 +502,20 @@ class SokaService extends ChangeNotifier {
 
       if (response.statusCode == 200 && response.body != 'null') {
         print('Response Body: ${response.body}');
-        final Map<String, dynamic> ticketsMap = json.decode(response.body);
-        ticketsMap.forEach((key, value) {
-          soldTickets.add(SoldTicket.fromJson(value));
-        });
+        final decoded = json.decode(response.body);
+        if (decoded is Map<String, dynamic>) {
+          decoded.forEach((key, value) {
+            if (value == null) return;
+            soldTickets.add(SoldTicket.fromJson(value));
+          });
+        } else if (decoded is List) {
+          for (final value in decoded) {
+            if (value == null) continue;
+            if (value is Map<String, dynamic>) {
+              soldTickets.add(SoldTicket.fromJson(value));
+            }
+          }
+        }
       }
 
       notifyListeners();

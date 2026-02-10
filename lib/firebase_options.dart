@@ -67,6 +67,7 @@ class DefaultFirebaseOptions {
     projectId: 'soka-1a9f3',
     databaseURL: 'https://soka-1a9f3-default-rtdb.europe-west1.firebasedatabase.app',
     storageBucket: 'soka-1a9f3.firebasestorage.app',
+    androidClientId: '506945347137-ps39oltjo45of0pafkjr05ao0kucgjm4.apps.googleusercontent.com',
     iosClientId: '506945347137-pfta1ugsaur5onv4c58vilt30tbm13pt.apps.googleusercontent.com',
     iosBundleId: 'com.example.soka',
   );
@@ -78,6 +79,7 @@ class DefaultFirebaseOptions {
     projectId: 'soka-1a9f3',
     databaseURL: 'https://soka-1a9f3-default-rtdb.europe-west1.firebasedatabase.app',
     storageBucket: 'soka-1a9f3.firebasestorage.app',
+    androidClientId: '506945347137-ps39oltjo45of0pafkjr05ao0kucgjm4.apps.googleusercontent.com',
     iosClientId: '506945347137-pfta1ugsaur5onv4c58vilt30tbm13pt.apps.googleusercontent.com',
     iosBundleId: 'com.example.soka',
   );

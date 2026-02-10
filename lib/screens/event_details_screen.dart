@@ -6,6 +6,7 @@ import 'package:soka/theme/app_colors.dart';
 import 'package:soka/widgets/bottom_cta.dart';
 import 'package:soka/widgets/category_chip.dart';
 import 'package:soka/widgets/icon_circle.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class EventDetailsScreen extends StatelessWidget {
   final Event event;
@@ -138,8 +139,38 @@ class EventDetailsScreen extends StatelessWidget {
                       _InfoTile(
                         icon: Icons.location_on_outlined,
                         label: 'Lugar',
-                        value: event.location,
+                        value: event.locationLabel,
+                        onTap: () => _openMaps(
+                          context,
+                          event.locationLabel,
+                          event.locationLat,
+                          event.locationLng,
+                        ),
                       ),
+                      if (_hasExtraLocation(event)) ...[
+                        _InfoTile(
+                          icon: Icons.location_city_outlined,
+                          label: 'Ciudad',
+                          value: event.locationCity?.trim() ?? '-',
+                        ),
+                        _InfoTile(
+                          icon: Icons.public_outlined,
+                          label: 'País',
+                          value: event.locationCountry?.trim() ?? '-',
+                        ),
+                        if ((event.locationState ?? '').trim().isNotEmpty)
+                          _InfoTile(
+                            icon: Icons.map_outlined,
+                            label: 'Provincia',
+                            value: event.locationState!.trim(),
+                          ),
+                        if ((event.locationPostcode ?? '').trim().isNotEmpty)
+                          _InfoTile(
+                            icon: Icons.markunread_mailbox_outlined,
+                            label: 'CP',
+                            value: event.locationPostcode!.trim(),
+                          ),
+                      ],
                     ],
                   ),
                   const SizedBox(height: 30),
@@ -250,6 +281,48 @@ class EventDetailsScreen extends StatelessWidget {
       'dic',
     ];
     return '${date.day} ${months[date.month - 1]} ${date.year}';
+  }
+
+  static bool _hasExtraLocation(Event event) {
+    return (event.locationCity ?? '').trim().isNotEmpty ||
+        (event.locationCountry ?? '').trim().isNotEmpty ||
+        (event.locationState ?? '').trim().isNotEmpty ||
+        (event.locationPostcode ?? '').trim().isNotEmpty;
+  }
+
+  static Future<void> _openMaps(
+    BuildContext context,
+    String location,
+    double? lat,
+    double? lng,
+  ) async {
+    final hasCoords = lat != null && lng != null;
+    final query = Uri.encodeComponent(location.trim());
+    if (!hasCoords && query.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('La ubicacion esta vacia.')),
+      );
+      return;
+    }
+
+    final uri = hasCoords
+        ? Uri.parse(
+            'https://www.google.com/maps/search/?api=1&query=$lat,$lng',
+          )
+        : Uri.parse(
+            'https://www.google.com/maps/search/?api=1&query=$query',
+          );
+
+    final launched = await launchUrl(
+      uri,
+      mode: LaunchMode.externalApplication,
+    );
+
+    if (!launched && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se pudo abrir Google Maps.')),
+      );
+    }
   }
 }
 
@@ -375,60 +448,69 @@ class _InfoTile extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
+  final VoidCallback? onTap;
 
   const _InfoTile({
     required this.icon,
     required this.label,
     required this.value,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isInteractive = onTap != null;
+    final valueStyle = TextStyle(
+      fontSize: 13,
+      fontWeight: FontWeight.w700,
+      color: isInteractive ? AppColors.primary : AppColors.textPrimary,
+      height: 1.2,
+      decoration: isInteractive ? TextDecoration.underline : null,
+    );
+
     return ConstrainedBox(
       constraints: const BoxConstraints(minWidth: 150, maxWidth: 260),
-      child: _Card(
-        child: Row(
-          children: [
-            Container(
-              height: 36,
-              width: 36,
-              decoration: BoxDecoration(
-                color: AppColors.secondary,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.border),
+      child: GestureDetector(
+        onTap: onTap,
+        child: _Card(
+          child: Row(
+            children: [
+              Container(
+                height: 36,
+                width: 36,
+                decoration: BoxDecoration(
+                  color: AppColors.secondary,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Icon(icon, size: 18, color: AppColors.textPrimary),
               ),
-              child: Icon(icon, size: 18, color: AppColors.textPrimary),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label.toUpperCase(),
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.textMuted,
-                      letterSpacing: 0.6,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label.toUpperCase(),
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textMuted,
+                        letterSpacing: 0.6,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    value,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
-                      height: 1.2,
+                    const SizedBox(height: 6),
+                    Text(
+                      value,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: valueStyle,
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

@@ -15,6 +15,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "506945347137-ps39oltjo45of0pafkjr05ao0kucgjm4.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.soka",
+            "certificate_hash": "e7833adf7b21c0fa809e41978965c01999ac082b"
+          }
+        },
+        {
           "client_id": "506945347137-bt2cb9i8nfpvg2pne0qbbq7eabkc1085.apps.googleusercontent.com",
           "client_type": 3
         }
