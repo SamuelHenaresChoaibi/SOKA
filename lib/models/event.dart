@@ -16,7 +16,7 @@ class Event {
   final String? locationPostcode;
   final String? locationCountry;
   final String organizerId;
-  final TicketType ticketTypes;
+  final List<TicketType> ticketTypes;
   final String title;
   final bool validated;
 
@@ -114,7 +114,7 @@ class Event {
       'locationPostcode': locationPostcode,
       'locationCountry': locationCountry,
       'organizerId': organizerId,
-      'ticketTypes': ticketTypes.toJson(),
+      'ticketTypes': ticketTypes.map((e) => e.toJson()).toList(),
       'title': title,
       'validated': validated,
     };

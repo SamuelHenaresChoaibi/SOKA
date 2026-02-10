@@ -34,11 +34,7 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
   late final TextEditingController _imageUrlController;
   late final TextEditingController _dateTimeController;
 
-  late final TextEditingController _ticketTypeController;
-  late final TextEditingController _ticketDescriptionController;
-  late final TextEditingController _ticketPriceController;
-  late final TextEditingController _ticketCapacityController;
-  late final TextEditingController _ticketRemainingController;
+  final List<_TicketTypeControllers> _ticketTypeControllers = [];
 
   final GeoapifyService _geoapifyService = GeoapifyService();
   final List<GeoapifySuggestion> _locationSuggestions = [];
@@ -114,12 +110,24 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
     _descriptionController.dispose();
     _imageUrlController.dispose();
     _dateTimeController.dispose();
-    _ticketTypeController.dispose();
-    _ticketDescriptionController.dispose();
-    _ticketPriceController.dispose();
-    _ticketCapacityController.dispose();
-    _ticketRemainingController.dispose();
+    for (final c in _ticketTypeControllers) {
+      c.dispose();
+    }
     super.dispose();
+  }
+
+  void _addTicketType() {
+    setState(() {
+      _ticketTypeControllers.add(_TicketTypeControllers(type: ''));
+    });
+  }
+
+  void _removeTicketType(int index) {
+    if (_ticketTypeControllers.length <= 1) return;
+    setState(() {
+      final removed = _ticketTypeControllers.removeAt(index);
+      removed.dispose();
+    });
   }
 
   Future<void> _pickDateTime() async {
@@ -392,62 +400,117 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            const Text(
-                              'Entradas',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w800,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                            const SizedBox(height: 14),
-                            _textField(
-                              controller: _ticketTypeController,
-                              label: 'Tipo',
-                            ),
-                            const SizedBox(height: 14),
-                            _textField(
-                              controller: _ticketDescriptionController,
-                              label: 'Descripción del tipo',
-                              required: false,
-                              maxLines: 2,
-                            ),
-                            const SizedBox(height: 14),
                             Row(
                               children: [
-                                Expanded(
-                                  child: _textField(
-                                    controller: _ticketPriceController,
-                                    label: 'Precio (€)',
-                                    keyboardType: TextInputType.number,
-                                    inputFormatters: [
-                                      FilteringTextInputFormatter.digitsOnly,
-                                    ],
+                                const Text(
+                                  'Entradas',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.textPrimary,
                                   ),
                                 ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: _textField(
-                                    controller: _ticketCapacityController,
-                                    label: 'Aforo',
-                                    keyboardType: TextInputType.number,
-                                    inputFormatters: [
-                                      FilteringTextInputFormatter.digitsOnly,
-                                    ],
-                                  ),
+                                const Spacer(),
+                                TextButton.icon(
+                                  onPressed: _isSaving ? null : _addTicketType,
+                                  icon: const Icon(Icons.add_rounded, size: 18),
+                                  label: const Text('Añadir'),
                                 ),
                               ],
                             ),
                             const SizedBox(height: 14),
-                            _textField(
-                              controller: _ticketRemainingController,
-                              label: 'Disponibles',
-                              keyboardType: TextInputType.number,
-                              inputFormatters: [
-                                FilteringTextInputFormatter.digitsOnly,
-                              ],
-                              required: false,
-                            ),
+                            ...List.generate(_ticketTypeControllers.length, (index) {
+                              final c = _ticketTypeControllers[index];
+                              final canRemove = _ticketTypeControllers.length > 1;
+
+                              return Padding(
+                                padding: EdgeInsets.only(
+                                  bottom: index == _ticketTypeControllers.length - 1 ? 0 : 16,
+                                ),
+                                child: Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: Border.all(color: AppColors.border),
+                                    color: AppColors.background.withAlpha(120),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Text(
+                                            'Tipo ${index + 1}',
+                                            style: const TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w800,
+                                              color: AppColors.textPrimary,
+                                            ),
+                                          ),
+                                          const Spacer(),
+                                          if (canRemove)
+                                            IconButton(
+                                              onPressed: _isSaving
+                                                  ? null
+                                                  : () => _removeTicketType(index),
+                                              icon: const Icon(Icons.close_rounded),
+                                              tooltip: 'Eliminar tipo',
+                                            ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 10),
+                                      _textField(
+                                        controller: c.type,
+                                        label: 'Tipo',
+                                      ),
+                                      const SizedBox(height: 12),
+                                      _textField(
+                                        controller: c.description,
+                                        label: 'Descripción del tipo',
+                                        required: false,
+                                        maxLines: 2,
+                                      ),
+                                      const SizedBox(height: 12),
+                                      Row(
+                                        children: [
+                                          Expanded(
+                                            child: _textField(
+                                              controller: c.price,
+                                              label: 'Precio (€)',
+                                              keyboardType: TextInputType.number,
+                                              inputFormatters: [
+                                                FilteringTextInputFormatter.digitsOnly,
+                                              ],
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: _textField(
+                                              controller: c.capacity,
+                                              label: 'Aforo',
+                                              keyboardType: TextInputType.number,
+                                              inputFormatters: [
+                                                FilteringTextInputFormatter.digitsOnly,
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 12),
+                                      _textField(
+                                        controller: c.remaining,
+                                        label: 'Disponibles',
+                                        keyboardType: TextInputType.number,
+                                        inputFormatters: [
+                                          FilteringTextInputFormatter.digitsOnly,
+                                        ],
+                                        required: false,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }),
                           ],
                         ),
                       ),
@@ -763,6 +826,44 @@ class _LocationDetails extends StatelessWidget {
             .toList(),
       ),
     );
+  }
+}
+
+class _TicketTypeControllers {
+  final TextEditingController type;
+  final TextEditingController description;
+  final TextEditingController price;
+  final TextEditingController capacity;
+  final TextEditingController remaining;
+
+  _TicketTypeControllers({
+    required String type,
+    String description = '',
+    String price = '',
+    String capacity = '',
+    String remaining = '',
+  })  : type = TextEditingController(text: type),
+        description = TextEditingController(text: description),
+        price = TextEditingController(text: price),
+        capacity = TextEditingController(text: capacity),
+        remaining = TextEditingController(text: remaining);
+
+  factory _TicketTypeControllers.fromTicketType(TicketType ticketType) {
+    return _TicketTypeControllers(
+      type: ticketType.type,
+      description: ticketType.description,
+      price: ticketType.price.toString(),
+      capacity: ticketType.capacity.toString(),
+      remaining: ticketType.remaining.toString(),
+    );
+  }
+
+  void dispose() {
+    type.dispose();
+    description.dispose();
+    price.dispose();
+    capacity.dispose();
+    remaining.dispose();
   }
 }
 
