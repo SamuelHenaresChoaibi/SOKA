@@ -16,10 +16,23 @@ class EventDetailsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    final price = event.ticketTypes.price;
-    final priceLabel = price <= 0 ? 'Gratis' : '€$price';
-    final ticketSubtitle =
-        '${event.ticketTypes.type} • ${event.ticketTypes.remaining} disponibles';
+    final minPrice = event.minTicketPrice;
+    final maxPrice = event.maxTicketPrice;
+    final totalRemaining = event.totalRemaining;
+
+    final priceLabel = !event.hasTicketTypes
+        ? 'Sin entradas'
+        : minPrice <= 0
+            ? 'Gratis'
+            : minPrice == maxPrice
+                ? '€$minPrice'
+                : 'Desde €$minPrice';
+
+    final ticketSubtitle = !event.hasTicketTypes
+        ? 'Sin tipos de entrada'
+        : event.ticketTypes.length == 1
+            ? '${event.ticketTypes.first.type} • ${event.ticketTypes.first.remaining} disponibles'
+            : '${event.ticketTypes.length} tipos • $totalRemaining disponibles';
     Future<Company?> company = Provider.of<SokaService>(context, listen: false)
         .fetchCompanyById(event.organizerId);
     return Scaffold(
@@ -140,18 +153,43 @@ class EventDetailsScreen extends StatelessWidget {
                         height: 1.7,
                         color: AppColors.textPrimary.withOpacity(0.86),
                       ),
-                    ),
+                  ),
                   ),
                   const SizedBox(height: 26),
-                  const _SectionTitle('Entrada'),
+                  const _SectionTitle('Entradas'),
                   const SizedBox(height: 12),
-                  _TicketCard(
-                    type: event.ticketTypes.type,
-                    description: event.ticketTypes.description,
-                    remaining: event.ticketTypes.remaining,
-                    capacity: event.ticketTypes.capacity,
-                    priceLabel: priceLabel,
-                  ),
+                  if (!event.hasTicketTypes)
+                    const _Card(
+                      child: Text(
+                        'No hay tipos de entrada configurados.',
+                        style: TextStyle(
+                          fontSize: 14,
+                          height: 1.6,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    )
+                  else
+                    Column(
+                      children: List.generate(event.ticketTypes.length, (index) {
+                        final ticketType = event.ticketTypes[index];
+                        final typePriceLabel =
+                            ticketType.price <= 0 ? 'Gratis' : '€${ticketType.price}';
+
+                        return Padding(
+                          padding: EdgeInsets.only(
+                            bottom: index == event.ticketTypes.length - 1 ? 0 : 12,
+                          ),
+                          child: _TicketCard(
+                            type: ticketType.type,
+                            description: ticketType.description,
+                            remaining: ticketType.remaining,
+                            capacity: ticketType.capacity,
+                            priceLabel: typePriceLabel,
+                          ),
+                        );
+                      }),
+                    ),
                   const SizedBox(height: 26),
                   const _SectionTitle('Detalles'),
                   const SizedBox(height: 12),

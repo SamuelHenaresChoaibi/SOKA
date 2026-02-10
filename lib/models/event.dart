@@ -9,7 +9,7 @@ class Event {
   final String imageUrl;
   final String location;
   final String organizerId;
-  final TicketType ticketTypes;
+  final List<TicketType> ticketTypes;
   final String title;
   final bool validated;
 
@@ -28,6 +28,9 @@ class Event {
   });
 
   factory Event.fromJson(Map<String, dynamic> json, {required String id}) {
+    final rawTicketTypes =
+        json['ticketTypes'] ?? json['ticketsType'] ?? json['ticketsTypes'];
+
     return Event(
       id: id,
       category: json['category'],
@@ -37,7 +40,7 @@ class Event {
       imageUrl: json['imageUrl']?.toString() ?? '',
       location: json['location'],
       organizerId: json['organizerId'],
-      ticketTypes: TicketType.fromJson(json['ticketTypes']),
+      ticketTypes: TicketType.listFromJson(rawTicketTypes),
       title: json['title'],
       validated: json['validated'],
     );
@@ -52,9 +55,32 @@ class Event {
       'imageUrl': imageUrl,
       'location': location,
       'organizerId': organizerId,
-      'ticketTypes': ticketTypes.toJson(),
+      'ticketTypes': ticketTypes.map((e) => e.toJson()).toList(),
       'title': title,
       'validated': validated,
     };
+  }
+
+  bool get hasTicketTypes => ticketTypes.isNotEmpty;
+
+  int get totalRemaining =>
+      ticketTypes.fold<int>(0, (sum, t) => sum + t.remaining);
+
+  int get minTicketPrice {
+    if (ticketTypes.isEmpty) return 0;
+    var minPrice = ticketTypes.first.price;
+    for (final t in ticketTypes.skip(1)) {
+      if (t.price < minPrice) minPrice = t.price;
+    }
+    return minPrice;
+  }
+
+  int get maxTicketPrice {
+    if (ticketTypes.isEmpty) return 0;
+    var maxPrice = ticketTypes.first.price;
+    for (final t in ticketTypes.skip(1)) {
+      if (t.price > maxPrice) maxPrice = t.price;
+    }
+    return maxPrice;
   }
 }

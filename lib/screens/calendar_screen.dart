@@ -370,8 +370,15 @@ class _DayEventCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final price = event.ticketTypes.price;
-    final priceLabel = price <= 0 ? 'Gratis' : '$price€';
+    final minPrice = event.minTicketPrice;
+    final maxPrice = event.maxTicketPrice;
+    final priceLabel = !event.hasTicketTypes
+        ? 'Sin entradas'
+        : minPrice <= 0
+            ? 'Gratis'
+            : minPrice == maxPrice
+                ? '${minPrice}€'
+                : 'Desde ${minPrice}€';
     final timeLabel = _formatTime(event.date.toLocal());
 
     return Padding(

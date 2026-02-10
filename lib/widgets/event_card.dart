@@ -23,8 +23,17 @@ class EventCard extends StatefulWidget {
 class _EventCardState extends State<EventCard> {
   @override
   Widget build(BuildContext context) {
-    final price = widget.event.ticketTypes.price;
-    final priceLabel = price <= 0 ? 'Gratis' : '€${price.toString()}';
+    final event = widget.event;
+    final minPrice = event.minTicketPrice;
+    final maxPrice = event.maxTicketPrice;
+
+    final priceLabel = !event.hasTicketTypes
+        ? 'Sin entradas'
+        : minPrice <= 0
+            ? 'Gratis'
+            : minPrice == maxPrice
+                ? '€$minPrice'
+                : 'Desde €$minPrice';
 
     return GestureDetector(
       onTap: () {
