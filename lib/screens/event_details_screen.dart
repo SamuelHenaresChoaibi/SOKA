@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:soka/models/models.dart';
+import 'package:soka/services/services.dart';
 import 'package:soka/theme/app_colors.dart';
 import 'package:soka/widgets/bottom_cta.dart';
 import 'package:soka/widgets/category_chip.dart';
@@ -18,7 +20,8 @@ class EventDetailsScreen extends StatelessWidget {
     final priceLabel = price <= 0 ? 'Gratis' : '€$price';
     final ticketSubtitle =
         '${event.ticketTypes.type} • ${event.ticketTypes.remaining} disponibles';
-
+    Future<Company?> company = Provider.of<SokaService>(context, listen: false)
+        .fetchCompanyById(event.organizerId);
     return Scaffold(
       backgroundColor: AppColors.background,
       bottomNavigationBar: BottomCTA(
@@ -160,9 +163,15 @@ class EventDetailsScreen extends StatelessWidget {
                           value: _formatDate(event.createdAt),
                         ),
                         const Divider(height: 24, color: AppColors.border),
-                        _KeyValueRow(
-                          label: 'Organizador',
-                          value: _shortId(event.organizerId),
+                        FutureBuilder<Company?>(
+                          future: company,
+                          builder: (context, companySnapshot) {
+                            final companyName = companySnapshot.data?.companyName ?? 'Desconocido';
+                            return _KeyValueRow(
+                              label: 'Organizador',
+                              value: _shortId(companyName),
+                            );
+                          },
                         ),
                       ],
                     ),
@@ -233,9 +242,9 @@ class _Hero extends StatelessWidget {
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: [
-                AppColors.primary.withOpacity(0.65),
+                AppColors.primary.withValues(alpha: 0.65),
                 Colors.transparent,
-                AppColors.primary.withOpacity(0.55),
+                AppColors.primary.withValues(alpha: 0.55),
               ],
             ),
           ),
@@ -260,10 +269,10 @@ class _PricePill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       decoration: BoxDecoration(
-        color: AppColors.primary.withOpacity(0.9),
+        color: AppColors.primary.withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: AppColors.surface.withOpacity(0.08),
+          color: AppColors.surface.withValues(alpha: 0.08),
         ),
       ),
       child: Text(
@@ -313,7 +322,7 @@ class _Card extends StatelessWidget {
         border: Border.all(color: AppColors.border),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 12,
             offset: const Offset(0, 8),
           ),

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
 import 'package:soka/models/models.dart';
-import 'package:soka/services/auth_gate.dart';
+import 'package:soka/services/auth_service.dart';
 import 'package:soka/services/services.dart';
 import 'package:soka/screens/account_settings_screen.dart';
 import 'package:soka/theme/app_colors.dart';
@@ -21,6 +21,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late final Future<Company?> _companyFuture;
   bool _shareProfile = true;
   bool _showEmail = false;
+  bool _privacyLoaded = false;
   final TextEditingController _supportSubjectController =
       TextEditingController();
   final TextEditingController _supportMessageController =
@@ -45,6 +46,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _companyFuture = _user == null
         ? Future.value(null)
         : context.read<SokaService>().fetchCompanyById(_user.uid);
+
+    Future.microtask(_loadPrivacySettings);
+  }
+
+  Future<void> _loadPrivacySettings({bool force = false}) async {
+    final user = _user;
+    if (user == null) return;
+    if (_privacyLoaded && !force) return;
+
+    try {
+      final settings =
+          await context.read<SokaService>().fetchUserSettings(user.uid);
+
+      if (!mounted) return;
+      setState(() {
+        final shareProfile = settings?['shareProfile'];
+        final showEmail = settings?['showEmail'];
+        _shareProfile = shareProfile is bool ? shareProfile : _shareProfile;
+        _showEmail = showEmail is bool ? showEmail : _showEmail;
+        _privacyLoaded = true;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _privacyLoaded = true);
+    }
   }
 
   @override
@@ -70,7 +96,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: const [
                       Text(
-                        'Settings',
+                        'Ajustes',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 26,
@@ -79,7 +105,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       SizedBox(height: 20),
                       Text(
-                        'Manage your account and preferences',
+                        'Administra tu cuenta y preferencias',
                         style: TextStyle(
                           color: Color(0xFFDDE4F2),
                           fontSize: 14,
@@ -134,39 +160,50 @@ class _SettingsScreenState extends State<SettingsScreen> {
             return Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Stack(
-                  children: [
-                    CircleAvatar(
-                      radius: 30,
-                      backgroundColor: AppColors.accent,
-                      child: Text(
-                        initials,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 22,
+                InkWell(
+                  borderRadius: BorderRadius.circular(40),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const AccountSettingsScreen(),
+                      ),
+                    );
+                  },
+                  child: Stack(
+                    children: [
+                      CircleAvatar(
+                        radius: 30,
+                        backgroundColor: AppColors.accent,
+                        child: Text(
+                          initials,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 22,
+                          ),
                         ),
                       ),
-                    ),
-                    Positioned(
-                      right: -2,
-                      bottom: -2,
-                      child: Container(
-                        height: 20,
-                        width: 20,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1E2B45),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.white, width: 2),
-                        ),
-                        child: const Icon(
-                          Icons.camera_alt,
-                          size: 12,
-                          color: Colors.white,
+                      Positioned(
+                        right: -2,
+                        bottom: -2,
+                        child: Container(
+                          height: 20,
+                          width: 20,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1E2B45),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.white, width: 2),
+                          ),
+                          child: const Icon(
+                            Icons.edit,
+                            size: 12,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
                 const SizedBox(width: 14),
                 Expanded(
@@ -255,8 +292,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 ListTile(
                   leading: const Icon(Icons.person),
-                  title: const Text("Account"),
-                  subtitle: const Text("Manage your account settings"),
+                  title: const Text("Cuenta"),
+                  subtitle: const Text("Edita la información de tu cuenta"),
                   onTap: () {
                     Navigator.push(
                       context,
@@ -269,17 +306,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const Divider(height: 1),
                 ListTile(
                   leading: const Icon(Icons.lock),
-                  title: const Text("Privacy"),
-                  subtitle: const Text("Manage your privacy settings"),
-                  onTap: () {
+                  title: const Text("Privacidad"),
+                  subtitle: const Text("Controla qué información se muestra"),
+                  onTap: () async {
+                    await _loadPrivacySettings(force: true);
+                    if (!context.mounted) return;
                     _showPrivacySheet(context);
                   },
                 ),
                 const Divider(height: 1),
                 ListTile(
                   leading: const Icon(Icons.notifications),
-                  title: const Text("Notifications"),
-                  subtitle: const Text("Manage your notification settings"),
+                  title: const Text("Notificaciones"),
+                  subtitle: const Text("Ver alertas de la próxima semana"),
                   onTap: () {
                     Navigator.pushNamed(context, 'notifications');
                   },
@@ -294,8 +333,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             child: ListTile(
               leading: const Icon(Icons.help),
-              title: const Text("Help & Support"),
-              subtitle: const Text("Get help and support"),
+              title: const Text("Ayuda y soporte"),
+              subtitle: const Text("Contacta con soporte"),
               onTap: () {
                 _showSupportSheet(context);
               },
@@ -308,11 +347,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             child: ListTile(
               leading: const Icon(Icons.logout),
-              title: const Text("Logout"),
-              subtitle: const Text("Sign out of your account"),
+              title: const Text("Cerrar sesión"),
+              subtitle: const Text("Salir de tu cuenta"),
               onTap: () async {
-                await AuthGate().signOut();
-                Navigator.pushReplacementNamed(context, '/');
+                try {
+                  await AuthService().logout();
+                } catch (_) {
+                  // no-op
+                }
+                if (!context.mounted) return;
+                Navigator.of(context).pushNamedAndRemoveUntil(
+                  '/',
+                  (route) => false,
+                );
               },
             ),
           ),
@@ -329,8 +376,46 @@ class _SettingsScreenState extends State<SettingsScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) {
+        bool isSaving = false;
         return StatefulBuilder(
           builder: (context, setModalState) {
+            Future<void> saveSettings() async {
+              final user = _user;
+              if (user == null) return;
+              if (isSaving) return;
+
+              setModalState(() => isSaving = true);
+
+              try {
+                await context.read<SokaService>().updateUserSettings(
+                  user.uid,
+                  {
+                    'shareProfile': _shareProfile,
+                    'showEmail': _showEmail,
+                  },
+                );
+
+                if (!mounted || !context.mounted) return;
+                Navigator.pop(context);
+                ScaffoldMessenger.of(this.context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Privacidad guardada correctamente'),
+                  ),
+                );
+              } catch (_) {
+                if (!mounted || !context.mounted) return;
+                ScaffoldMessenger.of(this.context).showSnackBar(
+                  const SnackBar(
+                    content: Text('No se pudieron guardar los cambios'),
+                  ),
+                );
+              } finally {
+                if (context.mounted) {
+                  setModalState(() => isSaving = false);
+                }
+              }
+            }
+
             return Padding(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
               child: Column(
@@ -338,14 +423,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Privacy',
+                    'Privacidad',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
                   ),
                   const SizedBox(height: 12),
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Share my profile'),
-                    subtitle: const Text('Allow others to see your public profile'),
+                    title: const Text('Compartir mi perfil'),
+                    subtitle: const Text('Permite que otros vean tu perfil público'),
                     value: _shareProfile,
                     onChanged: (value) {
                       setModalState(() => _shareProfile = value);
@@ -354,8 +439,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Show my email'),
-                    subtitle: const Text('Display email on my public profile'),
+                    title: const Text('Mostrar mi email'),
+                    subtitle: const Text('Muestra tu email en tu perfil público'),
                     value: _showEmail,
                     onChanged: (value) {
                       setModalState(() => _showEmail = value);
@@ -367,22 +452,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     children: [
                       Expanded(
                         child: OutlinedButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text('Close'),
+                          onPressed: isSaving ? null : () => Navigator.pop(context),
+                          child: const Text('Cerrar'),
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                            ScaffoldMessenger.of(this.context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Privacy settings updated'),
-                              ),
-                            );
-                          },
-                          child: const Text('Save'),
+                          onPressed: isSaving ? null : saveSettings,
+                          child: isSaving
+                              ? const SizedBox(
+                                  height: 18,
+                                  width: 18,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : const Text('Guardar'),
                         ),
                       ),
                     ],
@@ -419,7 +506,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Help & Support',
+                  'Ayuda y soporte',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 12),
@@ -532,7 +619,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           _supportSubjectController.clear();
                           _supportMessageController.clear();
                           _supportEmailController.clear();
-                          if (!mounted) return;
+                          if (!mounted || !context.mounted) return;
                           Navigator.pop(context);
                         },
                         child: const Text('Enviar'),
