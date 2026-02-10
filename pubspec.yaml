@@ -30,7 +30,9 @@ environment:
 dependencies:
   cloud_firestore: ^4.15.0
   cupertino_icons: ^1.0.8
+  firebase_analytics: ^10.10.7
   firebase_auth: ^4.16.0
+  firebase_crashlytics: ^3.5.7
   firebase_core: ^2.32.0
   firebase_database: ^10.5.7
   firebase_ui_auth: ^1.13.0
