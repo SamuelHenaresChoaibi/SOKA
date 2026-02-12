@@ -1,12 +1,17 @@
 import 'dart:convert';
+import 'dart:typed_data';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:http/http.dart' as http;
 import '../models/models.dart';
+import 'notification_service.dart';
 
 class SokaService extends ChangeNotifier {
   GlobalKey<FormState> formKey = GlobalKey<FormState>();
   final String _baseUrl =
       "soka-1a9f3-default-rtdb.europe-west1.firebasedatabase.app";
+  final NotificationService _notificationService = NotificationService();
   List<Company> companies = [];
   List<Event> events = [];
   List<Client> clients = [];
@@ -17,6 +22,7 @@ class SokaService extends ChangeNotifier {
   }
 
   Future<void> init() async {
+    await _notificationService.initialize();
     await fetchClients();
     await fetchCompanies();
     await fetchEvents();
@@ -416,6 +422,50 @@ class SokaService extends ChangeNotifier {
   //-----------------------------------------
   //-----------------------------------------
 
+  Future<String> uploadEventImage({
+    required Uint8List bytes,
+    required String organizerId,
+    String? eventId,
+    String? fileName,
+    String? contentType,
+  }) async {
+    final normalizedOrganizerId = organizerId.trim();
+    if (normalizedOrganizerId.isEmpty) {
+      throw Exception('No se pudo subir la imagen: organizerId vacío');
+    }
+
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final safeFileName = (fileName == null || fileName.trim().isEmpty)
+        ? 'event_image_$timestamp.jpg'
+        : '${timestamp}_${fileName.trim().replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '_')}';
+    final folderId = (eventId == null || eventId.trim().isEmpty)
+        ? DateTime.now().millisecondsSinceEpoch.toString()
+        : eventId.trim();
+    final resolvedContentType =
+        (contentType == null || contentType.trim().isEmpty)
+            ? 'image/jpeg'
+            : contentType.trim();
+
+    final ref = FirebaseStorage.instance
+        .ref()
+        .child('events')
+        .child(normalizedOrganizerId)
+        .child(folderId)
+        .child(safeFileName);
+
+    try {
+      final metadata = SettableMetadata(contentType: resolvedContentType);
+      final snapshot = await ref.putData(bytes, metadata);
+      return snapshot.ref.getDownloadURL();
+    } on FirebaseException catch (e) {
+      final code = e.code.trim().isEmpty ? 'unknown' : e.code;
+      final message = (e.message == null || e.message!.trim().isEmpty)
+          ? 'Error de Firebase Storage'
+          : e.message!;
+      throw Exception('Storage[$code]: $message');
+    }
+  }
+
   //-----------------------------------------
   //-----------------------------------------
   //SOLD TICKETS
@@ -430,6 +480,7 @@ class SokaService extends ChangeNotifier {
       if (response.statusCode == 200) {
         print('Sold ticket created successfully: ${response.body}');
         await fetchSoldTickets();
+        await _scheduleReminderForTicket(newTicket);
       } else {
         print(
           'Failed to create sold ticket. Status code: ${response.statusCode}, Response body: ${response.body}',
@@ -518,6 +569,7 @@ class SokaService extends ChangeNotifier {
         }
       }
 
+      await _scheduleRemindersForCurrentUserTickets();
       notifyListeners();
       return soldTickets;
     } catch (e) {
@@ -528,4 +580,50 @@ class SokaService extends ChangeNotifier {
 
   //-----------------------------------------
   //-----------------------------------------
+
+  Future<void> _scheduleRemindersForCurrentUserTickets() async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null || uid.trim().isEmpty) return;
+
+    for (final ticket in soldTickets) {
+      if (ticket.userId.trim() != uid) continue;
+      await _scheduleReminderForTicket(ticket);
+    }
+  }
+
+  Future<void> _scheduleReminderForTicket(SoldTicket ticket) async {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null || uid.trim().isEmpty) return;
+    if (ticket.userId.trim() != uid) return;
+
+    Event? event;
+    final cached = events.where((e) => e.id == ticket.eventId).toList();
+    if (cached.isNotEmpty) {
+      event = cached.first;
+    } else {
+      event = await fetchEventById(ticket.eventId);
+    }
+    if (event == null) return;
+
+    final reminderId = _buildReminderId(ticket);
+    final dateLabel = _formatDateTime(event.date);
+    await _notificationService.scheduleEventReminder(
+      id: reminderId,
+      title: 'Recordatorio de entrada',
+      body: 'Tu evento "${event.title}" es mañana a las $dateLabel.',
+      eventDate: event.date,
+    );
+  }
+
+  int _buildReminderId(SoldTicket ticket) {
+    final source = '${ticket.eventId}-${ticket.idTicket}-${ticket.userId}';
+    return source.hashCode & 0x7fffffff;
+  }
+
+  String _formatDateTime(DateTime date) {
+    final local = date.toLocal();
+    final h = local.hour.toString().padLeft(2, '0');
+    final m = local.minute.toString().padLeft(2, '0');
+    return '$h:$m';
+  }
 }

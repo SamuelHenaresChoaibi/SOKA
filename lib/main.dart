@@ -19,25 +19,32 @@ import 'package:soka/theme/app_theme.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  await FirebaseCrashlytics.instance
-      .setCrashlyticsCollectionEnabled(!kDebugMode);
 
-  FlutterError.onError =
-      FirebaseCrashlytics.instance.recordFlutterFatalError;
-  PlatformDispatcher.instance.onError = (error, stack) {
-    FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
-    return true;
-  };
+  if (!kIsWeb) {
+    await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);
+    FlutterError.onError = (errorDetails) {
+      FlutterError.presentError(errorDetails);
+      FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails);
+    };
+    PlatformDispatcher.instance.onError = (error, stack) {
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+      return true;
+    };
+  }
 
-  runApp(AppState());
+  runApp(const AppState());
 }
 
 class AppState extends StatelessWidget {
+  const AppState({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
-      providers: [ChangeNotifierProvider(create: (_) => SokaService())],
-      child: MyApp(),
+      providers: [
+        ChangeNotifierProvider<SokaService>(create: (_) => SokaService()),
+      ],
+      child: const MyApp(),
     );
   }
 }
@@ -51,13 +58,12 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.ligthTheme,
       title: 'SOKA',
-      initialRoute: 'homePage',
+      initialRoute: '/',
       routes: {
         'homePage': (context) => const HomeScreen(),
         'login': (context) => const LoginScreen(),
         'register': (context) => const SignupScreen(),
         'notifications': (context) => const NotificationsScreen(),
-        //'registerCompany': (context) => const RegisterCompanyScreen(),
         '/': (context) => const AuthGate(),
       },
       onGenerateRoute: (settings) {
