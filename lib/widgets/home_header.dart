@@ -36,7 +36,7 @@ class HomeHeader extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'HOLA,',
+                          'Hello,',
                           style: TextStyle(
                             color: lightText.withOpacity(0.75),
                             fontSize: 16,
@@ -45,7 +45,7 @@ class HomeHeader extends StatelessWidget {
                         ),
                         const SizedBox(height: 6),
                         Text(
-                          'BIENVENIDO A SOKA',
+                          'WELCOME TO SOKA',
                           style: TextStyle(
                             color: lightText,
                             fontSize: 24,
