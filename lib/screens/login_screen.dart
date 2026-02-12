@@ -30,16 +30,16 @@ class _LoginScreenState extends State<LoginScreen> {
       );
       // AuthGate se encarga de la navegación
     } on FirebaseAuthException catch (e) {
-      String message = 'Error al iniciar sesión';
+      String message = 'Error sign in';
       switch (e.code) {
         case 'user-not-found':
-          message = 'Usuario no registrado';
+          message = 'User not registered';
           break;
         case 'wrong-password':
-          message = 'Contraseña incorrecta';
+          message = 'Incorrect password';
           break;
         case 'invalid-email':
-          message = 'Correo inválido';
+          message = 'Invalid email format';
           break;
       }
       if (!mounted) return;
@@ -63,7 +63,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Inicio de sesión con Google cancelado'),
+          content: Text('Google sign-in cancelled'),
         ),
       );
       return;
@@ -73,7 +73,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(e.message ?? 'Error al iniciar sesión con Google'),
+        content: Text(e.message ?? 'Error signing in with Google'),
       ),
     );
   } catch (e) {
@@ -81,7 +81,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('Error inesperado. Intenta nuevamente.'),
+        content: Text('Unexpected error. Please try again.'),
       ),
     );
   } finally {
@@ -120,7 +120,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                   _input(emailController, 'Email', icon: Icons.person),
                   const SizedBox(height: 16),
-                  _input(passwordController, 'Contraseña',
+                  _input(passwordController, 'Password',
                       obscure: true, icon: Icons.lock),
                   const SizedBox(height: 24),
 
@@ -132,7 +132,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ? const CircularProgressIndicator(
                               color: AppColors.surface,
                             )
-                          : const Text('Iniciar sesión'),
+                          : const Text('Sign In'),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -158,7 +158,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         height: 24,
                         width: 24,
                       ),
-                      label: const Text('Continuar con Google'),
+                      label: const Text('Continue with Google'),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -168,7 +168,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       if (emailController.text.isEmpty) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                              content: Text('Introduce tu email primero')),
+                              content: Text('Please enter your email first')),
                         );
                         return;
                       }
@@ -177,28 +177,28 @@ class _LoginScreenState extends State<LoginScreen> {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
                               content: Text(
-                                  'Email de recuperación enviado correctamente')),
+                                  'Recovery email sent successfully')),
                         );
                       } on FirebaseAuthException {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
-                              content: Text('Error al enviar el email')),
+                              content: Text('Error sending recovery email')),
                         );
                       }
                     },
-                    child: const Text('¿Has olvidado la contraseña?'),
+                    child: const Text('Forgot your password?'),
                   ),
 
                   const SizedBox(height: 12),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text('¿No tienes cuenta?'),
+                      const Text("Don't have an account?"),
                       TextButton(
                         onPressed: () {
                           Navigator.pushNamed(context, 'register');
                         },
-                        child: const Text('Regístrate'),
+                        child: const Text('Register'),
                       ),
                     ],
                   ),
@@ -219,13 +219,13 @@ class _LoginScreenState extends State<LoginScreen> {
       style: const TextStyle(color: AppColors.textPrimary),
       validator: (value) {
         if (value == null || value.isEmpty) {
-          return 'Campo obligatorio';
+          return 'Required field';
         }
         if (!obscure && !value.contains('@')) {
-          return 'Email inválido';
+          return 'Invalid email format';
         }
         if (obscure && value.length < 6) {
-          return 'Mínimo 6 caracteres';
+          return 'Minimum 6 characters';
         }
         return null;
       },

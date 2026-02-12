@@ -45,11 +45,11 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
 
   static const List<String> _categoryOptions = [
     'Verbena',
-    'Discoteca',
+    'Club',
     'Festival',
     'ChillOut',
     'Pubs',
-    'Otro',
+    'Other',
   ];
   String _selectedCategory = 'Verbena';
 
@@ -77,7 +77,7 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
     _selectedCategory =
         _categoryOptions.contains(initialCategory) && initialCategory.isNotEmpty
         ? initialCategory
-        : 'Otro';
+        : 'Other';
     _locationController = TextEditingController(text: event?.location ?? '');
     _descriptionController = TextEditingController(
       text: event?.description ?? '',
@@ -170,7 +170,7 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
     if (_selectedDateTime == null) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Selecciona fecha y hora')));
+      ).showSnackBar(const SnackBar(content: Text('Select date and time')));
       return;
     }
 
@@ -185,7 +185,7 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
     final resolvedCategory = _resolveCategory();
     if (resolvedCategory == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Selecciona una categoria valida')),
+        const SnackBar(content: Text('Select a valid category')),
       );
       setState(() => _isSaving = false);
       return;
@@ -263,7 +263,7 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
 
         if (createdEventId == null || createdEventId.trim().isEmpty) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('No se pudo publicar el evento')),
+            const SnackBar(content: Text('Could not publish the event')),
           );
           return;
         }
@@ -275,9 +275,9 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
       final code = e.code.toLowerCase();
       String message;
       if (code == 'permission-denied' || code == 'unauthenticated') {
-        message = 'No tienes permisos para guardar este evento o imagen.';
+        message = 'You do not have permission to save this event or image.';
       } else {
-        message = e.message ?? 'Error de Firebase al guardar.';
+        message = e.message ?? 'Firebase error while saving.';
       }
       ScaffoldMessenger.of(
         context,
@@ -285,19 +285,19 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
     } catch (e) {
       if (!mounted) return;
       final raw = e.toString();
-      String message = 'Error al guardar.';
+      String message = 'Error while saving.';
       if (raw.contains('Storage[unauthorized]')) {
-        message = 'Firebase Storage rechazó la subida (sin permisos).';
+        message = 'Firebase Storage rejected the upload (no permissions).';
       } else if (raw.contains('Storage[quota-exceeded]')) {
-        message = 'Se alcanzó la cuota de Firebase Storage.';
+        message = 'Firebase Storage quota exceeded.';
       } else if (raw.contains('Storage[canceled]')) {
-        message = 'La subida de imagen fue cancelada.';
+        message = 'Image upload was canceled.';
       } else if (raw.contains('Storage[retry-limit-exceeded]')) {
-        message = 'Falló la subida por red inestable. Intenta de nuevo.';
+        message = 'Upload failed due to unstable network. Please try again.';
       } else if (raw.contains('organizerId vacío')) {
-        message = 'No se pudo identificar el organizador para subir la imagen.';
+        message = 'Could not identify the organizer to upload the image.';
       } else {
-        message = 'Error al guardar: $e';
+        message = 'Error while saving: $e';
       }
       ScaffoldMessenger.of(
         context,
@@ -310,10 +310,10 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final title = widget.isEditing ? 'Editar evento' : 'Crear evento';
+    final title = widget.isEditing ? 'Edit event' : 'Create event';
     final subtitle = widget.isEditing
-        ? 'Actualiza la información de tu evento'
-        : 'Completa los datos y publícalo';
+        ? 'Update your event information'
+        : 'Complete the details and publish it';
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -338,7 +338,7 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
                           children: [
                             _textField(
                               controller: _titleController,
-                              label: 'Nombre del evento',
+                              label: 'Event name',
                             ),
                             const SizedBox(height: 14),
                             DropdownButtonFormField<String>(
@@ -355,7 +355,7 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
                                 if (value == null) return;
                                 setState(() {
                                   _selectedCategory = value;
-                                  if (value != 'Otro') {
+                                  if (value != 'Other') {
                                     _categoryController.text = value;
                                     _otherCategoryController.clear();
                                   }
@@ -363,25 +363,25 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
                               },
                               validator: (value) {
                                 if (value == null || value.trim().isEmpty) {
-                                  return 'Campo obligatorio';
+                                  return 'Select a category';
                                 }
                                 return null;
                               },
                               decoration: const InputDecoration(
-                                labelText: 'Categoría',
+                                labelText: 'Category',
                               ),
                             ),
-                            if (_selectedCategory == 'Otro') ...[
+                            if (_selectedCategory == 'Other') ...[
                               const SizedBox(height: 10),
                               _textField(
                                 controller: _otherCategoryController,
-                                label: 'Otra categoría',
+                                label: 'Other category',
                               ),
                             ],
                             const SizedBox(height: 14),
                             _textField(
                               controller: _locationController,
-                              label: 'Ubicación',
+                              label: 'Location',
                               onChanged: _onLocationChanged,
                             ),
                             if (_isFetchingSuggestions)
@@ -407,7 +407,7 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
                             const SizedBox(height: 14),
                             _textField(
                               controller: _dateTimeController,
-                              label: 'Fecha y hora',
+                              label: 'Date and time',
                               readOnly: true,
                               onTap: _pickDateTime,
                             ),
@@ -422,7 +422,7 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
                             const SizedBox(height: 14),
                             _textField(
                               controller: _descriptionController,
-                              label: 'Descripción',
+                              label: 'Description',
                               maxLines: 4,
                             ),
                           ],
@@ -436,7 +436,7 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
                             Row(
                               children: [
                                 const Text(
-                                  'Entradas',
+                                  'Tickets',
                                   style: TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w800,
@@ -447,7 +447,7 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
                                 TextButton.icon(
                                   onPressed: _isSaving ? null : _addTicketType,
                                   icon: const Icon(Icons.add_rounded, size: 18),
-                                  label: const Text('Añadir'),
+                                  label: const Text('Add'),
                                 ),
                               ],
                             ),
@@ -480,7 +480,7 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
                                       Row(
                                         children: [
                                           Text(
-                                            'Tipo ${index + 1}',
+                                            'Type ${index + 1}',
                                             style: const TextStyle(
                                               fontSize: 13,
                                               fontWeight: FontWeight.w800,
@@ -498,19 +498,19 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
                                               icon: const Icon(
                                                 Icons.close_rounded,
                                               ),
-                                              tooltip: 'Eliminar tipo',
+                                              tooltip: 'Remove type',
                                             ),
                                         ],
                                       ),
                                       const SizedBox(height: 10),
                                       _textField(
                                         controller: c.type,
-                                        label: 'Tipo',
+                                        label: 'Type',
                                       ),
                                       const SizedBox(height: 12),
                                       _textField(
                                         controller: c.description,
-                                        label: 'Descripción del tipo',
+                                        label: 'Type description',
                                         required: false,
                                         maxLines: 2,
                                       ),
@@ -520,7 +520,7 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
                                           Expanded(
                                             child: _textField(
                                               controller: c.price,
-                                              label: 'Precio (€)',
+                                              label: 'Price (€)',
                                               keyboardType:
                                                   TextInputType.number,
                                               inputFormatters: [
@@ -533,7 +533,7 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
                                           Expanded(
                                             child: _textField(
                                               controller: c.capacity,
-                                              label: 'Aforo',
+                                              label: 'Capacity',
                                               keyboardType:
                                                   TextInputType.number,
                                               inputFormatters: [
@@ -547,7 +547,7 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
                                       const SizedBox(height: 12),
                                       _textField(
                                         controller: c.remaining,
-                                        label: 'Disponibles',
+                                        label: 'Available tickets (leave empty to match capacity)',
                                         keyboardType: TextInputType.number,
                                         inputFormatters: [
                                           FilteringTextInputFormatter
@@ -583,7 +583,7 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
                                       : Icons.publish_rounded,
                                 ),
                           label: Text(
-                            widget.isEditing ? 'Guardar cambios' : 'Publicar',
+                            widget.isEditing ? 'Save changes' : 'Publish',
                           ),
                         ),
                       ),
@@ -638,7 +638,7 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
       validator: (value) {
         if (!required) return null;
         if (value == null || value.trim().isEmpty) {
-          return 'Campo obligatorio';
+          return 'Required field';
         }
         return null;
       },
@@ -653,7 +653,7 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
   }
 
   String? _resolveCategory() {
-    if (_selectedCategory == 'Otro') {
+    if (_selectedCategory == 'Other') {
       final other = _otherCategoryController.text.trim();
       return other.isEmpty ? null : other;
     }
@@ -741,7 +741,7 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
     final location = _locationController.text.trim();
     if (location.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('La ubicacion no puede estar vacia.')),
+        const SnackBar(content: Text('Location cannot be empty.')),
       );
       return false;
     }
@@ -750,7 +750,7 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Configura GEOAPIFY_API_KEY para validar la ubicacion.',
+            'Configure GEOAPIFY_API_KEY to validate the location.',
           ),
         ),
       );
@@ -769,7 +769,7 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
       final suggestions = await _geoapifyService.suggest(location, limit: 1);
       if (suggestions.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: const Text('No encontramos esa ubicacion.')),
+          SnackBar(content: const Text('Location not found.')),
         );
         return false;
       }
@@ -777,7 +777,7 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
       return true;
     } catch (_) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No se pudo validar la ubicacion')),
+        const SnackBar(content: Text('Could not validate the location')),
       );
       return false;
     }
@@ -810,12 +810,12 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
         return;
       }
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error al abrir galeria: ${e.code}')),
+        SnackBar(content: Text('Error opening gallery: ${e.code}')),
       );
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No se pudo seleccionar la foto')),
+        const SnackBar(content: Text('Could not select the photo')),
       );
     }
   }
@@ -825,14 +825,14 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
     await showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Permiso de galeria requerido'),
+        title: const Text('Gallery permission required'),
         content: const Text(
-          'Para subir una foto debes permitir el acceso a Fotos/Galeria en los ajustes de la app.',
+          'To upload a photo, you must allow access to Photos/Gallery in the app settings.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Entendido'),
+            child: const Text('Understood'),
           ),
         ],
       ),
@@ -922,7 +922,7 @@ class _PhotoPicker extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const Text(
-          'Foto',
+          'Photo',
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
@@ -957,14 +957,14 @@ class _PhotoPicker extends StatelessWidget {
               child: OutlinedButton.icon(
                 onPressed: isBusy ? null : onPick,
                 icon: const Icon(Icons.photo_library_outlined),
-                label: Text(hasImage ? 'Cambiar foto' : 'Subir foto'),
+                label: Text(hasImage ? 'Change photo' : 'Upload photo'),
               ),
             ),
             if (hasImage) ...[
               const SizedBox(width: 8),
               TextButton(
                 onPressed: isBusy ? null : onRemove,
-                child: const Text('Quitar'),
+                child: const Text('Remove'),
               ),
             ],
           ],
@@ -981,7 +981,7 @@ class _PhotoPicker extends StatelessWidget {
           Icon(Icons.image_outlined, color: AppColors.textSecondary),
           SizedBox(height: 6),
           Text(
-            'Sin foto seleccionada',
+            'No photo selected',
             style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
           ),
         ],
@@ -1004,16 +1004,16 @@ class _LocationDetails extends StatelessWidget {
 
     final rows = <MapEntry<String, String>>[];
     if (city != null && city.isNotEmpty) {
-      rows.add(MapEntry('Ciudad', city));
+      rows.add(MapEntry('City', city));
     }
     if (state != null && state.isNotEmpty) {
-      rows.add(MapEntry('Provincia', state));
+      rows.add(MapEntry('State', state));
     }
     if (postcode != null && postcode.isNotEmpty) {
-      rows.add(MapEntry('CP', postcode));
+      rows.add(MapEntry('Postal Code', postcode));
     }
     if (country != null && country.isNotEmpty) {
-      rows.add(MapEntry('País', country));
+      rows.add(MapEntry('Country', country));
     }
 
     if (rows.isEmpty) return const SizedBox.shrink();

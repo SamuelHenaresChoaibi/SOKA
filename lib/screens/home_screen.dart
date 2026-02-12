@@ -80,7 +80,7 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = 'No se pudieron cargar los eventos.';
+        _errorMessage = 'Events could not be loaded. Please check your connection and try again.';
       });
     } finally {
       if (mounted) {
@@ -203,7 +203,7 @@ class _HomeScreenState extends State<HomeScreen> {
         _client = currentClient.copyWith(favoriteEventIds: previousFavorites);
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No se pudo actualizar favoritos')),
+        const SnackBar(content: Text('Could not update favorites')),
       );
     }
   }
@@ -215,12 +215,12 @@ class _HomeScreenState extends State<HomeScreen> {
     final isCompanyUser = _company != null;
     final isClientUser = _client != null && !isCompanyUser;
     final categorySet = <String>{...events.map((event) => event.category)};
-    final categories = <String>['Todos', ...categorySet];
+    final categories = <String>['All', ...categorySet];
     final safeSelectedIndex = _selectedCategoryIndex
         .clamp(0, categories.length - 1)
         .toInt();
     final selectedCategory = categories[safeSelectedIndex];
-    final categoryFiltered = selectedCategory == 'Todos'
+    final categoryFiltered = selectedCategory == 'All'
         ? events
         : events
             .where((event) => event.category == selectedCategory)
@@ -292,7 +292,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           const SizedBox(height: 16),
                           TextButton(
                             onPressed: _loadEvents,
-                            child: const Text('Reintentar'),
+                            child: const Text('Retry'),
                           ),
                         ],
                       ),
@@ -322,7 +322,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       vertical: 16,
                     ),
                     child: Text(
-                      'Eventos',
+                      'Events',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
@@ -347,7 +347,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                             const SizedBox(height: 16),
                             Text(
-                              'No hay eventos disponibles',
+                              'No events available for the selected category or search query.', textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 16,
                                 color: AppColors.cursorColor,
@@ -431,10 +431,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 : Icons.person,
       ),
       label: isClientUser
-          ? 'Favoritos'
+          ? 'Favorites'
           : isCompanyUser
-              ? 'Mis eventos'
-              : 'Cuenta',
+              ? 'My Events'
+              : 'Account',
     );
 
     return Scaffold(
@@ -466,13 +466,13 @@ class _HomeScreenState extends State<HomeScreen> {
           const NavigationDestination(
             icon: Icon(Icons.calendar_month_outlined),
             selectedIcon: Icon(Icons.calendar_month),
-            label: 'Calendario',
+            label: 'Calendar',
           ),
           thirdDestination,
           const NavigationDestination(
             icon: Icon(Icons.settings_outlined),
             selectedIcon: Icon(Icons.settings),
-            label: 'Ajustes',
+            label: 'Settings',
           ),
         ],
       ),
@@ -526,7 +526,7 @@ class _NoProfileScreen extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              'No se encontró un perfil de usuario o empresa para esta cuenta.',
+              'No user or company profile found for this account.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 14,
@@ -541,7 +541,7 @@ class _NoProfileScreen extends StatelessWidget {
               child: OutlinedButton.icon(
                 onPressed: onRetry,
                 icon: const Icon(Icons.refresh_rounded),
-                label: const Text('Reintentar'),
+                label: const Text('Retry'),
               ),
             ),
           ],

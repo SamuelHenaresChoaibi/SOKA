@@ -97,7 +97,7 @@ class _NotificationsHeader extends StatelessWidget {
                   const SizedBox(width: 8),
                   const Expanded(
                     child: Text(
-                      'Notificaciones',
+                      'Notifications',
                       style: TextStyle(
                         color: AppColors.surface,
                         fontSize: 30,
@@ -111,8 +111,8 @@ class _NotificationsHeader extends StatelessWidget {
               const SizedBox(height: 8),
               Text(
                 count == 0
-                    ? 'No tienes alertas por ahora'
-                    : 'Tienes $count evento${count == 1 ? '' : 's'} en los próximos 7 días',
+                    ? 'No notifications for now'
+                    : 'You have $count event${count == 1 ? '' : 's'} in the next 7 days',
                 style: TextStyle(
                   color: AppColors.surface.withAlpha(191),
                   fontSize: 14,
@@ -143,7 +143,7 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'Aún no hay notificaciones',
+              'No notifications yet',
               style: TextStyle(
                 fontSize: 16,
                 color: AppColors.cursorColor,
@@ -152,7 +152,7 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Cuando haya eventos próximos, los verás aquí.',
+              'When there are upcoming events, you will see them here.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 13,

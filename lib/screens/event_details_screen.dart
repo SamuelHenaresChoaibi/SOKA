@@ -22,30 +22,30 @@ class EventDetailsScreen extends StatelessWidget {
     final totalRemaining = event.totalRemaining;
 
     final priceLabel = !event.hasTicketTypes
-        ? 'Sin entradas'
+        ? 'No tickets'
         : minPrice <= 0
-            ? 'Gratis'
+            ? 'Free'
             : minPrice == maxPrice
                 ? '€$minPrice'
-                : 'Desde €$minPrice';
+                : 'From €$minPrice';
 
     final ticketSubtitle = !event.hasTicketTypes
-        ? 'Sin tipos de entrada'
+        ? 'No ticket types configured'
         : event.ticketTypes.length == 1
-            ? '${event.ticketTypes.first.type} • ${event.ticketTypes.first.remaining} disponibles'
-            : '${event.ticketTypes.length} tipos • $totalRemaining disponibles';
+            ? '${event.ticketTypes.first.type} • ${event.ticketTypes.first.remaining} available'
+            : '${event.ticketTypes.length} types • $totalRemaining available';
     Future<Company?> company = Provider.of<SokaService>(context, listen: false)
         .fetchCompanyById(event.organizerId);
     return Scaffold(
       backgroundColor: AppColors.background,
       bottomNavigationBar: BottomCTA(
-        title: 'Comprar entrada',
+        title: 'Buy ticket',
         subtitle: ticketSubtitle,
         priceLabel: priceLabel,
         onPressed: () {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('¡Pronto podrás comprar entradas!'),
+              content: Text('Coming soon! You will be able to buy tickets!'),
               backgroundColor: AppColors.primary,
               behavior: SnackBarBehavior.floating,
             ),
@@ -76,7 +76,7 @@ class EventDetailsScreen extends StatelessWidget {
                   onTap: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('Compartir (próximamente)'),
+                        content: Text('Share (coming soon)'),
                         backgroundColor: AppColors.primary,
                         behavior: SnackBarBehavior.floating,
                       ),
@@ -128,17 +128,17 @@ class EventDetailsScreen extends StatelessWidget {
                     children: [
                       _InfoTile(
                         icon: Icons.calendar_today_outlined,
-                        label: 'Fecha',
+                        label: 'Date',
                         value: _formatDate(event.date),
                       ),
                       _InfoTile(
                         icon: Icons.schedule_outlined,
-                        label: 'Hora',
+                        label: 'Time',
                         value: _formatTime(event.date),
                       ),
                       _InfoTile(
                         icon: Icons.location_on_outlined,
-                        label: 'Lugar',
+                        label: 'Location',
                         value: event.locationLabel,
                         onTap: () => _openMaps(
                           context,
@@ -150,31 +150,31 @@ class EventDetailsScreen extends StatelessWidget {
                       if (_hasExtraLocation(event)) ...[
                         _InfoTile(
                           icon: Icons.location_city_outlined,
-                          label: 'Ciudad',
+                          label: 'City',
                           value: event.locationCity?.trim() ?? '-',
                         ),
                         _InfoTile(
                           icon: Icons.public_outlined,
-                          label: 'País',
+                          label: 'Country',
                           value: event.locationCountry?.trim() ?? '-',
                         ),
                         if ((event.locationState ?? '').trim().isNotEmpty)
                           _InfoTile(
                             icon: Icons.map_outlined,
-                            label: 'Provincia',
+                            label: 'State',
                             value: event.locationState!.trim(),
                           ),
                         if ((event.locationPostcode ?? '').trim().isNotEmpty)
                           _InfoTile(
                             icon: Icons.markunread_mailbox_outlined,
-                            label: 'CP',
+                            label: 'Postal Code',
                             value: event.locationPostcode!.trim(),
                           ),
                       ],
                     ],
                   ),
                   const SizedBox(height: 30),
-                  const _SectionTitle('Acerca del evento'),
+                  const _SectionTitle('About the event'),
                   const SizedBox(height: 12),
                   _Card(
                     child: Text(
@@ -187,12 +187,12 @@ class EventDetailsScreen extends StatelessWidget {
                   ),
                   ),
                   const SizedBox(height: 26),
-                  const _SectionTitle('Entradas'),
+                  const _SectionTitle('Tickets'),
                   const SizedBox(height: 12),
                   if (!event.hasTicketTypes)
                     const _Card(
                       child: Text(
-                        'No hay tipos de entrada configurados.',
+                        'No ticket types configured.',
                         style: TextStyle(
                           fontSize: 14,
                           height: 1.6,
@@ -205,7 +205,7 @@ class EventDetailsScreen extends StatelessWidget {
                       children: List.generate(event.ticketTypes.length, (index) {
                         final ticketType = event.ticketTypes[index];
                         final typePriceLabel =
-                            ticketType.price <= 0 ? 'Gratis' : '€${ticketType.price}';
+                            ticketType.price <= 0 ? 'Free' : '€${ticketType.price}';
 
                         return Padding(
                           padding: EdgeInsets.only(
@@ -222,22 +222,22 @@ class EventDetailsScreen extends StatelessWidget {
                       }),
                     ),
                   const SizedBox(height: 26),
-                  const _SectionTitle('Detalles'),
+                  const _SectionTitle('Details'),
                   const SizedBox(height: 12),
                   _Card(
                     child: Column(
                       children: [
                         _KeyValueRow(
-                          label: 'Creado',
+                          label: 'Created',
                           value: _formatDate(event.createdAt),
                         ),
                         const Divider(height: 24, color: AppColors.border),
                         FutureBuilder<Company?>(
                           future: company,
                           builder: (context, companySnapshot) {
-                            final companyName = companySnapshot.data?.companyName ?? 'Desconocido';
+                            final companyName = companySnapshot.data?.companyName ?? 'Unknown';
                             return _KeyValueRow(
-                              label: 'Organizador',
+                              label: 'Organizer',
                               value: _shortId(companyName),
                             );
                           },
@@ -267,18 +267,18 @@ class EventDetailsScreen extends StatelessWidget {
 
   static String _formatDate(DateTime date) {
     const months = [
-      'ene',
-      'feb',
-      'mar',
-      'abr',
-      'may',
-      'jun',
-      'jul',
-      'ago',
-      'sep',
-      'oct',
-      'nov',
-      'dic',
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     return '${date.day} ${months[date.month - 1]} ${date.year}';
   }
@@ -300,7 +300,7 @@ class EventDetailsScreen extends StatelessWidget {
     final query = Uri.encodeComponent(location.trim());
     if (!hasCoords && query.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('La ubicacion esta vacia.')),
+        const SnackBar(content: Text('Location is empty.')),
       );
       return;
     }
@@ -320,7 +320,7 @@ class EventDetailsScreen extends StatelessWidget {
 
     if (!launched && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No se pudo abrir Google Maps.')),
+        const SnackBar(content: Text('Could not open Google Maps.')),
       );
     }
   }
@@ -534,7 +534,7 @@ class _ValidatedChip extends StatelessWidget {
           Icon(Icons.verified, size: 16, color: AppColors.accent),
           SizedBox(width: 6),
           Text(
-            'Validado',
+            'Validated',
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w800,
@@ -565,8 +565,8 @@ class _TicketCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final availability = capacity <= 0
-        ? '$remaining disponibles'
-        : '$remaining/$capacity disponibles';
+        ? '$remaining available'
+        : '$remaining/$capacity available';
 
     return _Card(
       child: Row(

@@ -47,7 +47,7 @@ class _SignupScreenState extends State<SignupScreen> {
       );
 
       if (user == null) {
-        throw Exception('No se pudo registrar el usuario');
+        throw Exception('Could not create user');
       }
 
       final sokaService = context.read<SokaService>();
@@ -163,14 +163,14 @@ class _SignupScreenState extends State<SignupScreen> {
                           horizontal: 16,
                           vertical: 10,
                         ),
-                        child: Text('Clientes'),
+                        child: Text('Clients'),
                       ),
                       Padding(
                         padding: EdgeInsets.symmetric(
                           horizontal: 16,
                           vertical: 10,
                         ),
-                        child: Text('Empresas'),
+                        child: Text('Companies'),
                       ),
                     ],
                   ),
@@ -182,10 +182,10 @@ class _SignupScreenState extends State<SignupScreen> {
                     keyboardType: TextInputType.emailAddress,
                     validator: (value) {
                       if (value == null || value.isEmpty) {
-                        return 'Campo obligatorio';
+                        return 'Required field';
                       }
                       if (!value.contains('@')) {
-                        return 'Email inválido';
+                        return 'Invalid email address';
                       }
                       return null;
                     },
@@ -238,7 +238,7 @@ class _SignupScreenState extends State<SignupScreen> {
                         height: 24,
                         width: 24,
                       ),
-                      label: const Text('Continuar con Google'),
+                      label: const Text('Continue with Google'),
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -246,7 +246,7 @@ class _SignupScreenState extends State<SignupScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text('¿Already have an account?'),
+                      const Text('Already have an account?'),
                       TextButton(
                         onPressed: () {
                           Navigator.pushNamed(context, 'login');
@@ -366,7 +366,7 @@ class _SignupScreenState extends State<SignupScreen> {
         maxLines: 3,
         validator: (value) {
           if (value == null || value.isEmpty) {
-            return 'Campo obligatorio';
+            return 'Required field';
           }
           return null;
         },
@@ -389,7 +389,7 @@ class _SignupScreenState extends State<SignupScreen> {
       onTap: onTap,
       validator: (value) {
         if (required && (value == null || value.isEmpty)) {
-          return 'Campo obligatorio';
+          return 'Required field';
         }
         return null;
       },

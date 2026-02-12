@@ -59,9 +59,9 @@ class FavoritesHistoryScreen extends StatelessWidget {
                     events: favoriteEvents,
                     idsCount: client.favoriteEventIds.length,
                     emptyIcon: Icons.favorite_border_rounded,
-                    emptyTitle: 'Sin favoritos todavía',
+                    emptyTitle: 'No favorite events yet',
                     emptySubtitle:
-                        'Guarda eventos con el corazón para tenerlos siempre a mano.',
+                        'Save events with the heart to always have them handy.',
                     favoriteEventIds: client.favoriteEventIds,
                     onToggleFavorite: onToggleFavorite,
                   ),
@@ -69,9 +69,9 @@ class FavoritesHistoryScreen extends StatelessWidget {
                     events: historyEvents,
                     idsCount: client.historyEventIds.length,
                     emptyIcon: Icons.history_rounded,
-                    emptyTitle: 'Tu historial está vacío',
+                    emptyTitle: 'Your history is empty',
                     emptySubtitle:
-                        'Aquí aparecerán los eventos en los que hayas participado.',
+                        'Here you will see the events you have participated in.',
                     favoriteEventIds: client.favoriteEventIds,
                     onToggleFavorite: onToggleFavorite,
                   ),
@@ -97,9 +97,9 @@ class _FavoritesHistoryHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final subtitle = (favoriteCount == 0 && historyCount == 0)
-        ? 'Guarda eventos y revisa tu actividad.'
-        : '$favoriteCount favorito${favoriteCount == 1 ? '' : 's'} · '
-            '$historyCount en historial';
+        ? 'Save events and check your activity.'
+        : '$favoriteCount favorite${favoriteCount == 1 ? '' : 's'} · '
+            '$historyCount in history';
 
     return Container(
       width: double.infinity,
@@ -117,7 +117,7 @@ class _FavoritesHistoryHeader extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Favoritos',
+                'Favorites',
                 style: TextStyle(
                   color: AppColors.surface,
                   fontSize: 30,
@@ -186,8 +186,8 @@ class _TabsCard extends StatelessWidget {
                 fontSize: 13,
               ),
               tabs: const [
-                Tab(icon: Icon(Icons.favorite_rounded), text: 'Favoritos'),
-                Tab(icon: Icon(Icons.history_rounded), text: 'Historial'),
+                Tab(icon: Icon(Icons.favorite_rounded), text: 'Favorites'),
+                Tab(icon: Icon(Icons.history_rounded), text: 'History'),
               ],
             ),
           ),
@@ -224,9 +224,9 @@ class _EventsList extends StatelessWidget {
     Widget child;
     if (!hasData) {
       final subtitle = idsCount > 0 && !hasEventsLoaded
-          ? 'Aún no se han cargado los eventos. Desliza para refrescar.'
+          ? 'Events have not been loaded yet. Swipe to refresh.'
           : (idsCount > 0 && hasEventsLoaded
-              ? 'No encontramos estos eventos. Puede que ya no estén disponibles.'
+              ? 'We couldn\'t find these events. They may no longer be available.'
               : emptySubtitle);
 
       child = ListView(

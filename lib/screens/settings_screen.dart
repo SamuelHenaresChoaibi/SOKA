@@ -96,7 +96,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: const [
                       Text(
-                        'Ajustes',
+                        'Settings',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 26,
@@ -105,7 +105,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                       SizedBox(height: 20),
                       Text(
-                        'Administra tu cuenta y preferencias',
+                        'Manage your account and preferences',
                         style: TextStyle(
                           color: Color(0xFFDDE4F2),
                           fontSize: 14,
@@ -150,9 +150,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             final displayName = company?.companyName ??
                 client?.userName ??
                 _user?.displayName ??
-                'Usuario';
-            final email = _user?.email ?? client?.email ?? 'Sin correo';
-            final userType = company != null ? 'Empresa' : 'Usuario';
+                'User';
+            final email = _user?.email ?? client?.email ?? 'No email';
+            final userType = company != null ? 'Company' : 'User';
             final initials = (displayName.isNotEmpty)
                 ? displayName.trim().substring(0, 1).toUpperCase()
                 : 'U';
@@ -207,7 +207,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     children: [
                       Text(
                         snapshot.connectionState == ConnectionState.waiting
-                            ? 'Cargando...'
+                            ? 'Loading...'
                             : displayName,
                         style: const TextStyle(
                           fontSize: 16,
@@ -218,7 +218,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       const SizedBox(height: 4),
                       Text(
                         snapshot.connectionState == ConnectionState.waiting
-                            ? 'Cargando...'
+                            ? 'Loading...'
                             : email,
                         style: const TextStyle(
                           fontSize: 13,
@@ -231,7 +231,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         children: [
                           Text(
                             snapshot.connectionState == ConnectionState.waiting
-                                ? 'Cargando...'
+                                ? 'Loading...'
                                 : '',
                             style: const TextStyle(
                               fontSize: 12,

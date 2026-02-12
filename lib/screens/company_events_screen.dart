@@ -70,7 +70,7 @@ class _CompanyEventsScreenState extends State<CompanyEventsScreen> {
       );
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Evento publicado')),
+        const SnackBar(content: Text('Event published successfully')),
       );
     } finally {
       if (mounted) setState(() => _isWorking = false);
@@ -111,12 +111,12 @@ class _CompanyEventsScreenState extends State<CompanyEventsScreen> {
       );
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Eventos vinculados a tu cuenta')),
+        const SnackBar(content: Text('Events linked to your account')),
       );
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No se pudieron vincular los eventos')),
+        const SnackBar(content: Text('Failed to link events')),
       );
     } finally {
       if (mounted) setState(() => _isWorking = false);
@@ -130,16 +130,16 @@ class _CompanyEventsScreenState extends State<CompanyEventsScreen> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Eliminar evento'),
-          content: Text('¿Seguro que quieres eliminar "${event.title}"?'),
+          title: const Text('Delete event'),
+          content: Text('Are you sure you want to delete "${event.title}"?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancelar'),
+              child: const Text('Cancel'),
             ),
             ElevatedButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Eliminar'),
+              child: const Text('Delete'),
             ),
           ],
         );
@@ -168,12 +168,12 @@ class _CompanyEventsScreenState extends State<CompanyEventsScreen> {
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Evento eliminado')),
+        const SnackBar(content: Text('Event deleted successfully')),
       );
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No se pudo eliminar el evento')),
+        const SnackBar(content: Text('Failed to delete event')),
       );
     } finally {
       if (mounted) setState(() => _isWorking = false);
@@ -283,7 +283,7 @@ class _CompanyEventsScreenState extends State<CompanyEventsScreen> {
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
                   child: _InfoBanner(
                     text:
-                        'Mostrando eventos detectados por organizador. Puedes vincularlos a tu cuenta para gestionarlos más fácilmente.',
+                        'Showing events detected by organizer. You can link them to your account for easier management.',
                     actionLabel:
                         missingLinkedIds.isEmpty ? null : 'Vincular',
                     onAction: missingLinkedIds.isEmpty
@@ -330,8 +330,8 @@ class _CompanyEventsHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final subtitle = count == 0
-        ? 'Crea tu primer evento y publícalo'
-        : 'Tienes $count evento${count == 1 ? '' : 's'} publicado${count == 1 ? '' : 's'}';
+        ? 'Create your first event to start selling tickets and gain visibility.'
+        : 'You have $count event${count == 1 ? '' : 's'} published';
 
     return Container(
       width: double.infinity,
@@ -352,7 +352,7 @@ class _CompanyEventsHeader extends StatelessWidget {
                 children: [
                   const Expanded(
                     child: Text(
-                      'Mis eventos',
+                      'My events',
                       style: TextStyle(
                         color: AppColors.surface,
                         fontSize: 30,
@@ -373,7 +373,7 @@ class _CompanyEventsHeader extends StatelessWidget {
                             ),
                           )
                         : const Icon(Icons.add_rounded),
-                    label: const Text('Crear'),
+                    label: const Text('Create'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.accent,
                       foregroundColor: AppColors.primary,
@@ -423,12 +423,12 @@ class _CompanyEventCard extends StatelessWidget {
     final minPrice = event.minTicketPrice;
     final maxPrice = event.maxTicketPrice;
     final priceLabel = !event.hasTicketTypes
-        ? 'Sin entradas'
+        ? 'No tickets'
         : minPrice <= 0
-            ? 'Gratis'
+            ? 'Free'
             : minPrice == maxPrice
                 ? '€$minPrice'
-                : 'Desde €$minPrice';
+                : 'From €$minPrice';
     final dateLabel = _formatDateTime(event.date.toLocal());
     final remaining = event.totalRemaining;
 
@@ -542,7 +542,7 @@ class _CompanyEventCard extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      '$remaining disponibles',
+                      '$remaining available',
                       style: const TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
@@ -553,13 +553,13 @@ class _CompanyEventCard extends StatelessWidget {
                     TextButton.icon(
                       onPressed: onEdit,
                       icon: const Icon(Icons.edit_rounded, size: 18),
-                      label: const Text('Editar'),
+                      label: const Text('Edit'),
                     ),
                     const SizedBox(width: 4),
                     TextButton.icon(
                       onPressed: onDelete,
                       icon: const Icon(Icons.delete_outline_rounded, size: 18),
-                      label: const Text('Eliminar'),
+                      label: const Text('Delete'),
                       style: TextButton.styleFrom(
                         foregroundColor: Colors.redAccent,
                       ),
@@ -603,7 +603,7 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'Aún no has publicado eventos',
+              'You have not published any events yet',
               style: TextStyle(
                 fontSize: 16,
                 color: AppColors.cursorColor,
@@ -612,7 +612,7 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Pulsa en "Crear" para publicar tu primer evento.',
+              'Press "Create" to publish your first event.',
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 13,
@@ -627,7 +627,7 @@ class _EmptyState extends StatelessWidget {
               child: ElevatedButton.icon(
                 onPressed: onCreate,
                 icon: const Icon(Icons.add_rounded),
-                label: const Text('Crear evento'),
+                label: const Text('Create event'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.accent,
                   foregroundColor: AppColors.primary,

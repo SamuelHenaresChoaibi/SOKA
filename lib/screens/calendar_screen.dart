@@ -60,7 +60,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
                   child: Text(
-                    'Eventos del ${_selectedDay.day} de ${_monthName(_selectedDay.month)}',
+                    'Event ${_selectedDay.day} of ${_monthName(_selectedDay.month)}',
                     style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w700,
@@ -106,18 +106,18 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   static String _monthName(int month) {
     const months = [
-      'Enero',
-      'Febrero',
-      'Marzo',
-      'Abril',
-      'Mayo',
-      'Junio',
-      'Julio',
-      'Agosto',
-      'Septiembre',
-      'Octubre',
-      'Noviembre',
-      'Diciembre',
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
     ];
     return months[month - 1];
   }
@@ -144,7 +144,7 @@ class _CalendarHeader extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Calendario',
+                'Calendar',
                 style: TextStyle(
                   color: AppColors.surface,
                   fontSize: 30,
@@ -154,7 +154,7 @@ class _CalendarHeader extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                'Planifica tu ocio en Mallorca',
+                'Plan your leisure in Mallorca',
                 style: TextStyle(
                   color: AppColors.surface.withAlpha(191),
                   fontSize: 14,
@@ -282,18 +282,18 @@ class _CalendarCard extends StatelessWidget {
 
   static String _monthName(int month) {
     const months = [
-      'Enero',
-      'Febrero',
-      'Marzo',
-      'Abril',
-      'Mayo',
-      'Junio',
-      'Julio',
-      'Agosto',
-      'Septiembre',
-      'Octubre',
-      'Noviembre',
-      'Diciembre',
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
     ];
     return months[month - 1];
   }
@@ -373,12 +373,12 @@ class _DayEventCard extends StatelessWidget {
     final minPrice = event.minTicketPrice;
     final maxPrice = event.maxTicketPrice;
     final priceLabel = !event.hasTicketTypes
-        ? 'Sin entradas'
+        ? 'No tickets'
         : minPrice <= 0
-            ? 'Gratis'
+            ? 'Free'
             : minPrice == maxPrice
                 ? '${minPrice}€'
-                : 'Desde ${minPrice}€';
+                : 'From ${minPrice}€';
     final timeLabel = _formatTime(event.date.toLocal());
 
     return Padding(

@@ -123,12 +123,12 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
 
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Cambios guardados')),
+        const SnackBar(content: Text('Changes saved successfully')),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error al guardar los cambios')),
+        const SnackBar(content: Text('Error saving changes')),
       );
     } finally {
       if (mounted) setState(() => isSaving = false);
@@ -138,7 +138,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Cuenta')),
+      appBar: AppBar(title: const Text('Account')),
       body: FutureBuilder<List<dynamic>>(
         future: Future.wait<dynamic>([_clientFuture, _companyFuture]),
         builder: (context, snapshot) {
@@ -152,7 +152,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
           }
 
           if (client == null && company == null) {
-            return const Center(child: Text('No se encontró el perfil.'));
+            return const Center(child: Text('Profile not found.'));
           }
 
           _populateFields(client: client, company: company);
@@ -166,7 +166,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                 children: [
                   _readonlyField(
                     label: 'Email',
-                    value: _user?.email ?? 'Sin correo',
+                    value: _user?.email ?? 'No email',
                   ),
                   const SizedBox(height: 16),
                   if (client != null) ..._buildClientFields(),
@@ -178,7 +178,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
                         : () => _saveChanges(client: client, company: company),
                     child: isSaving
                         ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text('Guardar cambios'),
+                        : const Text('Save changes'),
                   ),
                 ],
               ),
@@ -191,15 +191,15 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
 
   List<Widget> _buildClientFields() {
     return [
-      _textInput(controller: nameController, label: 'Nombre', required: false),
+      _textInput(controller: nameController, label: 'Name', required: false),
       const SizedBox(height: 16),
-      _textInput(controller: surnameController, label: 'Apellido', required: false),
+      _textInput(controller: surnameController, label: 'Surname', required: false),
       const SizedBox(height: 16),
       _textInput(controller: userNameController, label: 'Username', required: false),
       const SizedBox(height: 16),
       _textInput(
         controller: phoneController,
-        label: 'Teléfono',
+        label: 'Phone',
         keyboardType: TextInputType.phone,
       ),
     ];
@@ -209,25 +209,25 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
     return [
       _textInput(
         controller: companyNameController,
-        label: 'Nombre de la empresa',
+        label: 'Company Name',
         required: false,
       ),
       const SizedBox(height: 16),
       _textInput(
         controller: companyPhoneController,
-        label: 'Teléfono',
+        label: 'Phone',
         keyboardType: TextInputType.phone,
       ),
       const SizedBox(height: 16),
       _textInput(
         controller: companyAddressController,
-        label: 'Dirección',
+        label: 'Address',
         required: false,
       ),
       const SizedBox(height: 16),
       _textInput(
         controller: companyWebsiteController,
-        label: 'Web',
+        label: 'Website',
         required: false,
       ),
       const SizedBox(height: 16),
@@ -239,7 +239,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       const SizedBox(height: 16),
       TextFormField(
         controller: companyDescriptionController,
-        decoration: const InputDecoration(labelText: 'Descripción'),
+        decoration: const InputDecoration(labelText: 'Description'),
         maxLines: 3,
       ),
     ];
@@ -256,7 +256,7 @@ class _AccountSettingsScreenState extends State<AccountSettingsScreen> {
       keyboardType: keyboardType,
       validator: (value) {
         if (required && (value == null || value.isEmpty)) {
-          return 'Campo obligatorio';
+          return 'Required field';
         }
         return null;
       },
