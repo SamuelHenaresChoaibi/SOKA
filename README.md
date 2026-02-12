@@ -87,6 +87,18 @@ flutter pub get
 flutter run
 ```
 
+**Configurar Cloudinary (subida de imagenes de eventos)**
+- Crea un `upload preset` unsigned en Cloudinary.
+- Ejecuta la app pasando estas variables:
+
+```bash
+flutter run \
+  --dart-define=CLOUDINARY_CLOUD_NAME=tu_cloud_name \
+  --dart-define=CLOUDINARY_UPLOAD_PRESET=tu_unsigned_preset
+```
+
+- La subida se hace en la carpeta `events/<organizerId>/<eventId_o_timestamp>`.
+
 **Notas importantes**
 - Nominatim tiene limites de uso; la validacion se hace al guardar (no en cada pulsacion).
 - La compra de entradas esta marcada como “proximamente”.

@@ -2,9 +2,9 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:http/http.dart' as http;
 import '../models/models.dart';
+import 'cloudinary_service.dart';
 import 'notification_service.dart';
 
 class SokaService extends ChangeNotifier {
@@ -12,6 +12,7 @@ class SokaService extends ChangeNotifier {
   final String _baseUrl =
       "soka-1a9f3-default-rtdb.europe-west1.firebasedatabase.app";
   final NotificationService _notificationService = NotificationService();
+  final CloudinaryService _cloudinaryService = CloudinaryService();
   List<Company> companies = [];
   List<Event> events = [];
   List<Client> clients = [];
@@ -445,24 +446,16 @@ class SokaService extends ChangeNotifier {
         (contentType == null || contentType.trim().isEmpty)
             ? 'image/jpeg'
             : contentType.trim();
-
-    final ref = FirebaseStorage.instance
-        .ref()
-        .child('events')
-        .child(normalizedOrganizerId)
-        .child(folderId)
-        .child(safeFileName);
+    final folder = 'events/$normalizedOrganizerId/$folderId';
 
     try {
-      final metadata = SettableMetadata(contentType: resolvedContentType);
-      final snapshot = await ref.putData(bytes, metadata);
-      return snapshot.ref.getDownloadURL();
-    } on FirebaseException catch (e) {
-      final code = e.code.trim().isEmpty ? 'unknown' : e.code;
-      final message = (e.message == null || e.message!.trim().isEmpty)
-          ? 'Error de Firebase Storage'
-          : e.message!;
-      throw Exception('Storage[$code]: $message');
+      return await _cloudinaryService.uploadImage(
+        bytes: bytes,
+        folder: folder,
+        fileName: safeFileName,
+      );
+    } catch (e) {
+      throw Exception('Cloudinary: $e (contentType: $resolvedContentType)');
     }
   }
 
