@@ -1,7 +1,10 @@
 import 'dart:async';
+import 'dart:typed_data';
 
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:soka/models/models.dart';
 import 'package:soka/services/services.dart';
@@ -11,11 +14,7 @@ class EventEditorScreen extends StatefulWidget {
   final String organizerId;
   final Event? event;
 
-  const EventEditorScreen({
-    super.key,
-    required this.organizerId,
-    this.event,
-  });
+  const EventEditorScreen({super.key, required this.organizerId, this.event});
 
   bool get isEditing => event != null;
 
@@ -56,6 +55,11 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
 
   DateTime? _selectedDateTime;
   bool _isSaving = false;
+  bool _isUploadingImage = false;
+  final ImagePicker _imagePicker = ImagePicker();
+  Uint8List? _selectedImageBytes;
+  String? _selectedImageName;
+  String? _selectedImageMimeType;
 
   @override
   void initState() {
@@ -72,30 +76,27 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
     );
     _selectedCategory =
         _categoryOptions.contains(initialCategory) && initialCategory.isNotEmpty
-            ? initialCategory
-            : 'Otro';
+        ? initialCategory
+        : 'Otro';
     _locationController = TextEditingController(text: event?.location ?? '');
-    _descriptionController =
-        TextEditingController(text: event?.description ?? '');
+    _descriptionController = TextEditingController(
+      text: event?.description ?? '',
+    );
     _imageUrlController = TextEditingController(text: event?.imageUrl ?? '');
     _dateTimeController = TextEditingController(
-      text: _selectedDateTime == null ? '' : _formatDateTime(_selectedDateTime!),
+      text: _selectedDateTime == null
+          ? ''
+          : _formatDateTime(_selectedDateTime!),
     );
 
-    _ticketTypeController =
-        TextEditingController(text: event?.ticketTypes.type ?? 'General');
-    _ticketDescriptionController = TextEditingController(
-      text: event?.ticketTypes.description ?? '',
-    );
-    _ticketPriceController = TextEditingController(
-      text: event == null ? '' : event.ticketTypes.price.toString(),
-    );
-    _ticketCapacityController = TextEditingController(
-      text: event == null ? '' : event.ticketTypes.capacity.toString(),
-    );
-    _ticketRemainingController = TextEditingController(
-      text: event == null ? '' : event.ticketTypes.remaining.toString(),
-    );
+    final existingTickets = event?.ticketTypes ?? const [];
+    if (existingTickets.isNotEmpty) {
+      _ticketTypeControllers.addAll(
+        existingTickets.map(_TicketTypeControllers.fromTicketType),
+      );
+    } else {
+      _ticketTypeControllers.add(_TicketTypeControllers(type: 'General'));
+    }
 
     _initialLocation = _locationController.text.trim();
   }
@@ -167,9 +168,9 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
     if (_isSaving) return;
     if (!_formKey.currentState!.validate()) return;
     if (_selectedDateTime == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Selecciona fecha y hora')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Selecciona fecha y hora')));
       return;
     }
 
@@ -190,32 +191,34 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
       return;
     }
 
-    final ticketPrice = int.tryParse(_ticketPriceController.text.trim()) ?? 0;
-    final capacity = int.tryParse(_ticketCapacityController.text.trim()) ?? 0;
-    final remaining = int.tryParse(_ticketRemainingController.text.trim()) ??
-        (widget.event?.ticketTypes.remaining ?? capacity);
-
     final location = _locationController.text.trim();
     final locationSuggestion = _selectedLocation;
 
-    final ticketTypes = TicketType(
-      capacity: capacity,
-      description: _ticketDescriptionController.text.trim(),
-      price: ticketPrice,
-      remaining: remaining,
-      type: _ticketTypeController.text.trim(),
-    );
+    final ticketTypes = _buildTicketTypes();
 
     final sokaService = context.read<SokaService>();
 
     try {
+      var imageUrl = _imageUrlController.text.trim();
+      if (_selectedImageBytes != null) {
+        setState(() => _isUploadingImage = true);
+        imageUrl = await sokaService.uploadEventImage(
+          bytes: _selectedImageBytes!,
+          organizerId: widget.organizerId,
+          eventId: widget.event?.id,
+          fileName: _selectedImageName,
+          contentType: _selectedImageMimeType,
+        );
+        _imageUrlController.text = imageUrl;
+      }
+
       if (widget.isEditing) {
         final event = widget.event!;
         final updatedData = <String, dynamic>{
           'category': resolvedCategory,
           'date': _selectedDateTime!.toIso8601String(),
           'description': _descriptionController.text.trim(),
-          'imageUrl': _imageUrlController.text.trim(),
+          'imageUrl': imageUrl,
           'location': location,
           'locationFormatted': locationSuggestion?.formatted,
           'locationLat': locationSuggestion?.lat,
@@ -225,7 +228,7 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
           'locationPostcode': locationSuggestion?.postcode,
           'locationCountry': locationSuggestion?.country,
           'organizerId': widget.organizerId,
-          'ticketTypes': ticketTypes.toJson(),
+          'ticketTypes': ticketTypes.map((e) => e.toJson()).toList(),
           'title': _titleController.text.trim(),
           'validated': event.validated,
         };
@@ -240,7 +243,7 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
           createdAt: now,
           date: _selectedDateTime!,
           description: _descriptionController.text.trim(),
-          imageUrl: _imageUrlController.text.trim(),
+          imageUrl: imageUrl,
           location: location,
           locationFormatted: locationSuggestion?.formatted,
           locationLat: locationSuggestion?.lat,
@@ -267,12 +270,40 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
 
         Navigator.pop(context, createdEventId);
       }
-    } catch (_) {
+    } on FirebaseException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error al guardar el evento')),
-      );
+      final code = e.code.toLowerCase();
+      String message;
+      if (code == 'permission-denied' || code == 'unauthenticated') {
+        message = 'No tienes permisos para guardar este evento o imagen.';
+      } else {
+        message = e.message ?? 'Error de Firebase al guardar.';
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    } catch (e) {
+      if (!mounted) return;
+      final raw = e.toString();
+      String message = 'Error al guardar.';
+      if (raw.contains('Storage[unauthorized]')) {
+        message = 'Firebase Storage rechazó la subida (sin permisos).';
+      } else if (raw.contains('Storage[quota-exceeded]')) {
+        message = 'Se alcanzó la cuota de Firebase Storage.';
+      } else if (raw.contains('Storage[canceled]')) {
+        message = 'La subida de imagen fue cancelada.';
+      } else if (raw.contains('Storage[retry-limit-exceeded]')) {
+        message = 'Falló la subida por red inestable. Intenta de nuevo.';
+      } else if (raw.contains('organizerId vacío')) {
+        message = 'No se pudo identificar el organizador para subir la imagen.';
+      } else {
+        message = 'Error al guardar: $e';
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
     } finally {
+      if (mounted) setState(() => _isUploadingImage = false);
       if (mounted) setState(() => _isSaving = false);
     }
   }
@@ -336,8 +367,9 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
                                 }
                                 return null;
                               },
-                              decoration:
-                                  const InputDecoration(labelText: 'Categoría'),
+                              decoration: const InputDecoration(
+                                labelText: 'Categoría',
+                              ),
                             ),
                             if (_selectedCategory == 'Otro') ...[
                               const SizedBox(height: 10),
@@ -380,11 +412,12 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
                               onTap: _pickDateTime,
                             ),
                             const SizedBox(height: 14),
-                            _textField(
-                              controller: _imageUrlController,
-                              label: 'Foto (URL)',
-                              required: false,
-                              keyboardType: TextInputType.url,
+                            _PhotoPicker(
+                              selectedImageBytes: _selectedImageBytes,
+                              imageUrl: _imageUrlController.text.trim(),
+                              isBusy: _isSaving || _isUploadingImage,
+                              onPick: _pickImageFromDevice,
+                              onRemove: _clearSelectedImage,
                             ),
                             const SizedBox(height: 14),
                             _textField(
@@ -419,13 +452,19 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
                               ],
                             ),
                             const SizedBox(height: 14),
-                            ...List.generate(_ticketTypeControllers.length, (index) {
+                            ...List.generate(_ticketTypeControllers.length, (
+                              index,
+                            ) {
                               final c = _ticketTypeControllers[index];
-                              final canRemove = _ticketTypeControllers.length > 1;
+                              final canRemove =
+                                  _ticketTypeControllers.length > 1;
 
                               return Padding(
                                 padding: EdgeInsets.only(
-                                  bottom: index == _ticketTypeControllers.length - 1 ? 0 : 16,
+                                  bottom:
+                                      index == _ticketTypeControllers.length - 1
+                                      ? 0
+                                      : 16,
                                 ),
                                 child: Container(
                                   padding: const EdgeInsets.all(12),
@@ -435,7 +474,8 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
                                     color: AppColors.background.withAlpha(120),
                                   ),
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
                                     children: [
                                       Row(
                                         children: [
@@ -452,8 +492,12 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
                                             IconButton(
                                               onPressed: _isSaving
                                                   ? null
-                                                  : () => _removeTicketType(index),
-                                              icon: const Icon(Icons.close_rounded),
+                                                  : () => _removeTicketType(
+                                                      index,
+                                                    ),
+                                              icon: const Icon(
+                                                Icons.close_rounded,
+                                              ),
                                               tooltip: 'Eliminar tipo',
                                             ),
                                         ],
@@ -477,9 +521,11 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
                                             child: _textField(
                                               controller: c.price,
                                               label: 'Precio (€)',
-                                              keyboardType: TextInputType.number,
+                                              keyboardType:
+                                                  TextInputType.number,
                                               inputFormatters: [
-                                                FilteringTextInputFormatter.digitsOnly,
+                                                FilteringTextInputFormatter
+                                                    .digitsOnly,
                                               ],
                                             ),
                                           ),
@@ -488,9 +534,11 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
                                             child: _textField(
                                               controller: c.capacity,
                                               label: 'Aforo',
-                                              keyboardType: TextInputType.number,
+                                              keyboardType:
+                                                  TextInputType.number,
                                               inputFormatters: [
-                                                FilteringTextInputFormatter.digitsOnly,
+                                                FilteringTextInputFormatter
+                                                    .digitsOnly,
                                               ],
                                             ),
                                           ),
@@ -502,7 +550,8 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
                                         label: 'Disponibles',
                                         keyboardType: TextInputType.number,
                                         inputFormatters: [
-                                          FilteringTextInputFormatter.digitsOnly,
+                                          FilteringTextInputFormatter
+                                              .digitsOnly,
                                         ],
                                         required: false,
                                       ),
@@ -649,10 +698,43 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
     _ignoreLocationChange = false;
 
     setState(() {
-    _selectedLocation = suggestion;
+      _selectedLocation = suggestion;
       _locationSuggestions.clear();
       _isFetchingSuggestions = false;
     });
+  }
+
+  List<TicketType> _buildTicketTypes() {
+    final types = <TicketType>[];
+    for (final c in _ticketTypeControllers) {
+      final type = c.type.text.trim();
+      final description = c.description.text.trim();
+      final price = int.tryParse(c.price.text.trim()) ?? 0;
+      final capacity = int.tryParse(c.capacity.text.trim()) ?? 0;
+      final remainingText = c.remaining.text.trim();
+      final remaining = remainingText.isEmpty
+          ? capacity
+          : int.tryParse(remainingText) ?? capacity;
+
+      if (type.isEmpty &&
+          description.isEmpty &&
+          price == 0 &&
+          capacity == 0 &&
+          remaining == 0) {
+        continue;
+      }
+
+      types.add(
+        TicketType(
+          capacity: capacity,
+          description: description,
+          price: price,
+          remaining: remaining,
+          type: type.isEmpty ? 'General' : type,
+        ),
+      );
+    }
+    return types;
   }
 
   Future<bool> _validateLocation() async {
@@ -667,7 +749,9 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
     if (!GeoapifyService.hasApiKey) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Configura GEOAPIFY_API_KEY para validar la ubicacion.'),
+          content: Text(
+            'Configura GEOAPIFY_API_KEY para validar la ubicacion.',
+          ),
         ),
       );
       return false;
@@ -685,9 +769,7 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
       final suggestions = await _geoapifyService.suggest(location, limit: 1);
       if (suggestions.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('No encontramos esa ubicacion.'),
-          ),
+          SnackBar(content: const Text('No encontramos esa ubicacion.')),
         );
         return false;
       }
@@ -700,16 +782,78 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
       return false;
     }
   }
+
+  Future<void> _pickImageFromDevice() async {
+    try {
+      final file = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1920,
+        imageQuality: 85,
+      );
+      if (file == null) return;
+
+      final bytes = await file.readAsBytes();
+      if (!mounted) return;
+
+      setState(() {
+        _selectedImageBytes = bytes;
+        _selectedImageName = file.name;
+        _selectedImageMimeType = file.mimeType;
+      });
+    } on PlatformException catch (e) {
+      if (!mounted) return;
+      final error = (e.code.toLowerCase() + e.message.toString().toLowerCase());
+      if (error.contains('denied') ||
+          error.contains('permission') ||
+          error.contains('access')) {
+        await _showGalleryPermissionDialog();
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al abrir galeria: ${e.code}')),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No se pudo seleccionar la foto')),
+      );
+    }
+  }
+
+  Future<void> _showGalleryPermissionDialog() async {
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Permiso de galeria requerido'),
+        content: const Text(
+          'Para subir una foto debes permitir el acceso a Fotos/Galeria en los ajustes de la app.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Entendido'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _clearSelectedImage() {
+    setState(() {
+      _selectedImageBytes = null;
+      _selectedImageName = null;
+      _selectedImageMimeType = null;
+      _imageUrlController.clear();
+    });
+  }
 }
 
 class _SuggestionsList extends StatelessWidget {
   final List<GeoapifySuggestion> suggestions;
   final ValueChanged<GeoapifySuggestion> onTap;
 
-  const _SuggestionsList({
-    required this.suggestions,
-    required this.onTap,
-  });
+  const _SuggestionsList({required this.suggestions, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -748,6 +892,99 @@ class _SuggestionsList extends StatelessWidget {
             onTap: () => onTap(suggestion),
           );
         },
+      ),
+    );
+  }
+}
+
+class _PhotoPicker extends StatelessWidget {
+  final Uint8List? selectedImageBytes;
+  final String imageUrl;
+  final bool isBusy;
+  final VoidCallback onPick;
+  final VoidCallback onRemove;
+
+  const _PhotoPicker({
+    required this.selectedImageBytes,
+    required this.imageUrl,
+    required this.isBusy,
+    required this.onPick,
+    required this.onRemove,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final hasLocalImage = selectedImageBytes != null;
+    final hasRemoteImage = imageUrl.isNotEmpty;
+    final hasImage = hasLocalImage || hasRemoteImage;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text(
+          'Foto',
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textSecondary,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          height: 170,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.border),
+            color: AppColors.background.withAlpha(120),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(13),
+            child: hasLocalImage
+                ? Image.memory(selectedImageBytes!, fit: BoxFit.cover)
+                : hasRemoteImage
+                ? Image.network(
+                    imageUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => _photoPlaceholder(),
+                  )
+                : _photoPlaceholder(),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: OutlinedButton.icon(
+                onPressed: isBusy ? null : onPick,
+                icon: const Icon(Icons.photo_library_outlined),
+                label: Text(hasImage ? 'Cambiar foto' : 'Subir foto'),
+              ),
+            ),
+            if (hasImage) ...[
+              const SizedBox(width: 8),
+              TextButton(
+                onPressed: isBusy ? null : onRemove,
+                child: const Text('Quitar'),
+              ),
+            ],
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _photoPlaceholder() {
+    return const Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.image_outlined, color: AppColors.textSecondary),
+          SizedBox(height: 6),
+          Text(
+            'Sin foto seleccionada',
+            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+          ),
+        ],
       ),
     );
   }
@@ -842,11 +1079,11 @@ class _TicketTypeControllers {
     String price = '',
     String capacity = '',
     String remaining = '',
-  })  : type = TextEditingController(text: type),
-        description = TextEditingController(text: description),
-        price = TextEditingController(text: price),
-        capacity = TextEditingController(text: capacity),
-        remaining = TextEditingController(text: remaining);
+  }) : type = TextEditingController(text: type),
+       description = TextEditingController(text: description),
+       price = TextEditingController(text: price),
+       capacity = TextEditingController(text: capacity),
+       remaining = TextEditingController(text: remaining);
 
   factory _TicketTypeControllers.fromTicketType(TicketType ticketType) {
     return _TicketTypeControllers(
@@ -884,9 +1121,7 @@ class _Header extends StatelessWidget {
       width: double.infinity,
       decoration: const BoxDecoration(
         color: AppColors.primary,
-        borderRadius: BorderRadius.vertical(
-          bottom: Radius.circular(28),
-        ),
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
       ),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 10, 16, 18),

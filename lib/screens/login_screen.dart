@@ -1,4 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:soka/theme/app_colors.dart';
 import '../services/auth_service.dart';
@@ -138,13 +140,13 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 12),
 
                   Row(
-                    children: const [
-                      Expanded(child: Divider(color: AppColors.border)),
-                      Padding(
+                    children: [
+                      const Expanded(child: Divider(color: AppColors.border)),
+                      const Padding(
                         padding: EdgeInsets.symmetric(horizontal: 8),
                         child: Text('o'),
                       ),
-                      Expanded(child: Divider(color: AppColors.border)),
+                      const Expanded(child: Divider(color: AppColors.border)),
                     ],
                   ),
                   const SizedBox(height: 12),
