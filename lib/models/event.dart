@@ -8,6 +8,10 @@ class Event {
   final String description;
   final String imageUrl;
   final String location;
+  /// Máximo de entradas que puede comprar un usuario para este evento.
+  ///
+  /// Si es `0` (o menor), se interpreta como "sin límite".
+  final int maxTicketsPerUser;
   final String organizerId;
   final List<TicketType> ticketTypes;
   final String title;
@@ -21,6 +25,7 @@ class Event {
     required this.description,
     required this.imageUrl,
     required this.location,
+    required this.maxTicketsPerUser,
     required this.organizerId,
     required this.ticketTypes,
     required this.title,
@@ -39,6 +44,11 @@ class Event {
       description: json['description'],
       imageUrl: json['imageUrl']?.toString() ?? '',
       location: json['location'],
+      maxTicketsPerUser: _parseInt(
+        json['maxTicketsPerUser'] ??
+            json['ticketPurchaseLimit'] ??
+            json['purchaseLimit'],
+      ),
       organizerId: json['organizerId'],
       ticketTypes: TicketType.listFromJson(rawTicketTypes),
       title: json['title'],
@@ -54,6 +64,7 @@ class Event {
       'description': description,
       'imageUrl': imageUrl,
       'location': location,
+      'maxTicketsPerUser': maxTicketsPerUser,
       'organizerId': organizerId,
       'ticketTypes': ticketTypes.map((e) => e.toJson()).toList(),
       'title': title,
@@ -82,5 +93,12 @@ class Event {
       if (t.price > maxPrice) maxPrice = t.price;
     }
     return maxPrice;
+  }
+
+  static int _parseInt(dynamic value) {
+    if (value is int) return value;
+    if (value is double) return value.round();
+    if (value is String) return int.tryParse(value) ?? 0;
+    return 0;
   }
 }

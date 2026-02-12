@@ -6,6 +6,7 @@
       "date": "2026-07-15T22:00:00Z",
       "description": "Electronic music party with international DJs.",
       "location": "BCM Mallorca, Magaluf",
+      "maxTicketsPerUser": 4,
       "organizerId": "BCM Mallorca",
       "ticketTypes": [
         {

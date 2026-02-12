@@ -145,7 +145,10 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     final ticketEventIds = sokaService.soldTickets
-        .where((t) => t.userId == clientId || t.userId == client.userName)
+        .where(
+          (t) =>
+              t.buyerUserId == clientId || t.buyerUserId == client.userName,
+        )
         .map((t) => t.eventId.trim())
         .where((id) => id.isNotEmpty)
         .toList();

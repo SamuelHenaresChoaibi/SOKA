@@ -30,6 +30,7 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
   late final TextEditingController _descriptionController;
   late final TextEditingController _imageUrlController;
   late final TextEditingController _dateTimeController;
+  late final TextEditingController _maxTicketsPerUserController;
 
   final List<_TicketTypeControllers> _ticketTypeControllers = [];
 
@@ -51,6 +52,9 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
     _imageUrlController = TextEditingController(text: event?.imageUrl ?? '');
     _dateTimeController = TextEditingController(
       text: _selectedDateTime == null ? '' : _formatDateTime(_selectedDateTime!),
+    );
+    _maxTicketsPerUserController = TextEditingController(
+      text: event == null ? '4' : event.maxTicketsPerUser.toString(),
     );
 
     final initialTicketTypes = event?.ticketTypes ?? const <TicketType>[];
@@ -75,6 +79,7 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
     _descriptionController.dispose();
     _imageUrlController.dispose();
     _dateTimeController.dispose();
+    _maxTicketsPerUserController.dispose();
     for (final c in _ticketTypeControllers) {
       c.dispose();
     }
@@ -187,6 +192,9 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
     }
 
     final sokaService = context.read<SokaService>();
+    final maxTicketsPerUser =
+        int.tryParse(_maxTicketsPerUserController.text.trim()) ??
+            (widget.event?.maxTicketsPerUser ?? 4);
 
     try {
       if (widget.isEditing) {
@@ -197,11 +205,12 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
           'description': _descriptionController.text.trim(),
            'imageUrl': _imageUrlController.text.trim(),
            'location': _locationController.text.trim(),
+           'maxTicketsPerUser': maxTicketsPerUser,
            'organizerId': widget.organizerId,
            'ticketTypes': ticketTypes.map((e) => e.toJson()).toList(),
            'title': _titleController.text.trim(),
            'validated': event.validated,
-         };
+          };
          await sokaService.updateEvent(event.id, updatedData);
          if (!mounted) return;
         Navigator.pop(context, event.id);
@@ -215,11 +224,12 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
           description: _descriptionController.text.trim(),
            imageUrl: _imageUrlController.text.trim(),
            location: _locationController.text.trim(),
+           maxTicketsPerUser: maxTicketsPerUser,
            organizerId: widget.organizerId,
            ticketTypes: ticketTypes,
            title: _titleController.text.trim(),
            validated: false,
-         );
+          );
 
         final createdEventId = await sokaService.createEvent(event);
         if (!mounted) return;
@@ -304,6 +314,17 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
                               controller: _descriptionController,
                               label: 'Descripción',
                               maxLines: 4,
+                            ),
+                            const SizedBox(height: 14),
+                            _textField(
+                              controller: _maxTicketsPerUserController,
+                              label:
+                                  'Límite de compra por usuario (0 = sin límite)',
+                              required: false,
+                              keyboardType: TextInputType.number,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                              ],
                             ),
                           ],
                         ),
