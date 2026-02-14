@@ -1,6 +1,10 @@
+import 'dart:math' as math;
+
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:soka/models/models.dart';
+import 'package:soka/screens/ticket_checkout_screen.dart';
 import 'package:soka/services/services.dart';
 import 'package:soka/theme/app_colors.dart';
 import 'package:soka/widgets/bottom_cta.dart';
@@ -8,14 +12,78 @@ import 'package:soka/widgets/category_chip.dart';
 import 'package:soka/widgets/icon_circle.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-class EventDetailsScreen extends StatelessWidget {
+class EventDetailsScreen extends StatefulWidget {
   final Event event;
 
   const EventDetailsScreen({super.key, required this.event});
 
   @override
+  State<EventDetailsScreen> createState() => _EventDetailsScreenState();
+}
+
+class _EventDetailsScreenState extends State<EventDetailsScreen> {
+  late Event _event;
+  Client? _client;
+  List<SoldTicket> _userTickets = const [];
+  int _alreadyPurchased = 0;
+  bool _isLoadingUserTickets = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _event = widget.event;
+    Future.microtask(_refreshEventAndUserTickets);
+  }
+
+  Future<void> _refreshEventAndUserTickets() async {
+    final sokaService = context.read<SokaService>();
+    final currentUser = FirebaseAuth.instance.currentUser;
+    var eventToUse = _event;
+    Client? client;
+    List<SoldTicket> userTickets = const [];
+
+    if (mounted) {
+      setState(() => _isLoadingUserTickets = true);
+    }
+
+    try {
+      final refreshed = await sokaService.fetchEventById(_event.id);
+      if (refreshed != null) {
+        eventToUse = refreshed;
+      }
+    } catch (_) {
+      // no-op
+    }
+
+    if (currentUser != null) {
+      try {
+        client = await sokaService.fetchClientById(currentUser.uid);
+        userTickets = await sokaService.fetchUserTicketsForEvent(
+          eventId: eventToUse.id,
+          userId: currentUser.uid,
+          userName: client?.userName,
+        );
+      } catch (_) {
+        // no-op
+      }
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _event = eventToUse;
+      _client = client;
+      _userTickets = userTickets;
+      _alreadyPurchased = userTickets.length;
+      _isLoadingUserTickets = false;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final event = _event;
     final theme = Theme.of(context);
+    final currentUser = FirebaseAuth.instance.currentUser;
+    final hasClientSession = currentUser != null && _client != null;
 
     final minPrice = event.minTicketPrice;
     final maxPrice = event.maxTicketPrice;
@@ -32,25 +100,75 @@ class EventDetailsScreen extends StatelessWidget {
     final ticketSubtitle = !event.hasTicketTypes
         ? 'No ticket types configured'
         : event.ticketTypes.length == 1
-            ? '${event.ticketTypes.first.type} • ${event.ticketTypes.first.remaining} available'
-            : '${event.ticketTypes.length} types • $totalRemaining available';
-    Future<Company?> company = Provider.of<SokaService>(context, listen: false)
-        .fetchCompanyById(event.organizerId);
+        ? '${event.ticketTypes.first.type} • ${event.ticketTypes.first.remaining} disponibles'
+        : '${event.ticketTypes.length} tipos • $totalRemaining disponibles';
+    Future<Company?> company = Provider.of<SokaService>(
+      context,
+      listen: false,
+    ).fetchCompanyById(event.organizerId);
+
+    final remainingByUser = event.maxTicketsPerUser <= 0
+        ? null
+        : math.max(0, event.maxTicketsPerUser - _alreadyPurchased);
+    final availableToBuyNow = remainingByUser == null
+        ? totalRemaining
+        : math.min(totalRemaining, remainingByUser);
+
+    final isSoldOut = !event.hasTicketTypes || totalRemaining <= 0;
+    final isUserContextLoading = currentUser != null && _isLoadingUserTickets;
+    final isLimitReachedForUser =
+        hasClientSession && remainingByUser != null && remainingByUser <= 0;
+    final canOpenCheckout =
+        !isSoldOut && !isLimitReachedForUser && !isUserContextLoading;
+
+    final ctaTitle = isSoldOut
+        ? 'Agotado'
+        : isUserContextLoading
+        ? 'Cargando...'
+        : isLimitReachedForUser
+        ? 'Límite alcanzado'
+        : _alreadyPurchased > 0
+        ? 'Comprar entradas restantes'
+        : 'Comprar entrada';
+
+    final ctaSubtitle = isSoldOut
+        ? 'No quedan más entradas'
+        : isUserContextLoading
+        ? 'Estamos comprobando tus entradas compradas.'
+        : isLimitReachedForUser
+        ? 'Ya compraste $_alreadyPurchased de ${event.maxTicketsPerUser}.'
+        : remainingByUser != null && _alreadyPurchased > 0
+        ? 'Puedes comprar $availableToBuyNow más ahora.'
+        : ticketSubtitle;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       bottomNavigationBar: BottomCTA(
-        title: 'Buy ticket',
-        subtitle: ticketSubtitle,
+        title: ctaTitle,
+        subtitle: ctaSubtitle,
         priceLabel: priceLabel,
-        onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Coming soon! You will be able to buy tickets!'),
-              backgroundColor: AppColors.primary,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        },
+        onPressed: canOpenCheckout
+            ? () async {
+                final updated = await Navigator.push<Event?>(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => TicketCheckoutScreen(event: event),
+                  ),
+                );
+                if (!context.mounted) return;
+                await _refreshEventAndUserTickets();
+                if (!context.mounted) return;
+                if (updated != null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Compra completada.'),
+                      backgroundColor: AppColors.primary,
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                }
+              }
+            : null,
       ),
       body: CustomScrollView(
         physics: const BouncingScrollPhysics(),
@@ -182,9 +300,9 @@ class EventDetailsScreen extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 14,
                         height: 1.7,
-                        color: AppColors.textPrimary.withOpacity(0.86),
+                        color: AppColors.textPrimary.withValues(alpha: 0.86),
                       ),
-                  ),
+                    ),
                   ),
                   const SizedBox(height: 26),
                   const _SectionTitle('Tickets'),
@@ -202,14 +320,18 @@ class EventDetailsScreen extends StatelessWidget {
                     )
                   else
                     Column(
-                      children: List.generate(event.ticketTypes.length, (index) {
+                      children: List.generate(event.ticketTypes.length, (
+                        index,
+                      ) {
                         final ticketType = event.ticketTypes[index];
                         final typePriceLabel =
                             ticketType.price <= 0 ? 'Free' : '€${ticketType.price}';
 
                         return Padding(
                           padding: EdgeInsets.only(
-                            bottom: index == event.ticketTypes.length - 1 ? 0 : 12,
+                            bottom: index == event.ticketTypes.length - 1
+                                ? 0
+                                : 12,
                           ),
                           child: _TicketCard(
                             type: ticketType.type,
@@ -222,7 +344,16 @@ class EventDetailsScreen extends StatelessWidget {
                       }),
                     ),
                   const SizedBox(height: 26),
-                  const _SectionTitle('Details'),
+                  const _SectionTitle('Tus entradas'),
+                  const SizedBox(height: 12),
+                  ..._buildUserTicketSection(
+                    event: event,
+                    currentUser: currentUser,
+                    remainingByUser: remainingByUser,
+                    availableToBuyNow: availableToBuyNow,
+                  ),
+                  const SizedBox(height: 26),
+                  const _SectionTitle('Detalles'),
                   const SizedBox(height: 12),
                   _Card(
                     child: Column(
@@ -235,7 +366,9 @@ class EventDetailsScreen extends StatelessWidget {
                         FutureBuilder<Company?>(
                           future: company,
                           builder: (context, companySnapshot) {
-                            final companyName = companySnapshot.data?.companyName ?? 'Unknown';
+                            final companyName =
+                                companySnapshot.data?.companyName ??
+                                'Desconocido';
                             return _KeyValueRow(
                               label: 'Organizer',
                               value: _shortId(companyName),
@@ -252,6 +385,135 @@ class EventDetailsScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  List<Widget> _buildUserTicketSection({
+    required Event event,
+    required User? currentUser,
+    required int? remainingByUser,
+    required int availableToBuyNow,
+  }) {
+    if (currentUser == null) {
+      return const [
+        _Card(
+          child: Text(
+            'Inicia sesión para ver tus entradas compradas en este evento.',
+            style: TextStyle(
+              fontSize: 14,
+              height: 1.6,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ),
+      ];
+    }
+
+    if (_isLoadingUserTickets) {
+      return const [
+        _Card(
+          child: Row(
+            children: [
+              SizedBox(
+                height: 18,
+                width: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Cargando tus entradas...',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ];
+    }
+
+    if (_client == null) {
+      return const [
+        _Card(
+          child: Text(
+            'Esta cuenta no tiene perfil de cliente, por eso no hay entradas asociadas.',
+            style: TextStyle(
+              fontSize: 14,
+              height: 1.6,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ),
+      ];
+    }
+
+    final summaryLabel = event.maxTicketsPerUser <= 0
+        ? 'Compradas: $_alreadyPurchased (sin límite por usuario) • Disponibles ahora: $availableToBuyNow'
+        : 'Compradas: $_alreadyPurchased/${event.maxTicketsPerUser} • Te quedan ${remainingByUser ?? 0} • Disponibles ahora: $availableToBuyNow';
+
+    if (_userTickets.isEmpty) {
+      return [
+        _Card(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Aún no has comprado entradas para este evento.',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: AppColors.textPrimary.withValues(alpha: 0.85),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                summaryLabel,
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ];
+    }
+
+    final widgets = <Widget>[
+      _Card(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              summaryLabel,
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppColors.textSecondary,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+           
+          ],
+        ),
+      ),
+      const SizedBox(height: 12),
+    ];
+
+    for (var i = 0; i < _userTickets.length; i++) {
+      widgets.add(
+        Padding(
+          padding: EdgeInsets.only(
+            bottom: i == _userTickets.length - 1 ? 0 : 10,
+          ),
+          child: _UserTicketCard(ticket: _userTickets[i]),
+        ),
+      );
+    }
+    return widgets;
   }
 
   static String _shortId(String id) {
@@ -324,6 +586,9 @@ class EventDetailsScreen extends StatelessWidget {
       );
     }
   }
+  static String _formatDateTime(DateTime date) {
+    return '${_formatDate(date)} ${_formatTime(date)}';
+  }
 }
 
 class _Hero extends StatelessWidget {
@@ -360,11 +625,7 @@ class _Hero extends StatelessWidget {
             ),
           ),
         ),
-        Positioned(
-          left: 20,
-          bottom: 22,
-          child: _PricePill(text: priceLabel),
-        ),
+        Positioned(left: 20, bottom: 22, child: _PricePill(text: priceLabel)),
       ],
     );
   }
@@ -382,9 +643,7 @@ class _PricePill extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.primary.withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppColors.surface.withValues(alpha: 0.08),
-        ),
+        border: Border.all(color: AppColors.surface.withValues(alpha: 0.08)),
       ),
       child: Text(
         text,
@@ -629,6 +888,75 @@ class _TicketCard extends StatelessWidget {
               fontSize: 16,
               fontWeight: FontWeight.w900,
               color: AppColors.textPrimary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _UserTicketCard extends StatelessWidget {
+  final SoldTicket ticket;
+
+  const _UserTicketCard({required this.ticket});
+
+  @override
+  Widget build(BuildContext context) {
+    final scannedLabel = ticket.scanned ? 'Escaneada' : 'Pendiente';
+    final holderName = ticket.holder.fullName.isEmpty
+        ? 'Sin titular'
+        : ticket.holder.fullName;
+
+    return _Card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.confirmation_number_outlined,
+                color: AppColors.textPrimary,
+                size: 18,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  ticket.ticketType,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ),
+              Text(
+                scannedLabel,
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: ticket.scanned ? Colors.green : AppColors.textMuted,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          _KeyValueRow(label: 'Titular', value: holderName),
+          if (ticket.holder.dni.trim().isNotEmpty) ...[
+            const SizedBox(height: 8),
+            _KeyValueRow(label: 'Documento', value: ticket.holder.dni),
+          ],
+          const SizedBox(height: 8),
+          _KeyValueRow(label: 'ID ticket', value: ticket.idTicket.toString()),
+          const SizedBox(height: 8),
+          _KeyValueRow(label: 'QR', value: ticket.qrCode),
+          const SizedBox(height: 8),
+          _KeyValueRow(
+            label: 'Compra',
+            value: _EventDetailsScreenState._formatDateTime(
+              ticket.purchaseDate,
             ),
           ),
         ],

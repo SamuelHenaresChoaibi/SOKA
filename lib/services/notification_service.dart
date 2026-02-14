@@ -17,8 +17,8 @@ class NotificationService {
 
     tz.initializeTimeZones();
     try {
-      final String timezoneName = await FlutterTimezone.getLocalTimezone();
-      tz.setLocalLocation(tz.getLocation(timezoneName));
+      final timezoneInfo = await FlutterTimezone.getLocalTimezone();
+      tz.setLocalLocation(tz.getLocation(timezoneInfo.toString()));
     } catch (_) {
       tz.setLocalLocation(tz.UTC);
     }
@@ -27,7 +27,7 @@ class NotificationService {
     const ios = DarwinInitializationSettings();
     const initSettings = InitializationSettings(android: android, iOS: ios);
 
-    await _plugin.initialize(initSettings);
+    await _plugin.initialize(settings: initSettings, onDidReceiveNotificationResponse: null);
 
     await _plugin
         .resolvePlatformSpecificImplementation<
@@ -69,21 +69,18 @@ class NotificationService {
     );
 
     await _plugin.zonedSchedule(
-      id,
-      title,
-      body,
-      tz.TZDateTime.from(reminderDate, tz.local),
-      details,
+      id: id,
+      title: title,
+      body: body,
+      scheduledDate: tz.TZDateTime.from(reminderDate, tz.local),
+      notificationDetails: details,
       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
-      matchDateTimeComponents: null,
       payload: 'event_reminder',
     );
   }
 
   Future<void> cancelReminder(int id) async {
     await initialize();
-    await _plugin.cancel(id);
+    await _plugin.cancel(id: id);
   }
 }

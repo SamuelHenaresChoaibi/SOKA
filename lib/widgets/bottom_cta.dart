@@ -5,7 +5,7 @@ class BottomCTA extends StatelessWidget {
   final String title;
   final String subtitle;
   final String priceLabel;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
 
   const BottomCTA({
     super.key,
@@ -71,6 +71,8 @@ class BottomCTA extends StatelessWidget {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.accent,
                   foregroundColor: AppColors.primary,
+                  disabledBackgroundColor: AppColors.border,
+                  disabledForegroundColor: AppColors.textMuted,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(14),
                   ),

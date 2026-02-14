@@ -18,6 +18,8 @@ class SokaService extends ChangeNotifier {
   List<Client> clients = [];
   List<SoldTicket> soldTickets = [];
 
+  static const int _purchaseMaxRetries = 3;
+
   SokaService() {
     init();
   }
@@ -99,7 +101,6 @@ class SokaService extends ChangeNotifier {
     }
   }
 
-
   //-----------------------------------------
   //-----------------------------------------
   //USER SETTINGS
@@ -114,9 +115,7 @@ class SokaService extends ChangeNotifier {
           return decoded;
         }
         if (decoded is Map) {
-          return decoded.map(
-            (key, value) => MapEntry(key.toString(), value),
-          );
+          return decoded.map((key, value) => MapEntry(key.toString(), value));
         }
       }
       return null;
@@ -323,8 +322,9 @@ class SokaService extends ChangeNotifier {
       if (response.statusCode == 200) {
         print('Event created successfully: ${response.body}');
         final decoded = json.decode(response.body);
-        final createdEventId =
-            decoded is Map ? decoded['name']?.toString() : null;
+        final createdEventId = decoded is Map
+            ? decoded['name']?.toString()
+            : null;
         await fetchEvents();
         return createdEventId;
       } else {
@@ -372,6 +372,371 @@ class SokaService extends ChangeNotifier {
       print('ERROR updateEvent: $e');
       rethrow;
     }
+  }
+
+  Future<Event> purchaseTickets({
+    required String eventId,
+    required String ticketType,
+    required int quantity,
+    required String userId,
+    required List<TicketHolder> holders,
+    String? userName,
+  }) async {
+    if (quantity <= 0) {
+      throw TicketPurchaseException('Selecciona una cantidad válida.');
+    }
+    if (holders.length != quantity) {
+      throw TicketPurchaseException(
+        'Debes indicar un titular para cada entrada.',
+      );
+    }
+
+    final invalidHolderIndex = holders.indexWhere((h) => !h.isValid);
+    if (invalidHolderIndex >= 0) {
+      throw TicketPurchaseException(
+        'Revisa los datos del titular en la entrada ${invalidHolderIndex + 1}.',
+      );
+    }
+
+    for (var attempt = 0; attempt < _purchaseMaxRetries; attempt++) {
+      final etagged = await _fetchEventByIdWithEtag(eventId);
+
+      final event = etagged.event;
+      final etag = etagged.etag;
+      if (event == null) {
+        throw TicketPurchaseException(
+          'El evento no existe o no está disponible.',
+        );
+      }
+
+      final alreadyPurchased = await countUserTicketsForEvent(
+        eventId: eventId,
+        userId: userId,
+        userName: userName,
+      );
+
+      final maxTicketsPerUser = event.maxTicketsPerUser;
+      if (maxTicketsPerUser > 0 &&
+          alreadyPurchased + quantity > maxTicketsPerUser) {
+        final remaining = (maxTicketsPerUser - alreadyPurchased).clamp(
+          0,
+          maxTicketsPerUser,
+        );
+        throw TicketPurchaseException(
+          'Has alcanzado el límite de compra. Te quedan: $remaining.',
+        );
+      }
+
+      final typeIndex = event.ticketTypes.indexWhere(
+        (t) => t.type == ticketType,
+      );
+      if (typeIndex < 0) {
+        throw TicketPurchaseException(
+          'El tipo de entrada seleccionado no existe.',
+        );
+      }
+
+      final currentType = event.ticketTypes[typeIndex];
+      if (currentType.remaining < quantity) {
+        throw TicketPurchaseException(
+          'No quedan suficientes entradas de "${currentType.type}".',
+        );
+      }
+
+      final updatedTicketTypes = List<TicketType>.from(event.ticketTypes);
+      updatedTicketTypes[typeIndex] = TicketType(
+        capacity: currentType.capacity,
+        description: currentType.description,
+        price: currentType.price,
+        remaining: currentType.remaining - quantity,
+        type: currentType.type,
+      );
+
+      final updateOk = await _patchEventTicketTypesIfMatch(
+        baseEvent: event,
+        eventId: eventId,
+        etag: etag,
+        ticketTypes: updatedTicketTypes,
+      );
+
+      if (!updateOk) {
+        continue; // ETag changed, retry.
+      }
+
+      final now = DateTime.now();
+      final baseTicketId = now.millisecondsSinceEpoch;
+      var createdCount = 0;
+      try {
+        for (var i = 0; i < quantity; i++) {
+          final idTicket = baseTicketId + i;
+          final qrCode = _buildQrCode(
+            eventId: eventId,
+            ticketType: currentType.type,
+            idTicket: idTicket,
+          );
+          final sold = SoldTicket(
+            buyerUserId: userId,
+            eventId: eventId,
+            holder: holders[i],
+            idTicket: idTicket,
+            purchaseDate: now,
+            qrCode: qrCode,
+            scanned: false,
+            ticketType: currentType.type,
+          );
+          await createSoldTicket(sold, refresh: false);
+          createdCount++;
+        }
+      } catch (e) {
+        // Best effort rollback: re-add the tickets that were not created.
+        final rollbackQuantity = quantity - createdCount;
+        if (rollbackQuantity > 0) {
+          try {
+            await _incrementTicketTypeRemainingBestEffort(
+              eventId: eventId,
+              ticketType: currentType.type,
+              quantity: rollbackQuantity,
+            );
+          } catch (_) {
+            // no-op
+          }
+        }
+        rethrow;
+      }
+
+      try {
+        await fetchEvents();
+      } catch (_) {
+        // no-op (purchase already completed)
+      }
+
+      try {
+        await fetchSoldTickets();
+      } catch (_) {
+        // no-op
+      }
+
+      try {
+        final refreshed = await fetchEventById(eventId);
+        if (refreshed != null) return refreshed;
+      } catch (_) {
+        // no-op
+      }
+      return Event(
+        id: event.id,
+        category: event.category,
+        createdAt: event.createdAt,
+        date: event.date,
+        description: event.description,
+        imageUrl: event.imageUrl,
+        location: event.location,
+        maxTicketsPerUser: event.maxTicketsPerUser,
+        organizerId: event.organizerId,
+        ticketTypes: updatedTicketTypes,
+        title: event.title,
+        validated: event.validated,
+      );
+    }
+
+    throw TicketPurchaseException(
+      'No se pudo completar la compra. Inténtalo de nuevo.',
+    );
+  }
+
+  Future<int> countUserTicketsForEvent({
+    required String eventId,
+    required String userId,
+    String? userName,
+  }) async {
+    final tickets = await fetchUserTicketsForEvent(
+      eventId: eventId,
+      userId: userId,
+      userName: userName,
+    );
+    return tickets.length;
+  }
+
+  Future<List<SoldTicket>> fetchUserTicketsForEvent({
+    required String eventId,
+    required String userId,
+    String? userName,
+  }) async {
+    final normalizedUserName = userName?.trim();
+    try {
+      final tickets = await fetchSoldTicketsForEvent(eventId);
+      final filtered = tickets
+          .where(
+            (t) => _matchesTicketOwner(
+              t,
+              userId: userId,
+              userName: normalizedUserName,
+            ),
+          )
+          .toList();
+      filtered.sort((a, b) => b.purchaseDate.compareTo(a.purchaseDate));
+      return filtered;
+    } catch (_) {
+      // Fallback to local cache / full fetch.
+      await fetchSoldTickets();
+      final filtered = soldTickets
+          .where((t) => t.eventId == eventId)
+          .where(
+            (t) => _matchesTicketOwner(
+              t,
+              userId: userId,
+              userName: normalizedUserName,
+            ),
+          )
+          .toList();
+      filtered.sort((a, b) => b.purchaseDate.compareTo(a.purchaseDate));
+      return filtered;
+    }
+  }
+
+  Future<List<SoldTicket>> fetchSoldTicketsForEvent(String eventId) async {
+    final url = Uri.https(_baseUrl, '/soldTickets.json', {
+      'orderBy': '"eventId"',
+      'equalTo': '"$eventId"',
+    });
+    final response = await http.get(url);
+
+    if (response.statusCode != 200 || response.body == 'null') {
+      return const [];
+    }
+
+    final decoded = json.decode(response.body);
+    if (decoded is! Map) return const [];
+
+    final result = <SoldTicket>[];
+    for (final value in decoded.values) {
+      if (value is Map<String, dynamic>) {
+        result.add(SoldTicket.fromJson(value));
+      } else if (value is Map) {
+        result.add(
+          SoldTicket.fromJson(value.map((k, v) => MapEntry(k.toString(), v))),
+        );
+      }
+    }
+
+    return result;
+  }
+
+  Future<_EtaggedEvent> _fetchEventByIdWithEtag(String eventId) async {
+    final url = Uri.https(_baseUrl, '/events/$eventId.json');
+    final response = await http.get(
+      url,
+      headers: const {'X-Firebase-ETag': 'true'},
+    );
+
+    if (response.statusCode != 200 || response.body == 'null') {
+      return const _EtaggedEvent(event: null, etag: '');
+    }
+
+    final etag = response.headers['etag'] ?? '';
+    final decoded = json.decode(response.body);
+    if (decoded is! Map) {
+      return _EtaggedEvent(event: null, etag: etag);
+    }
+
+    final eventMap = decoded.map((k, v) => MapEntry(k.toString(), v));
+    return _EtaggedEvent(
+      event: Event.fromJson(eventMap, id: eventId),
+      etag: etag,
+    );
+  }
+
+  Future<bool> _patchEventTicketTypesIfMatch({
+    required Event baseEvent,
+    required String eventId,
+    required String etag,
+    required List<TicketType> ticketTypes,
+  }) async {
+    if (etag.isEmpty) {
+      throw TicketPurchaseException(
+        'No se pudo verificar la versión del evento (ETag vacío).',
+      );
+    }
+
+    final url = Uri.https(_baseUrl, '/events/$eventId.json');
+    final headers = <String, String>{
+      'Content-Type': 'application/json',
+      'if-match': etag,
+    };
+
+    final updatedEventJson = baseEvent.toJson()
+      ..['ticketTypes'] = ticketTypes.map((e) => e.toJson()).toList();
+
+    final response = await http.put(
+      url,
+      headers: headers,
+      body: json.encode(updatedEventJson),
+    );
+
+    if (response.statusCode == 412) return false;
+    if (response.statusCode == 200) return true;
+
+    throw TicketPurchaseException(
+      'No se pudo actualizar el stock del evento (${response.statusCode}). ${response.body}',
+    );
+  }
+
+  Future<void> _incrementTicketTypeRemainingBestEffort({
+    required String eventId,
+    required String ticketType,
+    required int quantity,
+  }) async {
+    for (var attempt = 0; attempt < _purchaseMaxRetries; attempt++) {
+      final etagged = await _fetchEventByIdWithEtag(eventId);
+      final event = etagged.event;
+      if (event == null) return;
+
+      final index = event.ticketTypes.indexWhere((t) => t.type == ticketType);
+      if (index < 0) return;
+
+      final current = event.ticketTypes[index];
+      final updated = List<TicketType>.from(event.ticketTypes);
+      updated[index] = TicketType(
+        capacity: current.capacity,
+        description: current.description,
+        price: current.price,
+        remaining: current.remaining + quantity,
+        type: current.type,
+      );
+
+      final ok = await _patchEventTicketTypesIfMatch(
+        baseEvent: event,
+        eventId: eventId,
+        etag: etagged.etag,
+        ticketTypes: updated,
+      );
+      if (ok) return;
+    }
+  }
+
+  static String _buildQrCode({
+    required String eventId,
+    required String ticketType,
+    required int idTicket,
+  }) {
+    final safeEvent = eventId
+        .replaceAll(RegExp(r'[^a-zA-Z0-9]+'), '')
+        .toUpperCase();
+    final safeType = ticketType
+        .replaceAll(RegExp(r'[^a-zA-Z0-9]+'), '')
+        .toUpperCase();
+    return '$safeEvent-$safeType-$idTicket';
+  }
+
+  bool _matchesTicketOwner(
+    SoldTicket ticket, {
+    required String userId,
+    String? userName,
+  }) {
+    final normalizedUserName = userName?.trim();
+    return ticket.buyerUserId == userId ||
+        (normalizedUserName != null &&
+            normalizedUserName.isNotEmpty &&
+            ticket.buyerUserId == normalizedUserName);
   }
 
   Future<Event?> fetchEventById(String eventId) async {
@@ -462,9 +827,11 @@ class SokaService extends ChangeNotifier {
   //-----------------------------------------
   //-----------------------------------------
   //SOLD TICKETS
-  Future<int> createSoldTicket(SoldTicket newTicket) async {
+  Future<int> createSoldTicket(
+    SoldTicket newTicket, {
+    bool refresh = true,
+  }) async {
     try {
-      soldTickets.clear();
       final url = Uri.https(_baseUrl, '/soldTickets.json');
       final response = await http.post(
         url,
@@ -472,8 +839,10 @@ class SokaService extends ChangeNotifier {
       );
       if (response.statusCode == 200) {
         print('Sold ticket created successfully: ${response.body}');
-        await fetchSoldTickets();
         await _scheduleReminderForTicket(newTicket);
+        if (refresh) {
+          await fetchSoldTickets();
+        }
       } else {
         print(
           'Failed to create sold ticket. Status code: ${response.statusCode}, Response body: ${response.body}',
@@ -579,7 +948,7 @@ class SokaService extends ChangeNotifier {
     if (uid == null || uid.trim().isEmpty) return;
 
     for (final ticket in soldTickets) {
-      if (ticket.userId.trim() != uid) continue;
+      if (ticket.buyerUserId.trim() != uid) continue;
       await _scheduleReminderForTicket(ticket);
     }
   }
@@ -587,7 +956,7 @@ class SokaService extends ChangeNotifier {
   Future<void> _scheduleReminderForTicket(SoldTicket ticket) async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null || uid.trim().isEmpty) return;
-    if (ticket.userId.trim() != uid) return;
+    if (ticket.buyerUserId.trim() != uid) return;
 
     Event? event;
     final cached = events.where((e) => e.id == ticket.eventId).toList();
@@ -609,7 +978,7 @@ class SokaService extends ChangeNotifier {
   }
 
   int _buildReminderId(SoldTicket ticket) {
-    final source = '${ticket.eventId}-${ticket.idTicket}-${ticket.userId}';
+    final source = '${ticket.eventId}-${ticket.idTicket}-${ticket.buyerUserId}';
     return source.hashCode & 0x7fffffff;
   }
 
@@ -619,4 +988,20 @@ class SokaService extends ChangeNotifier {
     final m = local.minute.toString().padLeft(2, '0');
     return '$h:$m';
   }
+}
+
+class TicketPurchaseException implements Exception {
+  final String message;
+
+  const TicketPurchaseException(this.message);
+
+  @override
+  String toString() => message;
+}
+
+class _EtaggedEvent {
+  final Event? event;
+  final String etag;
+
+  const _EtaggedEvent({required this.event, required this.etag});
 }

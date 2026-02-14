@@ -17,6 +17,10 @@ class Event {
   final String? locationState;
   final String? locationPostcode;
   final String? locationCountry;
+  /// Máximo de entradas que puede comprar un usuario para este evento.
+  ///
+  /// Si es `0` (o menor), se interpreta como "sin límite".
+  final int maxTicketsPerUser;
   final String organizerId;
   final List<TicketType> ticketTypes;
   final String title;
@@ -37,6 +41,7 @@ class Event {
     this.locationState,
     this.locationPostcode,
     this.locationCountry,
+    required this.maxTicketsPerUser,
     required this.organizerId,
     required this.ticketTypes,
     required this.title,
@@ -65,6 +70,11 @@ class Event {
       ticketTypes: ticketTypes,
       title: json['title']?.toString() ?? '',
       validated: json['validated'] == true,
+      maxTicketsPerUser: _parseInt(
+        json['maxTicketsPerUser'] ??
+            json['ticketPurchaseLimit'] ??
+            json['purchaseLimit'],
+      ),
     );
   }
 
@@ -83,6 +93,7 @@ class Event {
       'locationState': locationState,
       'locationPostcode': locationPostcode,
       'locationCountry': locationCountry,
+      'maxTicketsPerUser': maxTicketsPerUser,
       'organizerId': organizerId,
       'ticketTypes': ticketTypes.map((e) => e.toJson()).toList(),
       'title': title,
@@ -119,5 +130,12 @@ class Event {
     }
     final parsed = DateTime.tryParse(value?.toString() ?? '');
     return parsed ?? DateTime.fromMillisecondsSinceEpoch(0);
+  }
+
+  static int _parseInt(dynamic value) {
+    if (value is int) return value;
+    if (value is double) return value.round();
+    if (value is String) return int.tryParse(value) ?? 0;
+    return 0;
   }
 }
