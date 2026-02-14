@@ -1,51 +1,53 @@
+import 'models.dart';
+
 class SoldTicket {
   final String eventId;
-  final String holderName;
+  final String buyerUserId;
   final int idTicket;
   final DateTime purchaseDate;
   final String qrCode;
   final bool scanned;
   final String ticketType;
-  final String userId;
+  final TicketHolder holder;
 
   SoldTicket({
     required this.eventId,
-    required this.holderName,
+    required this.buyerUserId,
     required this.idTicket,
     required this.purchaseDate,
     required this.qrCode,
     required this.scanned,
     required this.ticketType,
-    required this.userId,
+    required this.holder,
   });
 
   factory SoldTicket.fromJson(Map<String, dynamic> json) {
     return SoldTicket(
       eventId: json['eventId']?.toString() ?? '',
-      holderName: json['holderName']?.toString() ?? '',
+      buyerUserId:
+          json['buyerUserId']?.toString() ?? json['userId']?.toString() ?? '',
       idTicket: _parseInt(json['idTicket']),
       purchaseDate: _parseDate(json['purchaseDate']),
       qrCode: json['qrCode']?.toString() ?? '',
       scanned: json['scanned'] == true,
       ticketType: json['ticketType']?.toString() ?? '',
-      userId: json['userId']?.toString() ?? '',
+      holder: _parseHolder(json),
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       'eventId': eventId,
-      'holderName': holderName,
+      'buyerUserId': buyerUserId,
       'idTicket': idTicket,
       'purchaseDate': purchaseDate.toIso8601String(),
       'qrCode': qrCode,
       'scanned': scanned,
       'ticketType': ticketType,
-      'userId': userId,
+      'holder': holder.toJson(),
     };
   }
 
-  /// Helpers seguros
   static int _parseInt(dynamic value) {
     if (value is int) return value;
     if (value is String) return int.tryParse(value) ?? 0;
@@ -58,4 +60,29 @@ class SoldTicket {
     }
     return DateTime.now();
   }
+
+  static TicketHolder _parseHolder(Map<String, dynamic> json) {
+    final rawHolder = json['holder'];
+    if (rawHolder is Map<String, dynamic>) {
+      return TicketHolder.fromJson(rawHolder);
+    }
+    if (rawHolder is String) {
+      return TicketHolder(fullName: rawHolder, phoneNumber: '', dni: '', birthDate: DateTime.now());
+    }
+
+    final legacyHolderName =
+        json['holderName'] ??
+        json['holder_full_name'] ??
+        json['holderFullName'] ??
+        json['fullName'];
+    if (legacyHolderName != null) {
+      if (legacyHolderName is String) {
+        return TicketHolder(fullName: legacyHolderName, phoneNumber: '', dni: '', birthDate: DateTime.now());
+      }
+    }
+
+    return TicketHolder(fullName: '', phoneNumber: '', dni: '', birthDate: DateTime.now());
+  }
+
+  bool get isValid => holder.isValid;
 }

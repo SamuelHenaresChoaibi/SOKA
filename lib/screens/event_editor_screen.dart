@@ -32,6 +32,7 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
   late final TextEditingController _descriptionController;
   late final TextEditingController _imageUrlController;
   late final TextEditingController _dateTimeController;
+  late final TextEditingController _maxTicketsPerUserController;
 
   final List<_TicketTypeControllers> _ticketTypeControllers = [];
 
@@ -88,6 +89,9 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
           ? ''
           : _formatDateTime(_selectedDateTime!),
     );
+    _maxTicketsPerUserController = TextEditingController(
+      text: event == null ? '4' : event.maxTicketsPerUser.toString(),
+    );
 
     final existingTickets = event?.ticketTypes ?? const [];
     if (existingTickets.isNotEmpty) {
@@ -111,6 +115,7 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
     _descriptionController.dispose();
     _imageUrlController.dispose();
     _dateTimeController.dispose();
+    _maxTicketsPerUserController.dispose();
     for (final c in _ticketTypeControllers) {
       c.dispose();
     }
@@ -197,6 +202,9 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
     final ticketTypes = _buildTicketTypes();
 
     final sokaService = context.read<SokaService>();
+    final maxTicketsPerUser =
+        int.tryParse(_maxTicketsPerUserController.text.trim()) ??
+            (widget.event?.maxTicketsPerUser ?? 4);
 
     try {
       var imageUrl = _imageUrlController.text.trim();
@@ -227,11 +235,13 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
           'locationState': locationSuggestion?.state,
           'locationPostcode': locationSuggestion?.postcode,
           'locationCountry': locationSuggestion?.country,
+          'maxTicketsPerUser': maxTicketsPerUser,
           'organizerId': widget.organizerId,
           'ticketTypes': ticketTypes.map((e) => e.toJson()).toList(),
           'title': _titleController.text.trim(),
           'validated': event.validated,
         };
+        
         await sokaService.updateEvent(event.id, updatedData);
         if (!mounted) return;
         Navigator.pop(context, event.id);
@@ -243,8 +253,10 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
           createdAt: now,
           date: _selectedDateTime!,
           description: _descriptionController.text.trim(),
-          imageUrl: imageUrl,
-          location: location,
+          imageUrl: imageUrl,           
+          //imageUrl: _imageUrlController.text.trim(),
+          location: location,           
+          //location: _locationController.text.trim(),
           locationFormatted: locationSuggestion?.formatted,
           locationLat: locationSuggestion?.lat,
           locationLng: locationSuggestion?.lon,
@@ -253,7 +265,8 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
           locationPostcode: locationSuggestion?.postcode,
           locationCountry: locationSuggestion?.country,
           organizerId: widget.organizerId,
-          ticketTypes: ticketTypes,
+          ticketTypes: ticketTypes,           
+          maxTicketsPerUser: maxTicketsPerUser,
           title: _titleController.text.trim(),
           validated: false,
         );
@@ -424,6 +437,17 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
                               controller: _descriptionController,
                               label: 'Description',
                               maxLines: 4,
+                            ),
+                            const SizedBox(height: 14),
+                            _textField(
+                              controller: _maxTicketsPerUserController,
+                              label:
+                                  'Límite de compra por usuario (0 = sin límite)',
+                              required: false,
+                              keyboardType: TextInputType.number,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.digitsOnly,
+                              ],
                             ),
                           ],
                         ),
