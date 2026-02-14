@@ -5,10 +5,12 @@ import 'package:soka/widgets/widgets.dart';
 class HomeHeader extends StatelessWidget {
   final int eventCount;
   final ValueChanged<String> onSearchChanged;
+  final VoidCallback onFilterTap;
 
   const HomeHeader({
     required this.eventCount,
     required this.onSearchChanged,
+    required this.onFilterTap,
   });
 
   @override
@@ -73,6 +75,7 @@ class HomeHeader extends StatelessWidget {
               SearchBarSoka(
                 eventCount: eventCount,
                 onChanged: onSearchChanged,
+                onFilterTap: onFilterTap,
               ),
             ],
           ),

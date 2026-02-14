@@ -4,11 +4,13 @@ import 'package:soka/theme/app_colors.dart';
 class SearchBarSoka extends StatelessWidget {
   final int eventCount;
   final ValueChanged<String> onChanged;
+  final VoidCallback onFilterTap;
 
   const SearchBarSoka({
     super.key,
     required this.eventCount,
     required this.onChanged,
+    required this.onFilterTap,
   });
 
   @override
@@ -60,7 +62,7 @@ class SearchBarSoka extends StatelessWidget {
           const SizedBox(width: 8),
           _CountPill(count: eventCount),
           const SizedBox(width: 8),
-          _FilterButton(),
+          _FilterButton(onTap: onFilterTap),
         ],
       ),
     );
@@ -93,6 +95,10 @@ class _CountPill extends StatelessWidget {
 }
 
 class _FilterButton extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _FilterButton({required this.onTap});
+
   @override
   Widget build(BuildContext context) {
     return Material(
@@ -100,7 +106,7 @@ class _FilterButton extends StatelessWidget {
       shape: const CircleBorder(),
       child: InkWell(
         customBorder: const CircleBorder(),
-        onTap: () {},
+        onTap: onTap,
         child: const Padding(
           padding: EdgeInsets.all(8),
           child: Icon(

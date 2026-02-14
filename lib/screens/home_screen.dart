@@ -211,6 +211,46 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _openCategoryFilter({
+    required List<String> categories,
+    required int selectedIndex,
+  }) async {
+    final selected = await showModalBottomSheet<int>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) {
+        final theme = Theme.of(context);
+        return SafeArea(
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: categories.length,
+            itemBuilder: (context, index) {
+              final isSelected = index == selectedIndex;
+              return ListTile(
+                leading: Icon(
+                  isSelected
+                      ? Icons.radio_button_checked
+                      : Icons.radio_button_unchecked,
+                  color: isSelected
+                      ? AppColors.accent
+                      : theme.textTheme.bodyMedium?.color,
+                ),
+                title: Text(categories[index]),
+                onTap: () => Navigator.of(context).pop(index),
+              );
+            },
+          ),
+        );
+      },
+    );
+
+    if (!mounted || selected == null || selected == _selectedCategoryIndex) {
+      return;
+    }
+
+    setState(() => _selectedCategoryIndex = selected);
+  }
+
   @override
   Widget build(BuildContext context) {
     final events = Provider.of<SokaService>(context).events;
@@ -255,6 +295,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     eventCount: events.length,
                     onSearchChanged: (value) {
                       setState(() => _query = value);
+                    },
+                    onFilterTap: () {
+                      _openCategoryFilter(
+                        categories: categories,
+                        selectedIndex: safeSelectedIndex,
+                      );
                     },
                   ),
                 ),
