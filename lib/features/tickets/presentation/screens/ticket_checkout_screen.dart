@@ -141,7 +141,6 @@ class _TicketCheckoutScreenState extends State<TicketCheckoutScreen> {
 
   bool get _canBuy =>
       !_isPaying &&
-      _client != null &&
       FirebaseAuth.instance.currentUser != null &&
       _maxSelectable > 0 &&
       _quantity >= 1;
@@ -228,7 +227,7 @@ class _TicketCheckoutScreenState extends State<TicketCheckoutScreen> {
     final selectedTicketType = _selectedTicketType;
     _syncHolderDraftsWithQuantity();
 
-    if (currentUser == null || client == null || selectedTicketType == null) {
+    if (currentUser == null || selectedTicketType == null) {
       return;
     }
 
@@ -294,7 +293,7 @@ class _TicketCheckoutScreenState extends State<TicketCheckoutScreen> {
         ticketType: selectedTicketType.type,
         quantity: _quantity,
         userId: currentUser.uid,
-        userName: client.userName,
+        userName: client?.userName,
         holders: holders,
       );
 
@@ -819,7 +818,7 @@ class _TicketCheckoutScreenState extends State<TicketCheckoutScreen> {
                   if (_client == null) ...[
                     const SizedBox(height: 12),
                     const Text(
-                      'Log in as a client to complete the purchase.',
+                      'No tienes perfil de cliente. Puedes comprar igualmente, pero algunos datos no se autocompletarán.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: AppColors.textSecondary,

@@ -23,7 +23,8 @@
     }
   },
   "hosting": {
-    "public": "public",
+    "site": "soka-1a9f3",
+    "public": "build/web",
     "ignore": [
       "firebase.json",
       "**/.*",

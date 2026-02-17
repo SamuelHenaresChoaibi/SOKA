@@ -84,7 +84,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
     final event = _event;
     final theme = Theme.of(context);
     final currentUser = FirebaseAuth.instance.currentUser;
-    final hasClientSession = currentUser != null && _client != null;
+    final hasAuthenticatedSession = currentUser != null;
 
     final minPrice = event.minTicketPrice;
     final maxPrice = event.maxTicketPrice;
@@ -117,8 +117,9 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
 
     final isSoldOut = !event.hasTicketTypes || totalRemaining <= 0;
     final isUserContextLoading = currentUser != null && _isLoadingUserTickets;
-    final isLimitReachedForUser =
-        hasClientSession && remainingByUser != null && remainingByUser <= 0;
+    final isLimitReachedForUser = hasAuthenticatedSession &&
+        remainingByUser != null &&
+        remainingByUser <= 0;
     final canOpenCheckout =
         !isSoldOut && !isLimitReachedForUser && !isUserContextLoading;
 

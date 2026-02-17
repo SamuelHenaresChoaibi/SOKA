@@ -18,6 +18,108 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool isLoading = false;
 
+  String _mapGoogleAuthError(FirebaseAuthException e) {
+    switch (e.code) {
+      case 'popup-blocked':
+        return 'El navegador bloqueó la ventana de Google. Habilita popups para este sitio.';
+      case 'popup-closed-by-user':
+        return 'Cerraste la ventana de Google antes de terminar el inicio de sesión.';
+      case 'unauthorized-domain':
+        return 'Dominio no autorizado en Firebase Auth. Añádelo en Authorized domains.';
+      case 'operation-not-allowed':
+        return 'Google Sign-In no está habilitado en Firebase Authentication.';
+      case 'network-request-failed':
+        return 'Error de red. Revisa tu conexión e inténtalo de nuevo.';
+      default:
+        return e.message ?? 'Error al iniciar sesión con Google.';
+    }
+  }
+
+  String _mapResetPasswordError(FirebaseAuthException e) {
+    switch (e.code) {
+      case 'invalid-email':
+        return 'El correo no tiene un formato válido.';
+      case 'missing-email':
+        return 'Debes introducir un correo electrónico.';
+      case 'network-request-failed':
+        return 'Error de red. Revisa tu conexión.';
+      case 'too-many-requests':
+        return 'Demasiados intentos. Inténtalo de nuevo más tarde.';
+      case 'user-not-found':
+        // Evita filtrar si existe o no la cuenta; UX consistente.
+        return 'Si el correo está registrado, recibirás un email de recuperación.';
+      default:
+        return e.message ?? 'No se pudo enviar el correo de recuperación.';
+    }
+  }
+
+  Future<void> _forgotPassword() async {
+    final email = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) {
+        final controller = TextEditingController(
+          text: emailController.text.trim(),
+        );
+        return AlertDialog(
+          title: const Text('Recuperar contraseña'),
+          content: TextField(
+            controller: controller,
+            keyboardType: TextInputType.emailAddress,
+            autofocus: true,
+            decoration: const InputDecoration(
+              labelText: 'Email',
+              hintText: 'tu@correo.com',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () =>
+                  Navigator.of(dialogContext).pop(controller.text.trim()),
+              child: const Text('Enviar'),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (!mounted || email == null) return;
+    if (email.isEmpty || !email.contains('@')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Introduce un email válido.')),
+      );
+      return;
+    }
+
+    setState(() => isLoading = true);
+    try {
+      await authService.resetPassword(email);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Si el correo está registrado, recibirás un email de recuperación.',
+          ),
+        ),
+      );
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_mapResetPasswordError(e))),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error inesperado: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => isLoading = false);
+    }
+  }
+
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -51,45 +153,49 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _loginWithGoogle() async {
-  if (!mounted) return;
+    if (!mounted) return;
 
-  setState(() => isLoading = true);
+    setState(() => isLoading = true);
 
-  try {
-    final user = await authService.signInWithGoogle();
+    try {
+      final user = await authService.signInWithGoogle();
 
-    if (user == null) {
+      if (user == null) {
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Google sign-in cancelled'),
+          ),
+        );
+        return;
+      }
+    } on FirebaseAuthException catch (e) {
+      debugPrint('Google Sign-In FirebaseAuthException code: ${e.code}');
+      debugPrint('Google Sign-In FirebaseAuthException message: ${e.message}');
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Google sign-in cancelled'),
+        SnackBar(
+          content: Text(_mapGoogleAuthError(e)),
         ),
       );
-      return;
-    }
-  } on FirebaseAuthException catch (e) {
-    if (!mounted) return;
+    } catch (e, stackTrace) {
+      debugPrint('Google Sign-In unexpected error: $e');
+      debugPrint('StackTrace: $stackTrace');
+      if (!mounted) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(e.message ?? 'Error signing in with Google'),
-      ),
-    );
-  } catch (e) {
-    if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Unexpected error. Please try again.'),
-      ),
-    );
-  } finally {
-    if (mounted) {
-      setState(() => isLoading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Unexpected error: $e'),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => isLoading = false);
+      }
     }
   }
-}
 
 
   @override
@@ -164,28 +270,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 12),
 
                   TextButton(
-                    onPressed: () async {
-                      if (emailController.text.isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text('Please enter your email first')),
-                        );
-                        return;
-                      }
-                      try {
-                        await authService.resetPassword(emailController.text);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text(
-                                  'Recovery email sent successfully')),
-                        );
-                      } on FirebaseAuthException {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content: Text('Error sending recovery email')),
-                        );
-                      }
-                    },
+                    onPressed: isLoading ? null : _forgotPassword,
                     child: const Text('Forgot your password?'),
                   ),
 
