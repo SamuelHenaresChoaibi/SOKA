@@ -23,6 +23,7 @@ class TicketCheckoutScreen extends StatefulWidget {
 class _TicketCheckoutScreenState extends State<TicketCheckoutScreen> {
   Event? _event;
   Client? _client;
+  PaypalCredentials? _paypalCredentials;
   String? _errorMessage;
   final List<_TicketHolderDraft> _holderDrafts = [];
 
@@ -65,6 +66,12 @@ class _TicketCheckoutScreenState extends State<TicketCheckoutScreen> {
       final client = currentUser == null
           ? null
           : await sokaService.fetchClientById(currentUser.uid);
+      PaypalCredentials? paypalCredentials;
+      try {
+        paypalCredentials = await sokaService.resolvePaypalCredentials();
+      } catch (_) {
+        paypalCredentials = null;
+      }
 
       if (!mounted) return;
 
@@ -76,6 +83,7 @@ class _TicketCheckoutScreenState extends State<TicketCheckoutScreen> {
       setState(() {
         _event = loadedEvent;
         _client = client;
+        _paypalCredentials = paypalCredentials;
         _selectedTicketTypeIndex = defaultIndex;
       });
 
@@ -136,6 +144,27 @@ class _TicketCheckoutScreenState extends State<TicketCheckoutScreen> {
       FirebaseAuth.instance.currentUser != null &&
       _maxSelectable > 0 &&
       _quantity >= 1;
+
+  Future<PaypalCredentials?> _ensurePaypalCredentials() async {
+    final current = _paypalCredentials;
+    if (current != null) {
+      try {
+        current.validate();
+        return current;
+      } catch (_) {
+        // Continue with remote/cache resolution.
+      }
+    }
+
+    final resolved = await context
+        .read<SokaService>()
+        .resolvePaypalCredentials();
+    if (resolved == null) return null;
+    if (mounted) {
+      setState(() => _paypalCredentials = resolved);
+    }
+    return resolved;
+  }
 
   void _syncHolderDraftsWithQuantity() {
     while (_holderDrafts.length > _quantity) {
@@ -214,13 +243,16 @@ class _TicketCheckoutScreenState extends State<TicketCheckoutScreen> {
     }
 
     final needsPayment = _totalPrice > 0;
+    PaypalCredentials? paypalCredentials;
     if (needsPayment) {
-      if (_paymentMethod == PaymentMethod.paypal &&
-          !PaymentConfig.isPayPalConfigured) {
+      if (_paymentMethod == PaymentMethod.paypal) {
+        paypalCredentials = await _ensurePaypalCredentials();
+      }
+      if (_paymentMethod == PaymentMethod.paypal && paypalCredentials == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
-              'Configura PAYPAL_CLIENT_ID y PAYPAL_SECRET_KEY para pagar con PayPal.',
+              'No se pudieron cargar credenciales seguras de PayPal.',
             ),
             behavior: SnackBarBehavior.floating,
           ),
@@ -238,6 +270,7 @@ class _TicketCheckoutScreenState extends State<TicketCheckoutScreen> {
                 ticketType: selectedTicketType.type,
                 quantity: _quantity,
                 unitPrice: _unitPrice,
+                credentials: paypalCredentials!,
               )
             : false;
         if (!ok) return;
@@ -289,6 +322,7 @@ class _TicketCheckoutScreenState extends State<TicketCheckoutScreen> {
     required String ticketType,
     required int quantity,
     required int unitPrice,
+    required PaypalCredentials credentials,
   }) async {
     final sokaService = context.read<SokaService>();
     final company = await sokaService.fetchCompanyById(event.organizerId);
@@ -309,9 +343,9 @@ class _TicketCheckoutScreenState extends State<TicketCheckoutScreen> {
     final result = await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => PaypalCheckoutView(
-          sandboxMode: true,
-          clientId: PaymentConfig.paypalClientId,
-          secretKey: PaymentConfig.paypalSecretKey,
+          sandboxMode: PaymentConfig.paypalSandboxMode,
+          clientId: credentials.clientId,
+          secretKey: credentials.secretKey,
           transactions: [
             {
               "amount": {
@@ -685,7 +719,7 @@ class _TicketHolderDraft {
   _TicketHolderDraft({
     required this.fullNameController,
     required this.dniController,
-    required this.phoneController, 
+    required this.phoneController,
     required this.birthDateController,
   });
 
@@ -693,7 +727,7 @@ class _TicketHolderDraft {
     return _TicketHolderDraft(
       fullNameController: TextEditingController(),
       dniController: TextEditingController(),
-      phoneController: TextEditingController(), 
+      phoneController: TextEditingController(),
       birthDateController: TextEditingController(),
     );
   }
@@ -702,15 +736,16 @@ class _TicketHolderDraft {
     return TicketHolder(
       fullName: fullNameController.text.trim(),
       dni: dniController.text.trim(),
-      phoneNumber: phoneController.text.trim(), 
-      birthDate: DateTime.tryParse(birthDateController.text.trim()) ?? DateTime.now(),
+      phoneNumber: phoneController.text.trim(),
+      birthDate:
+          DateTime.tryParse(birthDateController.text.trim()) ?? DateTime.now(),
     );
   }
 
   void dispose() {
     fullNameController.dispose();
     dniController.dispose();
-    phoneController.dispose(); 
+    phoneController.dispose();
     birthDateController.dispose();
   }
 }
@@ -768,24 +803,28 @@ class _TicketHolderFields extends StatelessWidget {
               isDense: true,
             ),
           ),
-          const SizedBox(height: 8), 
-          TextField( 
-            controller: draft.phoneController, 
-            enabled: enabled, keyboardType: TextInputType.phone, 
-            decoration: const InputDecoration( 
-              labelText: 'Teléfono', 
-              border: OutlineInputBorder(), 
-              isDense: true, ),
-          ), 
-          const SizedBox(height: 8), 
-          TextField( 
-            controller: draft.birthDateController, 
-            enabled: enabled, 
-            keyboardType: TextInputType.datetime, 
-            decoration: const InputDecoration( 
-              labelText: 'Fecha de nacimiento (YYYY-MM-DD)', 
-              border: OutlineInputBorder(), 
-              isDense: true, ), ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: draft.phoneController,
+            enabled: enabled,
+            keyboardType: TextInputType.phone,
+            decoration: const InputDecoration(
+              labelText: 'Teléfono',
+              border: OutlineInputBorder(),
+              isDense: true,
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: draft.birthDateController,
+            enabled: enabled,
+            keyboardType: TextInputType.datetime,
+            decoration: const InputDecoration(
+              labelText: 'Fecha de nacimiento (YYYY-MM-DD)',
+              border: OutlineInputBorder(),
+              isDense: true,
+            ),
+          ),
         ],
       ),
     );
