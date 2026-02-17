@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 import 'package:soka/models/models.dart';
 import 'package:soka/features/home/presentation/screens/calendar_screen.dart';
@@ -16,6 +17,276 @@ import 'package:soka/shared/widgets/widgets.dart';
 enum _EventDateFilter { all, upcoming, thisWeek, thisMonth }
 
 enum _EventSortFilter { defaultOrder, nearestDate, latestDate, titleAz }
+
+class _EventFiltersResult {
+  final String category;
+  final String companyQuery;
+  final _EventDateFilter dateFilter;
+  final _EventSortFilter sortFilter;
+  final bool onlyWithAvailableTickets;
+
+  const _EventFiltersResult({
+    required this.category,
+    required this.companyQuery,
+    required this.dateFilter,
+    required this.sortFilter,
+    required this.onlyWithAvailableTickets,
+  });
+}
+
+class _EventFiltersSheet extends StatefulWidget {
+  final List<String> categories;
+  final String selectedCategory;
+  final String initialCompanyQuery;
+  final _EventDateFilter initialDateFilter;
+  final _EventSortFilter initialSortFilter;
+  final bool initialOnlyWithTickets;
+  final List<String> companySuggestions;
+
+  const _EventFiltersSheet({
+    required this.categories,
+    required this.selectedCategory,
+    required this.initialCompanyQuery,
+    required this.initialDateFilter,
+    required this.initialSortFilter,
+    required this.initialOnlyWithTickets,
+    required this.companySuggestions,
+  });
+
+  @override
+  State<_EventFiltersSheet> createState() => _EventFiltersSheetState();
+}
+
+class _EventFiltersSheetState extends State<_EventFiltersSheet> {
+  late String _localCategory;
+  late _EventDateFilter _localDateFilter;
+  late _EventSortFilter _localSortFilter;
+  late bool _localOnlyWithTickets;
+  late final TextEditingController _companyController;
+
+  @override
+  void initState() {
+    super.initState();
+    _localCategory = widget.selectedCategory;
+    _localDateFilter = widget.initialDateFilter;
+    _localSortFilter = widget.initialSortFilter;
+    _localOnlyWithTickets = widget.initialOnlyWithTickets;
+    _companyController = TextEditingController(text: widget.initialCompanyQuery)
+      ..addListener(_onCompanyQueryChanged);
+  }
+
+  @override
+  void dispose() {
+    _companyController.removeListener(_onCompanyQueryChanged);
+    _companyController.dispose();
+    super.dispose();
+  }
+
+  void _onCompanyQueryChanged() {
+    if (!mounted) return;
+    setState(() {});
+  }
+
+  String _labelForDateFilter(_EventDateFilter filter) {
+    switch (filter) {
+      case _EventDateFilter.all:
+        return 'All';
+      case _EventDateFilter.upcoming:
+        return 'Upcoming';
+      case _EventDateFilter.thisWeek:
+        return 'This week';
+      case _EventDateFilter.thisMonth:
+        return 'This month';
+    }
+  }
+
+  String _labelForSortFilter(_EventSortFilter filter) {
+    switch (filter) {
+      case _EventSortFilter.defaultOrder:
+        return 'Proximity';
+      case _EventSortFilter.nearestDate:
+        return 'Nearest first';
+      case _EventSortFilter.latestDate:
+        return 'Latest';
+      case _EventSortFilter.titleAz:
+        return 'Name (A-Z)';
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+    final normalizedCompanyQuery = _companyController.text.trim().toLowerCase();
+    final matchingCompanies = normalizedCompanyQuery.isEmpty
+        ? <String>[]
+        : widget.companySuggestions
+              .where(
+                (companyName) =>
+                    companyName.toLowerCase().contains(normalizedCompanyQuery),
+              )
+              .take(8)
+              .toList();
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(16, 8, 16, bottomInset + 16),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Filters',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 14),
+            DropdownButtonFormField<String>(
+              initialValue: widget.categories.contains(_localCategory)
+                  ? _localCategory
+                  : widget.categories.first,
+              decoration: const InputDecoration(labelText: 'Event type'),
+              items: widget.categories
+                  .map(
+                    (category) => DropdownMenuItem<String>(
+                      value: category,
+                      child: Text(category),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (value) {
+                if (value == null) return;
+                setState(() => _localCategory = value);
+              },
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _companyController,
+              decoration: const InputDecoration(
+                labelText: 'Company name',
+                hintText: 'E.g. Soka Events',
+              ),
+            ),
+            if (matchingCompanies.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Container(
+                constraints: const BoxConstraints(maxHeight: 180),
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: AppColors.cursorColor.withValues(alpha: 0.2),
+                  ),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: matchingCompanies.length,
+                  separatorBuilder: (_, __) =>
+                      const Divider(height: 1, thickness: 1),
+                  itemBuilder: (context, index) {
+                    final companyName = matchingCompanies[index];
+                    return ListTile(
+                      dense: true,
+                      title: Text(companyName),
+                      onTap: () {
+                        _companyController.value = TextEditingValue(
+                          text: companyName,
+                          selection: TextSelection.collapsed(
+                            offset: companyName.length,
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+            const SizedBox(height: 12),
+            DropdownButtonFormField<_EventDateFilter>(
+              initialValue: _localDateFilter,
+              decoration: const InputDecoration(labelText: 'Event date'),
+              items: _EventDateFilter.values
+                  .map(
+                    (filter) => DropdownMenuItem<_EventDateFilter>(
+                      value: filter,
+                      child: Text(_labelForDateFilter(filter)),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (value) {
+                if (value == null) return;
+                setState(() => _localDateFilter = value);
+              },
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<_EventSortFilter>(
+              initialValue: _localSortFilter,
+              decoration: const InputDecoration(labelText: 'Sort'),
+              items: _EventSortFilter.values
+                  .map(
+                    (filter) => DropdownMenuItem<_EventSortFilter>(
+                      value: filter,
+                      child: Text(_labelForSortFilter(filter)),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (value) {
+                if (value == null) return;
+                setState(() => _localSortFilter = value);
+              },
+            ),
+            const SizedBox(height: 8),
+            SwitchListTile(
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Only with available tickets'),
+              value: _localOnlyWithTickets,
+              onChanged: (value) {
+                setState(() => _localOnlyWithTickets = value);
+              },
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () {
+                      Navigator.pop(
+                        context,
+                        const _EventFiltersResult(
+                          category: 'All',
+                          companyQuery: '',
+                          dateFilter: _EventDateFilter.all,
+                          sortFilter: _EventSortFilter.defaultOrder,
+                          onlyWithAvailableTickets: false,
+                        ),
+                      );
+                    },
+                    child: const Text('Clear'),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(
+                        context,
+                        _EventFiltersResult(
+                          category: _localCategory,
+                          companyQuery: _companyController.text.trim(),
+                          dateFilter: _localDateFilter,
+                          sortFilter: _localSortFilter,
+                          onlyWithAvailableTickets: _localOnlyWithTickets,
+                        ),
+                      );
+                    },
+                    child: const Text('Apply'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -40,6 +311,8 @@ class _HomeScreenState extends State<HomeScreen> {
   Company? _company;
   bool _isProfileLoading = false;
   StreamSubscription<User?>? _authSubscription;
+  Position? _userPosition;
+  bool _isResolvingLocation = false;
 
   @override
   void initState() {
@@ -72,6 +345,7 @@ class _HomeScreenState extends State<HomeScreen> {
     }
 
     Future.microtask(_loadEvents);
+    Future.microtask(_loadUserLocation);
   }
 
   @override
@@ -99,6 +373,41 @@ class _HomeScreenState extends State<HomeScreen> {
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _loadUserLocation() async {
+    if (!mounted || _isResolvingLocation) return;
+    setState(() => _isResolvingLocation = true);
+
+    try {
+      final isServiceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!isServiceEnabled) return;
+
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        return;
+      }
+
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.medium,
+        ),
+      );
+
+      if (!mounted) return;
+      setState(() => _userPosition = position);
+    } catch (_) {
+      // no-op
+    } finally {
+      if (mounted) {
+        setState(() => _isResolvingLocation = false);
       }
     }
   }
@@ -321,9 +630,9 @@ class _HomeScreenState extends State<HomeScreen> {
   String _labelForSortFilter(_EventSortFilter filter) {
     switch (filter) {
       case _EventSortFilter.defaultOrder:
-        return 'Relevance';
+        return 'Proximity';
       case _EventSortFilter.nearestDate:
-        return 'Nearest';
+        return 'Nearest first';
       case _EventSortFilter.latestDate:
         return 'Latest';
       case _EventSortFilter.titleAz:
@@ -334,9 +643,10 @@ class _HomeScreenState extends State<HomeScreen> {
   void _sortEvents(List<Event> events) {
     switch (_eventSortFilter) {
       case _EventSortFilter.defaultOrder:
+        _sortEventsByProximityOrDate(events);
         return;
       case _EventSortFilter.nearestDate:
-        events.sort((a, b) => a.date.compareTo(b.date));
+        _sortEventsByProximityOrDate(events);
         return;
       case _EventSortFilter.latestDate:
         events.sort((a, b) => b.date.compareTo(a.date));
@@ -349,168 +659,127 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  void _sortEventsByProximityOrDate(List<Event> events) {
+    final userPosition = _userPosition;
+    if (userPosition == null) {
+      events.sort((a, b) => a.date.compareTo(b.date));
+      return;
+    }
+
+    events.sort(
+      (a, b) => _compareEventsByProximity(
+        a,
+        b,
+        userPosition.latitude,
+        userPosition.longitude,
+      ),
+    );
+  }
+
+  int _compareEventsByProximity(
+    Event a,
+    Event b,
+    double userLat,
+    double userLng,
+  ) {
+    final aHasCoords = a.locationLat != null && a.locationLng != null;
+    final bHasCoords = b.locationLat != null && b.locationLng != null;
+
+    if (aHasCoords && bHasCoords) {
+      final aDistance = Geolocator.distanceBetween(
+        userLat,
+        userLng,
+        a.locationLat!,
+        a.locationLng!,
+      );
+      final bDistance = Geolocator.distanceBetween(
+        userLat,
+        userLng,
+        b.locationLat!,
+        b.locationLng!,
+      );
+      final distanceCompare = aDistance.compareTo(bDistance);
+      if (distanceCompare != 0) return distanceCompare;
+      return a.date.compareTo(b.date);
+    }
+
+    if (aHasCoords && !bHasCoords) return -1;
+    if (!aHasCoords && bHasCoords) return 1;
+    return a.date.compareTo(b.date);
+  }
+
+  List<Event> _nearbyEvents(List<Event> events) {
+    final now = DateTime.now();
+    final upcomingEvents = events
+        .where((event) => !event.date.isBefore(now))
+        .toList();
+
+    if (upcomingEvents.isEmpty) {
+      return events.take(8).toList();
+    }
+
+    final userPosition = _userPosition;
+    if (userPosition == null) {
+      upcomingEvents.sort((a, b) => a.date.compareTo(b.date));
+      return upcomingEvents.take(8).toList();
+    }
+
+    final eventsWithCoords = upcomingEvents
+        .where((event) => event.locationLat != null && event.locationLng != null)
+        .toList()
+      ..sort(
+        (a, b) => _compareEventsByProximity(
+          a,
+          b,
+          userPosition.latitude,
+          userPosition.longitude,
+        ),
+      );
+
+    final eventsWithoutCoords = upcomingEvents
+        .where((event) => event.locationLat == null || event.locationLng == null)
+        .toList()
+      ..sort((a, b) => a.date.compareTo(b.date));
+
+    return [...eventsWithCoords, ...eventsWithoutCoords].take(8).toList();
+  }
+
   Future<void> _openEventFilters({
+    required List<Event> events,
     required List<String> categories,
     required String selectedCategory,
   }) async {
-    final companyController = TextEditingController(text: _companyNameQuery);
-    var localCategory = selectedCategory;
-    var localDateFilter = _eventDateFilter;
-    var localSortFilter = _eventSortFilter;
-    var localOnlyWithTickets = _onlyWithAvailableTickets;
+    final companySuggestions = <String>{
+      ..._organizerNameById.values.map((name) => name.trim()),
+      ...events
+          .map((event) => _organizerNameForEvent(event).trim())
+          .where((name) => name.isNotEmpty),
+    }.where((name) => name.isNotEmpty).toList()
+      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
 
-    await showModalBottomSheet<void>(
+    final result = await showModalBottomSheet<_EventFiltersResult>(
       context: context,
       isScrollControlled: true,
-      builder: (context) {
-        final bottomInset = MediaQuery.of(context).viewInsets.bottom;
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Padding(
-              padding: EdgeInsets.fromLTRB(16, 8, 16, bottomInset + 16),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Filters',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    DropdownButtonFormField<String>(
-                      initialValue: categories.contains(localCategory)
-                          ? localCategory
-                          : categories.first,
-                      decoration: const InputDecoration(
-                        labelText: 'Event type',
-                      ),
-                      items: categories
-                          .map(
-                            (category) => DropdownMenuItem<String>(
-                              value: category,
-                              child: Text(category),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (value) {
-                        if (value == null) return;
-                        setModalState(() => localCategory = value);
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: companyController,
-                      decoration: const InputDecoration(
-                        labelText: 'Company name',
-                        hintText: 'E.g. Soka Events',
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<_EventDateFilter>(
-                      initialValue: localDateFilter,
-                      decoration: const InputDecoration(
-                        labelText: 'Event date',
-                      ),
-                      items: _EventDateFilter.values
-                          .map(
-                            (filter) => DropdownMenuItem<_EventDateFilter>(
-                              value: filter,
-                              child: Text(_labelForDateFilter(filter)),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (value) {
-                        if (value == null) return;
-                        setModalState(() => localDateFilter = value);
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<_EventSortFilter>(
-                      initialValue: localSortFilter,
-                      decoration: const InputDecoration(labelText: 'Sort'),
-                      items: _EventSortFilter.values
-                          .map(
-                            (filter) => DropdownMenuItem<_EventSortFilter>(
-                              value: filter,
-                              child: Text(_labelForSortFilter(filter)),
-                            ),
-                          )
-                          .toList(),
-                      onChanged: (value) {
-                        if (value == null) return;
-                        setModalState(() => localSortFilter = value);
-                      },
-                    ),
-                    const SizedBox(height: 8),
-                    SwitchListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: const Text('Only with available tickets'),
-                      value: localOnlyWithTickets,
-                      onChanged: (value) {
-                        setModalState(() => localOnlyWithTickets = value);
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () {
-                              setState(() {
-                                _companyNameQuery = '';
-                                _eventDateFilter = _EventDateFilter.all;
-                                _eventSortFilter =
-                                    _EventSortFilter.defaultOrder;
-                                _onlyWithAvailableTickets = false;
-                                _selectedCategoryIndex = 0;
-                              });
-                              Navigator.pop(context);
-                            },
-                            child: const Text('Clear'),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () {
-                              final normalizedCompanyQuery = companyController
-                                  .text
-                                  .trim();
-                              final categoryIndex = categories.indexOf(
-                                localCategory,
-                              );
-
-                              setState(() {
-                                _companyNameQuery = normalizedCompanyQuery;
-                                _eventDateFilter = localDateFilter;
-                                _eventSortFilter = localSortFilter;
-                                _onlyWithAvailableTickets =
-                                    localOnlyWithTickets;
-                                _selectedCategoryIndex = categoryIndex < 0
-                                    ? 0
-                                    : categoryIndex;
-                              });
-                              Navigator.pop(context);
-                            },
-                            child: const Text('Apply'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
+      builder: (context) => _EventFiltersSheet(
+        categories: categories,
+        selectedCategory: selectedCategory,
+        initialCompanyQuery: _companyNameQuery,
+        initialDateFilter: _eventDateFilter,
+        initialSortFilter: _eventSortFilter,
+        initialOnlyWithTickets: _onlyWithAvailableTickets,
+        companySuggestions: companySuggestions,
+      ),
     );
 
-    companyController.dispose();
+    if (!mounted || result == null) return;
+    final categoryIndex = categories.indexOf(result.category);
+    setState(() {
+      _companyNameQuery = result.companyQuery;
+      _eventDateFilter = result.dateFilter;
+      _eventSortFilter = result.sortFilter;
+      _onlyWithAvailableTickets = result.onlyWithAvailableTickets;
+      _selectedCategoryIndex = categoryIndex < 0 ? 0 : categoryIndex;
+    });
   }
 
   Future<void> _openTicketScanner({
@@ -591,6 +860,10 @@ class _HomeScreenState extends State<HomeScreen> {
     }).toList();
 
     _sortEvents(filteredEvents);
+    final nearbyEvents = _nearbyEvents(filteredEvents);
+    final nearbyTitle = _userPosition == null
+        ? 'Eventos cercanos (activa ubicacion para mejorar)'
+        : 'Eventos cerca de ti';
 
     final pages = [
       // HOME REAL
@@ -612,6 +885,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     },
                     onFilterTap: () {
                       _openEventFilters(
+                        events: events,
                         categories: categories,
                         selectedCategory: selectedCategory,
                       );
@@ -679,7 +953,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.only(top: 8, bottom: 8),
-                    child: EventSlider(events: filteredEvents),
+                    child: EventSlider(
+                      events: nearbyEvents,
+                      title: nearbyTitle,
+                    ),
                   ),
                 ),
                 SliverToBoxAdapter(

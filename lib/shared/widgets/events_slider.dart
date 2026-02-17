@@ -4,8 +4,13 @@ import 'package:soka/theme/app_colors.dart';
 
 class EventSlider extends StatelessWidget {
   final List<Event> events;
+  final String title;
 
-  const EventSlider({super.key, required this.events});
+  const EventSlider({
+    super.key,
+    required this.events,
+    this.title = 'Destacados',
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -19,11 +24,11 @@ class EventSlider extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
             child: Text(
-              'Destacados',
-              style: TextStyle(
+              title,
+              style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 0.2,
