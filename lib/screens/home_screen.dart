@@ -738,6 +738,7 @@ class _HomeScreenState extends State<HomeScreen> {
         const Center(child: CircularProgressIndicator())
       else if (isClientUser)
         FavoritesHistoryScreen(
+          userId: _userId!,
           client: _client!,
           onToggleFavorite: _toggleFavorite,
         )
@@ -761,20 +762,20 @@ class _HomeScreenState extends State<HomeScreen> {
     final thirdDestination = NavigationDestination(
       icon: Icon(
         isClientUser
-            ? Icons.favorite_border
+            ? Icons.event_outlined
             : isCompanyUser
             ? Icons.event_note_outlined
             : Icons.person_outline,
       ),
       selectedIcon: Icon(
         isClientUser
-            ? Icons.favorite
+            ? Icons.event
             : isCompanyUser
             ? Icons.event_note
             : Icons.person,
       ),
       label: isClientUser
-          ? 'Favorites'
+          ? 'Eventos'
           : isCompanyUser
           ? 'My Events'
           : 'Account',

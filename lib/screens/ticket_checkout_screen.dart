@@ -197,15 +197,27 @@ class _TicketCheckoutScreenState extends State<TicketCheckoutScreen> {
     final client = _client;
     final selectedTicketType = _selectedTicketType;
     _syncHolderDraftsWithQuantity();
-    final holders = _buildHolders();
-    final invalidHolderIndex = holders.indexWhere((holder) => !holder.isValid);
 
     if (currentUser == null || client == null || selectedTicketType == null) {
       return;
     }
+
+    final holderValidationError = _validateHolders();
+    if (holderValidationError != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(holderValidationError),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    final holders = _buildHolders();
+    final invalidHolderIndex = holders.indexWhere((holder) => !holder.isValid);
     if (holders.length != _quantity || invalidHolderIndex >= 0) {
       final message = invalidHolderIndex >= 0
-          ? 'Completa nombre, apellidos y documento del titular en la entrada ${invalidHolderIndex + 1}.'
+          ? 'Completa correctamente los datos del titular en la entrada ${invalidHolderIndex + 1}.'
           : 'Debes indicar un titular para cada entrada.';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
@@ -282,6 +294,135 @@ class _TicketCheckoutScreenState extends State<TicketCheckoutScreen> {
     } finally {
       if (mounted) setState(() => _isPaying = false);
     }
+  }
+
+  String? _validateHolders() {
+    if (_holderDrafts.length < _quantity) {
+      return 'Debes indicar un titular para cada entrada.';
+    }
+
+    for (var i = 0; i < _quantity; i++) {
+      final draft = _holderDrafts[i];
+      final entryLabel = 'entrada ${i + 1}';
+
+      final fullName = draft.fullNameController.text.trim();
+      if (fullName.isEmpty) {
+        return 'Completa el nombre y apellidos del titular en la $entryLabel.';
+      }
+
+      final document = draft.dniController.text.trim();
+      if (document.isEmpty) {
+        return 'Completa el documento (DNI/NIE/Pasaporte) en la $entryLabel.';
+      }
+
+      if (!_isValidDocument(document)) {
+        return 'Documento inválido en la $entryLabel. Usa un DNI, NIE o pasaporte válido.';
+      }
+
+      final countryCodeRaw = draft.countryCodeController.text.trim();
+      final phoneRaw = draft.phoneController.text.trim();
+      if (countryCodeRaw.isEmpty || phoneRaw.isEmpty) {
+        return 'Completa el teléfono en la $entryLabel.';
+      }
+      if (!_isValidCountryCode(countryCodeRaw)) {
+        return 'Código de país inválido en la $entryLabel. Ejemplo: +34.';
+      }
+      if (!_isValidInternationalPhone(countryCodeRaw, phoneRaw)) {
+        return 'Teléfono inválido en la $entryLabel. Usa formato internacional: +códigoPaís número.';
+      }
+
+      final birthDateRaw = draft.birthDateController.text.trim();
+      if (birthDateRaw.isEmpty) {
+        return 'Completa la fecha de nacimiento en la $entryLabel.';
+      }
+
+      final birthDate = _parseBirthDate(birthDateRaw);
+      if (birthDate == null) {
+        return 'Fecha de nacimiento inválida en la $entryLabel. Formato válido: YYYY-MM-DD.';
+      }
+
+      if (birthDate.isAfter(DateTime.now())) {
+        return 'La fecha de nacimiento no puede ser futura ($entryLabel).';
+      }
+    }
+
+    return null;
+  }
+
+  DateTime? _parseBirthDate(String input) {
+    final raw = input.trim();
+    final match = RegExp(r'^(\d{4})-(\d{2})-(\d{2})$').firstMatch(raw);
+    if (match == null) return null;
+
+    final year = int.parse(match.group(1)!);
+    final month = int.parse(match.group(2)!);
+    final day = int.parse(match.group(3)!);
+
+    if (year < 1900 || month < 1 || month > 12 || day < 1 || day > 31) {
+      return null;
+    }
+
+    final parsed = DateTime.tryParse(raw);
+    if (parsed == null) return null;
+    if (parsed.year != year || parsed.month != month || parsed.day != day) {
+      return null;
+    }
+    return parsed;
+  }
+
+  bool _isValidDocument(String input) {
+    final value = input.toUpperCase().replaceAll(RegExp(r'\s+'), '');
+    return _isValidDni(value) || _isValidNie(value) || _isValidPassport(value);
+  }
+
+  bool _isValidDni(String value) {
+    final match = RegExp(r'^(\d{8})([A-Z])$').firstMatch(value);
+    if (match == null) return false;
+
+    const letters = 'TRWAGMYFPDXBNJZSQVHLCKE';
+    final number = int.parse(match.group(1)!);
+    final letter = match.group(2)!;
+    return letters[number % 23] == letter;
+  }
+
+  bool _isValidNie(String value) {
+    final match = RegExp(r'^([XYZ])(\d{7})([A-Z])$').firstMatch(value);
+    if (match == null) return false;
+
+    const letters = 'TRWAGMYFPDXBNJZSQVHLCKE';
+    final prefix = match.group(1)!;
+    final middle = match.group(2)!;
+    final letter = match.group(3)!;
+
+    final prefixNumber = switch (prefix) {
+      'X' => '0',
+      'Y' => '1',
+      'Z' => '2',
+      _ => '',
+    };
+
+    if (prefixNumber.isEmpty) return false;
+    final number = int.parse('$prefixNumber$middle');
+    return letters[number % 23] == letter;
+  }
+
+  bool _isValidPassport(String value) {
+    return RegExp(r'^[A-Z0-9]{6,9}$').hasMatch(value);
+  }
+
+  bool _isValidCountryCode(String input) {
+    final normalized = input.trim().replaceAll(RegExp(r'\s+'), '');
+    return RegExp(r'^\+[1-9]\d{0,3}$').hasMatch(normalized);
+  }
+
+  bool _isValidInternationalPhone(String countryCode, String phoneNumber) {
+    final normalizedCode = countryCode.trim().replaceAll(RegExp(r'\s+'), '');
+    final normalizedPhone = phoneNumber
+        .trim()
+        .replaceAll(RegExp(r'[\s\-\(\)]'), '');
+    if (!RegExp(r'^\d{6,14}$').hasMatch(normalizedPhone)) return false;
+    final merged = '$normalizedCode$normalizedPhone';
+    return RegExp(r'^\+[1-9]\d{7,14}$').hasMatch(merged);
   }
 
   Future<bool> _payWithPayPal({
@@ -679,13 +820,15 @@ class _TicketCheckoutScreenState extends State<TicketCheckoutScreen> {
 class _TicketHolderDraft {
   final TextEditingController fullNameController;
   final TextEditingController dniController;
+  final TextEditingController countryCodeController;
   final TextEditingController phoneController;
   final TextEditingController birthDateController;
 
   _TicketHolderDraft({
     required this.fullNameController,
     required this.dniController,
-    required this.phoneController, 
+    required this.countryCodeController,
+    required this.phoneController,
     required this.birthDateController,
   });
 
@@ -693,24 +836,29 @@ class _TicketHolderDraft {
     return _TicketHolderDraft(
       fullNameController: TextEditingController(),
       dniController: TextEditingController(),
-      phoneController: TextEditingController(), 
+      countryCodeController: TextEditingController(text: '+34'),
+      phoneController: TextEditingController(),
       birthDateController: TextEditingController(),
     );
   }
 
   TicketHolder toTicketHolder() {
+    final birthDateInput = birthDateController.text.trim();
+    final countryCode = countryCodeController.text.trim();
+    final phone = phoneController.text.trim();
     return TicketHolder(
       fullName: fullNameController.text.trim(),
       dni: dniController.text.trim(),
-      phoneNumber: phoneController.text.trim(), 
-      birthDate: DateTime.tryParse(birthDateController.text.trim()) ?? DateTime.now(),
+      phoneNumber: '$countryCode$phone',
+      birthDate: DateTime.tryParse(birthDateInput) ?? DateTime(1900, 1, 1),
     );
   }
 
   void dispose() {
     fullNameController.dispose();
     dniController.dispose();
-    phoneController.dispose(); 
+    countryCodeController.dispose();
+    phoneController.dispose();
     birthDateController.dispose();
   }
 }
@@ -769,14 +917,40 @@ class _TicketHolderFields extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8), 
-          TextField( 
-            controller: draft.phoneController, 
-            enabled: enabled, keyboardType: TextInputType.phone, 
-            decoration: const InputDecoration( 
-              labelText: 'Teléfono', 
-              border: OutlineInputBorder(), 
-              isDense: true, ),
-          ), 
+          Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: TextField(
+                  controller: draft.countryCodeController,
+                  enabled: enabled,
+                  keyboardType: TextInputType.phone,
+                  textCapitalization: TextCapitalization.none,
+                  decoration: const InputDecoration(
+                    labelText: 'Código',
+                    hintText: '+34',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                flex: 5,
+                child: TextField(
+                  controller: draft.phoneController,
+                  enabled: enabled,
+                  keyboardType: TextInputType.phone,
+                  decoration: const InputDecoration(
+                    labelText: 'Teléfono',
+                    hintText: '600111222',
+                    border: OutlineInputBorder(),
+                    isDense: true,
+                  ),
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 8), 
           TextField( 
             controller: draft.birthDateController, 

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
 import 'package:soka/models/models.dart';
+import 'package:soka/screens/event_details_screen.dart';
 import 'package:soka/services/auth_service.dart';
 import 'package:soka/services/services.dart';
 import 'package:soka/screens/account_settings_screen.dart';
@@ -275,6 +276,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _settingsSections(BuildContext context) {
+    final sokaService = context.watch<SokaService>();
+    final eventById = <String, Event>{for (final e in sokaService.events) e.id: e};
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
@@ -322,6 +326,47 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
           const SizedBox(height: 10),
+          FutureBuilder<Client?>(
+            future: _clientFuture,
+            builder: (context, snapshot) {
+              final client = snapshot.data;
+              if (client == null) {
+                return const SizedBox.shrink();
+              }
+
+              final historyEvents = client.historyEventIds
+                  .map((id) => eventById[id])
+                  .whereType<Event>()
+                  .toList()
+                ..sort((a, b) => b.date.compareTo(a.date));
+
+              return Column(
+                children: [
+                  Card(
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: ListTile(
+                      leading: const Icon(Icons.history),
+                      title: const Text("Historial"),
+                      subtitle: Text(
+                        historyEvents.isEmpty
+                            ? "No tienes eventos en tu historial"
+                            : "${historyEvents.length} eventos en tu historial",
+                      ),
+                      onTap: () {
+                        _showHistorySheet(
+                          context,
+                          historyEvents: historyEvents,
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                ],
+              );
+            },
+          ),
           Card(
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(16),
@@ -362,6 +407,73 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _showHistorySheet(
+    BuildContext context, {
+    required List<Event> historyEvents,
+  }) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        if (historyEvents.isEmpty) {
+          return const SizedBox(
+            height: 240,
+            child: Center(
+              child: Text('Tu historial está vacío'),
+            ),
+          );
+        }
+
+        return SizedBox(
+          height: MediaQuery.of(context).size.height * 0.72,
+          child: ListView.separated(
+            padding: const EdgeInsets.fromLTRB(12, 16, 12, 24),
+            itemCount: historyEvents.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 8),
+            itemBuilder: (_, index) {
+              final event = historyEvents[index];
+              return Card(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: ListTile(
+                  leading: const Icon(Icons.event_available_rounded),
+                  title: Text(
+                    event.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  subtitle: Text(_formatDateTime(event.date)),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: () {
+                    Navigator.of(sheetContext).pop();
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => EventDetailsScreen(event: event),
+                      ),
+                    );
+                  },
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  static String _formatDateTime(DateTime value) {
+    final day = value.day.toString().padLeft(2, '0');
+    final month = value.month.toString().padLeft(2, '0');
+    final year = value.year;
+    final hour = value.hour.toString().padLeft(2, '0');
+    final minute = value.minute.toString().padLeft(2, '0');
+    return '$day/$month/$year - $hour:$minute';
   }
 
   void _showPrivacySheet(BuildContext context) {

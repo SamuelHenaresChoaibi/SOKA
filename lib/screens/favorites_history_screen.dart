@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:soka/models/models.dart';
+import 'package:soka/screens/event_details_screen.dart';
 import 'package:soka/services/services.dart';
 import 'package:soka/theme/app_colors.dart';
 import 'package:soka/widgets/event_card.dart';
 
 class FavoritesHistoryScreen extends StatelessWidget {
+  final String userId;
   final Client client;
   final Future<void> Function(String eventId) onToggleFavorite;
 
   const FavoritesHistoryScreen({
     super.key,
+    required this.userId,
     required this.client,
     required this.onToggleFavorite,
   });
@@ -24,11 +27,16 @@ class FavoritesHistoryScreen extends StatelessWidget {
         .map((id) => eventById[id])
         .whereType<Event>()
         .toList();
-
-    final historyEvents = client.historyEventIds
-        .map((id) => eventById[id])
-        .whereType<Event>()
-        .toList();
+    final purchasedTickets = context
+        .watch<SokaService>()
+        .soldTickets
+        .where(
+          (ticket) =>
+              ticket.buyerUserId == userId ||
+              ticket.buyerUserId == client.userName,
+        )
+        .toList()
+      ..sort((a, b) => b.purchaseDate.compareTo(a.purchaseDate));
 
     return DefaultTabController(
       length: 2,
@@ -36,44 +44,28 @@ class FavoritesHistoryScreen extends StatelessWidget {
         backgroundColor: AppColors.background,
         body: Column(
           children: [
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                _FavoritesHistoryHeader(
-                  favoriteCount: client.favoriteEventIds.length,
-                  historyCount: client.historyEventIds.length,
-                ),
-                const Positioned(
-                  left: 16,
-                  right: 16,
-                  bottom: -22,
-                  child: _TabsCard(),
-                ),
-              ],
+            _FavoritesHistoryHeader(
+              eventsCount: client.favoriteEventIds.length,
+              ticketsCount: purchasedTickets.length,
             ),
-            const SizedBox(height: 34),
+            const _TabsCard(),
+            const SizedBox(height: 8),
             Expanded(
               child: TabBarView(
                 children: [
                   _EventsList(
                     events: favoriteEvents,
                     idsCount: client.favoriteEventIds.length,
-                    emptyIcon: Icons.favorite_border_rounded,
-                    emptyTitle: 'No favorite events yet',
+                    emptyIcon: Icons.event_note_rounded,
+                    emptyTitle: 'No events saved yet',
                     emptySubtitle:
                         'Save events with the heart to always have them handy.',
                     favoriteEventIds: client.favoriteEventIds,
                     onToggleFavorite: onToggleFavorite,
                   ),
-                  _EventsList(
-                    events: historyEvents,
-                    idsCount: client.historyEventIds.length,
-                    emptyIcon: Icons.history_rounded,
-                    emptyTitle: 'Your history is empty',
-                    emptySubtitle:
-                        'Here you will see the events you have participated in.',
-                    favoriteEventIds: client.favoriteEventIds,
-                    onToggleFavorite: onToggleFavorite,
+                  _TicketsList(
+                    tickets: purchasedTickets,
+                    eventById: eventById,
                   ),
                 ],
               ),
@@ -86,20 +78,17 @@ class FavoritesHistoryScreen extends StatelessWidget {
 }
 
 class _FavoritesHistoryHeader extends StatelessWidget {
-  final int favoriteCount;
-  final int historyCount;
+  final int eventsCount;
+  final int ticketsCount;
 
   const _FavoritesHistoryHeader({
-    required this.favoriteCount,
-    required this.historyCount,
+    required this.eventsCount,
+    required this.ticketsCount,
   });
 
   @override
   Widget build(BuildContext context) {
-    final subtitle = (favoriteCount == 0 && historyCount == 0)
-        ? 'Save events and check your activity.'
-        : '$favoriteCount favorite${favoriteCount == 1 ? '' : 's'} · '
-            '$historyCount in history';
+    final subtitle = '$eventsCount events · $ticketsCount tickets';
 
     return Container(
       width: double.infinity,
@@ -112,12 +101,12 @@ class _FavoritesHistoryHeader extends StatelessWidget {
       child: SafeArea(
         bottom: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 44),
+          padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Favorites',
+                'Eventos',
                 style: TextStyle(
                   color: AppColors.surface,
                   fontSize: 30,
@@ -147,53 +136,139 @@ class _TabsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
       child: Container(
         decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withAlpha(20),
-              blurRadius: 16,
-              offset: const Offset(0, 10),
-            ),
-          ],
+          color: AppColors.secondary,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: AppColors.border),
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(6),
-          child: Container(
-            decoration: BoxDecoration(
-              color: AppColors.secondary,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: AppColors.border),
-            ),
-            child: TabBar(
-              indicatorSize: TabBarIndicatorSize.tab,
-              indicator: BoxDecoration(
-                color: AppColors.accent,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              labelColor: AppColors.primary,
-              unselectedLabelColor: AppColors.textSecondary,
-              labelStyle: const TextStyle(
-                fontWeight: FontWeight.w800,
-                fontSize: 13,
-              ),
-              unselectedLabelStyle: const TextStyle(
-                fontWeight: FontWeight.w700,
-                fontSize: 13,
-              ),
-              tabs: const [
-                Tab(icon: Icon(Icons.favorite_rounded), text: 'Favorites'),
-                Tab(icon: Icon(Icons.history_rounded), text: 'History'),
-              ],
-            ),
+        child: TabBar(
+          indicatorSize: TabBarIndicatorSize.tab,
+          indicator: BoxDecoration(
+            color: AppColors.accent,
+            borderRadius: BorderRadius.circular(14),
           ),
+          labelColor: AppColors.primary,
+          unselectedLabelColor: AppColors.textSecondary,
+          labelStyle: const TextStyle(
+            fontWeight: FontWeight.w800,
+            fontSize: 13,
+          ),
+          unselectedLabelStyle: const TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 13,
+          ),
+          tabs: const [
+            Tab(icon: Icon(Icons.event_rounded), text: 'Eventos'),
+            Tab(icon: Icon(Icons.confirmation_number_rounded), text: 'Tickets'),
+          ],
         ),
       ),
     );
+  }
+}
+
+class _TicketsList extends StatelessWidget {
+  final List<SoldTicket> tickets;
+  final Map<String, Event> eventById;
+
+  const _TicketsList({
+    required this.tickets,
+    required this.eventById,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (tickets.isEmpty) {
+      return RefreshIndicator(
+        color: AppColors.accent,
+        backgroundColor: AppColors.primary,
+        onRefresh: () async {
+          await context.read<SokaService>().fetchSoldTickets();
+          await context.read<SokaService>().fetchEvents();
+        },
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.fromLTRB(32, 48, 32, 24),
+          children: const [
+            SizedBox(height: 32),
+            _EmptyState(
+              icon: Icons.confirmation_number_outlined,
+              title: 'No has comprado entradas todavía',
+              subtitle: 'Tus entradas compradas aparecerán aquí.',
+            ),
+          ],
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      color: AppColors.accent,
+      backgroundColor: AppColors.primary,
+      onRefresh: () async {
+        await context.read<SokaService>().fetchSoldTickets();
+        await context.read<SokaService>().fetchEvents();
+      },
+      child: ListView.separated(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 24),
+        itemCount: tickets.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 8),
+        itemBuilder: (context, index) {
+          final ticket = tickets[index];
+          final event = eventById[ticket.eventId];
+          final title = event?.title ?? 'Evento no disponible';
+          final subtitle = '${ticket.ticketType} · ${_formatDateTime(ticket.purchaseDate)}';
+
+          return Card(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: ListTile(
+              leading: const Icon(Icons.confirmation_number_outlined),
+              title: Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              subtitle: Text(
+                subtitle,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              trailing: const Icon(Icons.chevron_right_rounded),
+              onTap: () {
+                if (event == null) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('No se pudo abrir el evento de este ticket'),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                  return;
+                }
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => EventDetailsScreen(event: event),
+                  ),
+                );
+              },
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  static String _formatDateTime(DateTime value) {
+    final day = value.day.toString().padLeft(2, '0');
+    final month = value.month.toString().padLeft(2, '0');
+    final year = value.year;
+    final hour = value.hour.toString().padLeft(2, '0');
+    final minute = value.minute.toString().padLeft(2, '0');
+    return '$day/$month/$year - $hour:$minute';
   }
 }
 
