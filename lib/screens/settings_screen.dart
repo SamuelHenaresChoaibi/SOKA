@@ -153,9 +153,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _user?.displayName ??
                 'User';
             final rawEmail = _user?.email ?? client?.email ?? 'No email';
-            final displayName = _shareProfile ? rawDisplayName : 'Perfil privado';
+            final displayName = _shareProfile ? rawDisplayName : 'Profile hidden';
             final email =
-                (_shareProfile && _showEmail) ? rawEmail : 'Email oculto';
+                (_shareProfile && _showEmail) ? rawEmail : 'Email hidden';
             final userType = company != null ? 'Company' : 'User';
             final initials = (displayName.isNotEmpty)
                 ? displayName.trim().substring(0, 1).toUpperCase()
@@ -282,10 +282,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final sokaService = context.watch<SokaService>();
     final eventById = <String, Event>{for (final e in sokaService.events) e.id: e};
     final privacySummary = !_shareProfile
-        ? 'Perfil oculto'
+        ? 'Profile hidden'
         : _showEmail
-            ? 'Perfil y email visibles'
-            : 'Perfil visible sin email';
+            ? 'Profile and email visible'
+            : 'Profile visible without email';
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -299,8 +299,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               children: [
                 ListTile(
                   leading: const Icon(Icons.person),
-                  title: const Text("Cuenta"),
-                  subtitle: const Text("Edita la información de tu cuenta"),
+                  title: const Text("Account"),
+                  subtitle: const Text("Edit your account information"),
                   onTap: () {
                     Navigator.push(
                       context,
@@ -313,7 +313,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const Divider(height: 1),
                 ListTile(
                   leading: const Icon(Icons.lock),
-                  title: const Text("Privacidad"),
+                  title: const Text("Privacy settings"),
                   subtitle: Text(privacySummary),
                   onTap: () async {
                     await _loadPrivacySettings(force: true);
@@ -324,8 +324,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 const Divider(height: 1),
                 ListTile(
                   leading: const Icon(Icons.notifications),
-                  title: const Text("Notificaciones"),
-                  subtitle: const Text("Ver alertas de la próxima semana"),
+                  title: const Text("Notifications"),
+                  subtitle: const Text("View alerts for the next week"),
                   onTap: () {
                     Navigator.pushNamed(context, 'notifications');
                   },
@@ -357,11 +357,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     child: ListTile(
                       leading: const Icon(Icons.history),
-                      title: const Text("Historial"),
+                      title: const Text("History"),
                       subtitle: Text(
                         historyEvents.isEmpty
-                            ? "No tienes eventos en tu historial"
-                            : "${historyEvents.length} eventos en tu historial",
+                            ? "You have no events in your history"
+                            : "${historyEvents.length} events in your history",
                       ),
                       onTap: () {
                         _showHistorySheet(
@@ -382,8 +382,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             child: ListTile(
               leading: const Icon(Icons.help),
-              title: const Text("Ayuda y soporte"),
-              subtitle: const Text("Contacta con soporte"),
+              title: const Text("Help and support"),
+              subtitle: const Text("Contact support"),
               onTap: () {
                 _showSupportSheet(context);
               },
@@ -396,8 +396,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             child: ListTile(
               leading: const Icon(Icons.logout),
-              title: const Text("Cerrar sesión"),
-              subtitle: const Text("Salir de tu cuenta"),
+              title: const Text("Logout"),
+              subtitle: const Text("Sign out of your account"),
               onTap: () async {
                 try {
                   await AuthService().logout();
@@ -433,7 +433,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           return const SizedBox(
             height: 240,
             child: Center(
-              child: Text('Tu historial está vacío'),
+              child: Text('Your history is empty'),
             ),
           );
         }
@@ -515,14 +515,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Navigator.pop(context);
                 ScaffoldMessenger.of(this.context).showSnackBar(
                   const SnackBar(
-                    content: Text('Privacidad guardada correctamente'),
+                    content: Text('Privacy settings saved successfully'),
                   ),
                 );
               } catch (_) {
                 if (!mounted || !context.mounted) return;
                 ScaffoldMessenger.of(this.context).showSnackBar(
                   const SnackBar(
-                    content: Text('No se pudieron guardar los cambios'),
+                    content: Text('Failed to save privacy settings'),
                   ),
                 );
               } finally {
@@ -539,14 +539,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Privacidad',
+                    'Privacy',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
                   ),
                   const SizedBox(height: 12),
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Compartir mi perfil'),
-                    subtitle: const Text('Permite que otros vean tu perfil público'),
+                    title: const Text('Share my profile'),
+                    subtitle: const Text('Allows others to see your public profile'),
                     value: _shareProfile,
                     onChanged: (value) {
                       setModalState(() => _shareProfile = value);
@@ -555,8 +555,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Mostrar mi email'),
-                    subtitle: const Text('Muestra tu email en tu perfil público'),
+                    title: const Text('Show my email'),
+                    subtitle: const Text('Shows your email in your public profile'),
                     value: _showEmail,
                     onChanged: (value) {
                       setModalState(() => _showEmail = value);
@@ -569,7 +569,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       Expanded(
                         child: OutlinedButton(
                           onPressed: isSaving ? null : () => Navigator.pop(context),
-                          child: const Text('Cerrar'),
+                          child: const Text('Close'),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -585,7 +585,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     color: Colors.white,
                                   ),
                                 )
-                              : const Text('Guardar'),
+                              : const Text('Save'),
                         ),
                       ),
                     ],
@@ -622,7 +622,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Ayuda y soporte',
+                  'Help and support',
                   style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
                 ),
                 const SizedBox(height: 12),
@@ -631,15 +631,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.next,
                   decoration: const InputDecoration(
-                    labelText: 'Email de contacto',
+                    labelText: 'Contact email',
                   ),
                   validator: (value) {
                     final trimmed = value?.trim() ?? '';
                     if (trimmed.isEmpty) {
-                      return 'Ingresa tu email de contacto';
+                      return 'Enter your contact email';
                     }
                     if (!trimmed.contains('@')) {
-                      return 'Email inválido';
+                      return 'Invalid email';
                     }
                     return null;
                   },
@@ -649,11 +649,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   controller: _supportSubjectController,
                   textInputAction: TextInputAction.next,
                   decoration: const InputDecoration(
-                    labelText: 'Asunto',
+                    labelText: 'Subject',
                   ),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'Escribe un asunto';
+                      return 'Enter a subject';
                     }
                     return null;
                   },
@@ -664,15 +664,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   keyboardType: TextInputType.multiline,
                   maxLines: 5,
                   decoration: const InputDecoration(
-                    labelText: 'Mensaje',
+                    labelText: 'Message',
                     alignLabelWithHint: true,
                   ),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
-                      return 'Escribe tu mensaje';
+                      return 'Enter your message';
                     }
                     if (value.trim().length < 10) {
-                      return 'Escribe un poco mas de detalle';
+                      return 'Write a bit more detail';
                     }
                     return null;
                   },
@@ -683,7 +683,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () => Navigator.pop(context),
-                        child: const Text('Cancelar'),
+                        child: const Text('Cancel'),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -725,7 +725,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ScaffoldMessenger.of(this.context).showSnackBar(
                               const SnackBar(
                                 content: Text(
-                                  'No se pudo abrir el correo en este dispositivo',
+                                  'Could not open email on this device. Please send your message to samuelhenaresch@gmail.com',
                                 ),
                               ),
                             );
@@ -738,7 +738,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           if (!mounted || !context.mounted) return;
                           Navigator.pop(context);
                         },
-                        child: const Text('Enviar'),
+                        child: const Text('Send'),
                       ),
                     ),
                   ],

@@ -279,7 +279,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   String _organizerNameForEvent(Event event) {
     final organizerId = event.organizerId.trim();
-    if (organizerId.isEmpty) return 'Sin compañía';
+    if (organizerId.isEmpty) return 'No company';
     return _organizerNameById[organizerId] ?? organizerId;
   }
 
@@ -308,26 +308,26 @@ class _HomeScreenState extends State<HomeScreen> {
   String _labelForDateFilter(_EventDateFilter filter) {
     switch (filter) {
       case _EventDateFilter.all:
-        return 'Todos';
+        return 'All';
       case _EventDateFilter.upcoming:
-        return 'Próximos';
+        return 'Upcoming';
       case _EventDateFilter.thisWeek:
-        return 'Esta semana';
+        return 'This week';
       case _EventDateFilter.thisMonth:
-        return 'Este mes';
+        return 'This month';
     }
   }
 
   String _labelForSortFilter(_EventSortFilter filter) {
     switch (filter) {
       case _EventSortFilter.defaultOrder:
-        return 'Relevancia';
+        return 'Relevance';
       case _EventSortFilter.nearestDate:
-        return 'Más cercanos';
+        return 'Nearest';
       case _EventSortFilter.latestDate:
-        return 'Más lejanos';
+        return 'Latest';
       case _EventSortFilter.titleAz:
-        return 'Nombre (A-Z)';
+        return 'Name (A-Z)';
     }
   }
 
@@ -374,7 +374,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Filtros',
+                      'Filters',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w800,
@@ -386,7 +386,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           ? localCategory
                           : categories.first,
                       decoration: const InputDecoration(
-                        labelText: 'Tipo de evento',
+                        labelText: 'Event type',
                       ),
                       items: categories
                           .map(
@@ -405,15 +405,15 @@ class _HomeScreenState extends State<HomeScreen> {
                     TextField(
                       controller: companyController,
                       decoration: const InputDecoration(
-                        labelText: 'Nombre de compañía',
-                        hintText: 'Ej: Soka Events',
+                        labelText: 'Company name',
+                        hintText: 'E.g. Soka Events',
                       ),
                     ),
                     const SizedBox(height: 12),
                     DropdownButtonFormField<_EventDateFilter>(
                       initialValue: localDateFilter,
                       decoration: const InputDecoration(
-                        labelText: 'Fecha del evento',
+                        labelText: 'Event date',
                       ),
                       items: _EventDateFilter.values
                           .map(
@@ -431,7 +431,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 12),
                     DropdownButtonFormField<_EventSortFilter>(
                       initialValue: localSortFilter,
-                      decoration: const InputDecoration(labelText: 'Orden'),
+                      decoration: const InputDecoration(labelText: 'Sort'),
                       items: _EventSortFilter.values
                           .map(
                             (filter) => DropdownMenuItem<_EventSortFilter>(
@@ -448,7 +448,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 8),
                     SwitchListTile(
                       contentPadding: EdgeInsets.zero,
-                      title: const Text('Solo con entradas disponibles'),
+                      title: const Text('Only with available tickets'),
                       value: localOnlyWithTickets,
                       onChanged: (value) {
                         setModalState(() => localOnlyWithTickets = value);
@@ -470,7 +470,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               });
                               Navigator.pop(context);
                             },
-                            child: const Text('Limpiar'),
+                            child: const Text('Clear'),
                           ),
                         ),
                         const SizedBox(width: 10),
@@ -496,7 +496,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               });
                               Navigator.pop(context);
                             },
-                            child: const Text('Aplicar'),
+                            child: const Text('Apply'),
                           ),
                         ),
                       ],
@@ -522,7 +522,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Necesitas perfil de cliente o compañía para escanear.',
+            'You need a client or company profile to scan.',
           ),
           behavior: SnackBarBehavior.floating,
         ),
@@ -543,7 +543,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (isCompanyUser && validated == true) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Cliente satisfecho'),
+          content: Text('Client satisfiedly checked in!'),
           behavior: SnackBarBehavior.floating,
           backgroundColor: Colors.green,
         ),

@@ -106,7 +106,7 @@ class _FavoritesHistoryHeader extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Eventos',
+                'Events & Tickets',
                 style: TextStyle(
                   color: AppColors.surface,
                   fontSize: 30,
@@ -161,7 +161,7 @@ class _TabsCard extends StatelessWidget {
             fontSize: 13,
           ),
           tabs: const [
-            Tab(icon: Icon(Icons.event_rounded), text: 'Eventos'),
+            Tab(icon: Icon(Icons.event_rounded), text: 'Events'),
             Tab(icon: Icon(Icons.confirmation_number_rounded), text: 'Tickets'),
           ],
         ),
@@ -196,8 +196,8 @@ class _TicketsList extends StatelessWidget {
             SizedBox(height: 32),
             _EmptyState(
               icon: Icons.confirmation_number_outlined,
-              title: 'No has comprado entradas todavía',
-              subtitle: 'Tus entradas compradas aparecerán aquí.',
+              title: 'You haven\'t bought any tickets yet',
+              subtitle: 'Your purchased tickets will appear here.',
             ),
           ],
         ),
@@ -219,7 +219,7 @@ class _TicketsList extends StatelessWidget {
         itemBuilder: (context, index) {
           final ticket = tickets[index];
           final event = eventById[ticket.eventId];
-          final title = event?.title ?? 'Evento no disponible';
+          final title = event?.title ?? 'Event not available';
           final subtitle = '${ticket.ticketType} · ${_formatDateTime(ticket.purchaseDate)}';
 
           return Card(

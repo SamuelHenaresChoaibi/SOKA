@@ -102,7 +102,7 @@ class _TicketCheckoutScreenState extends State<TicketCheckoutScreen> {
       _prefillFirstHolderFromClient();
     } catch (_) {
       if (!mounted) return;
-      setState(() => _errorMessage = 'No se pudo preparar el pago.');
+      setState(() => _errorMessage = 'Could not load event details. Please try again later.');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -247,8 +247,8 @@ class _TicketCheckoutScreenState extends State<TicketCheckoutScreen> {
     final invalidHolderIndex = holders.indexWhere((holder) => !holder.isValid);
     if (holders.length != _quantity || invalidHolderIndex >= 0) {
       final message = invalidHolderIndex >= 0
-          ? 'Completa correctamente los datos del titular en la entrada ${invalidHolderIndex + 1}.'
-          : 'Debes indicar un titular para cada entrada.';
+          ? 'Fill in the owner\'s details correctly at the entrance. ${invalidHolderIndex + 1}.'
+          : 'You must provide a holder for each ticket.';
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
       );
@@ -265,7 +265,7 @@ class _TicketCheckoutScreenState extends State<TicketCheckoutScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text(
-              'No se pudieron cargar credenciales seguras de PayPal.',
+              'Could not load secure PayPal credentials.',
             ),
             behavior: SnackBarBehavior.floating,
           ),
@@ -321,7 +321,7 @@ class _TicketCheckoutScreenState extends State<TicketCheckoutScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('No se pudo completar la compra.'),
+          content: Text('Could not complete the purchase.'),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -332,51 +332,51 @@ class _TicketCheckoutScreenState extends State<TicketCheckoutScreen> {
 
   String? _validateHolders() {
     if (_holderDrafts.length < _quantity) {
-      return 'Debes indicar un titular para cada entrada.';
+      return 'You must provide a holder for each ticket.';
     }
 
     for (var i = 0; i < _quantity; i++) {
       final draft = _holderDrafts[i];
-      final entryLabel = 'entrada ${i + 1}';
+      final entryLabel = 'ticket ${i + 1}';
 
       final fullName = draft.fullNameController.text.trim();
       if (fullName.isEmpty) {
-        return 'Completa el nombre y apellidos del titular en la $entryLabel.';
+        return 'Fill in the full name of the holder in ticket $entryLabel.';
       }
 
       final document = draft.dniController.text.trim();
       if (document.isEmpty) {
-        return 'Completa el documento (DNI/NIE/Pasaporte) en la $entryLabel.';
+        return 'Fill in the document (DNI/NIE/Pasaporte) in ticket $entryLabel.';
       }
 
       if (!_isValidDocument(document)) {
-        return 'Documento inválido en la $entryLabel. Usa un DNI, NIE o pasaporte válido.';
+        return 'Invalid document in ticket $entryLabel. Please use a valid DNI, NIE or passport.';
       }
 
       final countryCodeRaw = draft.countryCodeController.text.trim();
       final phoneRaw = draft.phoneController.text.trim();
       if (countryCodeRaw.isEmpty || phoneRaw.isEmpty) {
-        return 'Completa el teléfono en la $entryLabel.';
+        return 'Complete the phone number in ticket $entryLabel.';
       }
       if (!_isValidCountryCode(countryCodeRaw)) {
-        return 'Código de país inválido en la $entryLabel. Ejemplo: +34.';
+        return 'Invalid country code in ticket $entryLabel. Example: +34.';
       }
       if (!_isValidInternationalPhone(countryCodeRaw, phoneRaw)) {
-        return 'Teléfono inválido en la $entryLabel. Usa formato internacional: +códigoPaís número.';
+        return 'Invalid phone number in ticket $entryLabel. Use international format: +countryCode number.';
       }
 
       final birthDateRaw = draft.birthDateController.text.trim();
       if (birthDateRaw.isEmpty) {
-        return 'Completa la fecha de nacimiento en la $entryLabel.';
+        return 'Complete the birth date in ticket $entryLabel.';
       }
 
       final birthDate = _parseBirthDate(birthDateRaw);
       if (birthDate == null) {
-        return 'Fecha de nacimiento inválida en la $entryLabel. Formato válido: YYYY-MM-DD.';
+        return 'Invalid birth date in ticket $entryLabel. Valid format: YYYY-MM-DD.';
       }
 
       if (birthDate.isAfter(DateTime.now())) {
-        return 'La fecha de nacimiento no puede ser futura ($entryLabel).';
+        return 'The birth date cannot be in the future ($entryLabel).';
       }
     }
 
@@ -472,7 +472,7 @@ class _TicketCheckoutScreenState extends State<TicketCheckoutScreen> {
     if (company == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('No se pudo obtener la información del organizador.'),
+          content: Text('Could not retrieve organizer information.'),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -559,7 +559,7 @@ class _TicketCheckoutScreenState extends State<TicketCheckoutScreen> {
         foregroundColor: AppColors.surface,
         elevation: 0,
         title: const Text(
-          'Comprar entradas',
+          'Buy tickets',
           style: TextStyle(fontWeight: FontWeight.w800),
         ),
       ),
@@ -658,7 +658,7 @@ class _TicketCheckoutScreenState extends State<TicketCheckoutScreen> {
                         const SizedBox(height: 12),
                         if (event.ticketTypes.isEmpty)
                           const Text(
-                            'Este evento no tiene entradas disponibles.',
+                            'This event has no tickets available.',
                             style: TextStyle(
                               color: AppColors.textSecondary,
                               fontWeight: FontWeight.w600,
@@ -675,7 +675,7 @@ class _TicketCheckoutScreenState extends State<TicketCheckoutScreen> {
                             ) {
                               final t = event.ticketTypes[index];
                               final label =
-                                  '${t.type} • €${t.price} • ${t.remaining} disponibles';
+                                  '${t.type} • €${t.price} • ${t.remaining} available';
                               return DropdownMenuItem(
                                 value: index,
                                 child: Text(
@@ -699,7 +699,7 @@ class _TicketCheckoutScreenState extends State<TicketCheckoutScreen> {
                           children: [
                             Expanded(
                               child: Text(
-                                'Disponibles: ${selected?.remaining ?? 0}',
+                                'Available: ${selected?.remaining ?? 0}',
                                 style: const TextStyle(
                                   color: AppColors.textSecondary,
                                   fontWeight: FontWeight.w600,
@@ -707,7 +707,7 @@ class _TicketCheckoutScreenState extends State<TicketCheckoutScreen> {
                               ),
                             ),
                             Text(
-                              'Límite: $limitLabel',
+                              'LLimit: $limitLabel',
                               style: const TextStyle(
                                 color: AppColors.textSecondary,
                                 fontWeight: FontWeight.w600,
@@ -718,7 +718,7 @@ class _TicketCheckoutScreenState extends State<TicketCheckoutScreen> {
                         if (remainingByUser != null) ...[
                           const SizedBox(height: 6),
                           Text(
-                            'Te quedan: $remainingByUser',
+                            'Remaining: $remainingByUser',
                             style: const TextStyle(
                               color: AppColors.textMuted,
                               fontWeight: FontWeight.w600,
@@ -727,7 +727,7 @@ class _TicketCheckoutScreenState extends State<TicketCheckoutScreen> {
                         ],
                         const SizedBox(height: 16),
                         const Text(
-                          'Cantidad',
+                          'Quantity',
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w900,
@@ -742,7 +742,7 @@ class _TicketCheckoutScreenState extends State<TicketCheckoutScreen> {
                         ),
                         const SizedBox(height: 18),
                         const Text(
-                          'Titular por entrada',
+                          'Holder per ticket',
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w900,
@@ -751,7 +751,7 @@ class _TicketCheckoutScreenState extends State<TicketCheckoutScreen> {
                         ),
                         const SizedBox(height: 6),
                         const Text(
-                          'Cada entrada debe tener su propio titular para validar acceso.',
+                          'Each ticket must have its own holder to validate access.',
                           style: TextStyle(
                             fontSize: 12,
                             color: AppColors.textSecondary,
@@ -774,7 +774,7 @@ class _TicketCheckoutScreenState extends State<TicketCheckoutScreen> {
                         }),
                         const SizedBox(height: 16),
                         const Text(
-                          'Método de pago',
+                          'Payment method',
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w900,
@@ -800,17 +800,17 @@ class _TicketCheckoutScreenState extends State<TicketCheckoutScreen> {
                     child: Column(
                       children: [
                         _KeyValueRow(
-                          label: 'Precio unidad',
-                          value: _unitPrice <= 0 ? 'Gratis' : '€$_unitPrice',
+                          label: 'Unit price',
+                          value: _unitPrice <= 0 ? 'Free' : '€$_unitPrice',
                         ),
                         const SizedBox(height: 10),
-                        _KeyValueRow(label: 'Cantidad', value: '$_quantity'),
+                        _KeyValueRow(label: 'Quantity', value: '$_quantity'),
                         const SizedBox(height: 12),
                         const Divider(height: 1),
                         const SizedBox(height: 12),
                         _KeyValueRow(
                           label: 'Total',
-                          value: _totalPrice <= 0 ? 'Gratis' : '€$_totalPrice',
+                          value: _totalPrice <= 0 ? 'Free' : '€$_totalPrice',
                           isEmphasis: true,
                         ),
                       ],
@@ -819,7 +819,7 @@ class _TicketCheckoutScreenState extends State<TicketCheckoutScreen> {
                   if (_client == null) ...[
                     const SizedBox(height: 12),
                     const Text(
-                      'Inicia sesión como cliente para completar la compra.',
+                      'Log in as a client to complete the purchase.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: AppColors.textSecondary,
@@ -921,7 +921,7 @@ class _TicketHolderFields extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Entrada ${index + 1}',
+            'Ticket ${index + 1}',
             style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w800,
@@ -935,7 +935,7 @@ class _TicketHolderFields extends StatelessWidget {
             enabled: enabled,
             textCapitalization: TextCapitalization.words,
             decoration: const InputDecoration(
-              labelText: 'Nombre y apellidos',
+              labelText: 'Full name',
               border: OutlineInputBorder(),
               isDense: true,
             ),
@@ -946,7 +946,7 @@ class _TicketHolderFields extends StatelessWidget {
             enabled: enabled,
             textCapitalization: TextCapitalization.characters,
             decoration: const InputDecoration(
-              labelText: 'Documento (DNI / NIE / Pasaporte)',
+              labelText: 'Document (DNI / NIE / Passport)',
               border: OutlineInputBorder(),
               isDense: true,
             ),
@@ -962,7 +962,7 @@ class _TicketHolderFields extends StatelessWidget {
                   keyboardType: TextInputType.phone,
                   textCapitalization: TextCapitalization.none,
                   decoration: const InputDecoration(
-                    labelText: 'Código',
+                    labelText: 'Country code',
                     hintText: '+34',
                     border: OutlineInputBorder(),
                     isDense: true,
@@ -977,7 +977,7 @@ class _TicketHolderFields extends StatelessWidget {
                   enabled: enabled,
                   keyboardType: TextInputType.phone,
                   decoration: const InputDecoration(
-                    labelText: 'Teléfono',
+                    labelText: 'Phone number',
                     hintText: '600111222',
                     border: OutlineInputBorder(),
                     isDense: true,
@@ -993,7 +993,7 @@ class _TicketHolderFields extends StatelessWidget {
             keyboardType: TextInputType.number,
             inputFormatters: [BirthDateInputFormatter()],
             decoration: const InputDecoration( 
-              labelText: 'Fecha de nacimiento (YYYY-MM-DD)', 
+              labelText: 'Birth date (YYYY-MM-DD)', 
               border: OutlineInputBorder(), 
               isDense: true, ), ),
         ],

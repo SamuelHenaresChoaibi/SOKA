@@ -12,9 +12,9 @@ class TicketDetailsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final holderName = ticket.holder.fullName.trim().isEmpty
-        ? 'Sin titular'
+        ? 'No holder'
         : ticket.holder.fullName.trim();
-    final statusText = ticket.isCheckedIn ? 'Escaneada' : 'Pendiente';
+    final statusText = ticket.isCheckedIn ? 'Scanned' : 'Pending';
     final statusColor = ticket.isCheckedIn ? Colors.green : AppColors.textMuted;
 
     return Scaffold(
@@ -22,7 +22,7 @@ class TicketDetailsScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: AppColors.primary,
         foregroundColor: AppColors.surface,
-        title: const Text('Detalle del ticket'),
+        title: const Text('Ticket details'),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
@@ -76,7 +76,7 @@ class TicketDetailsScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
                   const Text(
-                    'Muestra este QR en el acceso del evento.',
+                    'Show this QR at the event entrance.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 12,
@@ -91,20 +91,20 @@ class TicketDetailsScreen extends StatelessWidget {
               child: Column(
                 children: [
                   _DetailRow(
-                    label: 'Evento',
+                    label: 'Event',
                     value: event?.title.trim().isNotEmpty == true
                         ? event!.title
                         : ticket.eventId,
                   ),
                   const SizedBox(height: 8),
-                  _DetailRow(label: 'Tipo', value: ticket.ticketType),
+                  _DetailRow(label: 'Type', value: ticket.ticketType),
                   const SizedBox(height: 8),
-                  _DetailRow(label: 'ID ticket', value: '${ticket.idTicket}'),
+                  _DetailRow(label: 'Ticket ID', value: '${ticket.idTicket}'),
                   const SizedBox(height: 8),
-                  _DetailRow(label: 'Código QR', value: ticket.idTicket.toString()),
+                  _DetailRow(label: 'QR Code', value: ticket.idTicket.toString()),
                   const SizedBox(height: 8),
                   _DetailRow(
-                    label: 'Compra',
+                    label: 'Purchased on',
                     value: _formatDateTime(ticket.purchaseDate),
                   ),
                 ],
@@ -114,21 +114,21 @@ class TicketDetailsScreen extends StatelessWidget {
             _SectionCard(
               child: Column(
                 children: [
-                  _DetailRow(label: 'Titular', value: holderName),
+                  _DetailRow(label: 'Holder', value: holderName),
                   if (ticket.holder.dni.trim().isNotEmpty) ...[
                     const SizedBox(height: 8),
-                    _DetailRow(label: 'Documento', value: ticket.holder.dni),
+                    _DetailRow(label: 'Document', value: ticket.holder.dni),
                   ],
                   if (ticket.holder.phoneNumber.trim().isNotEmpty) ...[
                     const SizedBox(height: 8),
                     _DetailRow(
-                      label: 'Teléfono',
+                      label: 'Phone number',
                       value: ticket.holder.phoneNumber,
                     ),
                   ],
                   const SizedBox(height: 8),
                   _DetailRow(
-                    label: 'Nacimiento',
+                    label: 'Birth date',
                     value: _formatDate(ticket.holder.birthDate),
                   ),
                 ],

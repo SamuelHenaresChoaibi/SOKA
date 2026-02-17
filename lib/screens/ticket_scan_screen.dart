@@ -59,7 +59,7 @@ class _TicketScanScreenState extends State<TicketScanScreen> {
       if (!mounted) return;
       setState(() {
         _isProcessing = false;
-        _errorMessage = 'No se pudo validar el código. Inténtalo de nuevo.';
+        _errorMessage = 'Could not fetch ticket information.';
       });
       await _scannerController.start();
       return;
@@ -70,7 +70,7 @@ class _TicketScanScreenState extends State<TicketScanScreen> {
     if (ticketEntry == null) {
       setState(() {
         _isProcessing = false;
-        _errorMessage = 'No existe ningún ticket para ese QR.';
+        _errorMessage = 'No ticket exists for that QR.';
       });
       await _scannerController.start();
       return;
@@ -80,7 +80,7 @@ class _TicketScanScreenState extends State<TicketScanScreen> {
       setState(() {
         _isProcessing = false;
         _errorMessage =
-            'Este ticket ya fue validado y no puede volver a pasar.';
+            'This ticket has already been validated and cannot be scanned again.';
       });
       await _scannerController.start();
       return;
@@ -118,7 +118,7 @@ class _TicketScanScreenState extends State<TicketScanScreen> {
         backgroundColor: Colors.black,
         foregroundColor: AppColors.surface,
         title: Text(
-          _canValidateAccess ? 'Escanear ticket' : 'Escanear QR de ticket',
+          _canValidateAccess ? 'Scan ticket' : 'Scan ticket QR',
         ),
       ),
       body: Stack(
@@ -140,7 +140,7 @@ class _TicketScanScreenState extends State<TicketScanScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    'Apunta al QR de la entrada',
+                    'Point the camera at the ticket QR.',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 14,
@@ -150,8 +150,8 @@ class _TicketScanScreenState extends State<TicketScanScreen> {
                   const SizedBox(height: 6),
                   Text(
                     _canValidateAccess
-                        ? 'Modo empresa: puedes validar una sola vez cada ticket.'
-                        : 'Modo cliente: solo puedes consultar los detalles del ticket.',
+                        ? 'Companies: validate the ticket and allow access to the event.'
+                        : 'Client mode: you can only view ticket details.',
                     style: const TextStyle(
                       color: Colors.white70,
                       fontSize: 12,
@@ -229,7 +229,7 @@ class _ScannedTicketValidationScreenState
         setState(() => _isSubmitting = false);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Este ticket ya fue validado anteriormente.'),
+            content: Text('This ticket has already been validated and cannot be scanned again.'),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -246,7 +246,7 @@ class _ScannedTicketValidationScreenState
       setState(() => _isSubmitting = false);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('No se pudo actualizar el ticket.'),
+          content: Text('Could not update ticket.'),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -257,7 +257,7 @@ class _ScannedTicketValidationScreenState
   Widget build(BuildContext context) {
     final ticket = widget.ticket;
     final holderName = ticket.holder.fullName.trim().isEmpty
-        ? 'Sin titular'
+        ? 'No holder'
         : ticket.holder.fullName.trim();
     final title = widget.event?.title.trim().isNotEmpty == true
         ? widget.event!.title
@@ -270,7 +270,7 @@ class _ScannedTicketValidationScreenState
         backgroundColor: AppColors.primary,
         foregroundColor: AppColors.surface,
         title: Text(
-          widget.allowValidation ? 'Validar ticket' : 'Detalle del ticket',
+          widget.allowValidation ? 'Validate ticket' : 'Ticket details',
         ),
       ),
       body: SingleChildScrollView(
@@ -293,10 +293,10 @@ class _ScannedTicketValidationScreenState
                   const SizedBox(height: 8),
                   Text(
                     alreadyCheckedIn
-                        ? 'Este ticket ya fue escaneado anteriormente y validado para pasar.'
+                        ? 'This ticket has already been scanned and validated.'
                         : widget.allowValidation
-                        ? 'Ticket pendiente de validación.'
-                        : 'Ticket pendiente. Solo vista de consulta para cliente.',
+                        ? 'Ticket pending validation.'
+                        : 'Ticket pending. Only viewable for client.',
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -312,21 +312,21 @@ class _ScannedTicketValidationScreenState
             _InfoCard(
               child: Column(
                 children: [
-                  _InfoRow(label: 'Titular', value: holderName),
+                  _InfoRow(label: 'Holder', value: holderName),
                   const SizedBox(height: 8),
-                  _InfoRow(label: 'Tipo', value: ticket.ticketType),
+                  _InfoRow(label: 'Type', value: ticket.ticketType),
                   const SizedBox(height: 8),
-                  _InfoRow(label: 'ID ticket', value: '${ticket.idTicket}'),
+                  _InfoRow(label: 'Ticket ID', value: '${ticket.idTicket}'),
                   const SizedBox(height: 8),
-                  _InfoRow(label: 'QR escaneado', value: widget.scannedValue),
+                  _InfoRow(label: 'Scanned QR', value: widget.scannedValue),
                   const SizedBox(height: 8),
                   _InfoRow(
-                    label: 'Compra',
+                    label: 'Purchased on',
                     value: _formatDateTime(ticket.purchaseDate),
                   ),
                   if (ticket.holder.dni.trim().isNotEmpty) ...[
                     const SizedBox(height: 8),
-                    _InfoRow(label: 'Documento', value: ticket.holder.dni),
+                    _InfoRow(label: 'Document', value: ticket.holder.dni),
                   ],
                 ],
               ),
@@ -358,9 +358,9 @@ class _ScannedTicketValidationScreenState
                     : Text(
                         widget.allowValidation
                             ? (alreadyCheckedIn
-                                  ? 'Ya utilizado'
-                                  : 'Dejar pasar')
-                            : 'Solo lectura',
+                                  ? 'Already used'
+                                  : 'Allow entry')
+                            : 'Read-only',
                         style: const TextStyle(fontWeight: FontWeight.w700),
                       ),
               ),
@@ -376,7 +376,7 @@ class _ScannedTicketValidationScreenState
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
                 child: Text(
-                  widget.allowValidation ? 'No dejar pasar' : 'Cerrar',
+                  widget.allowValidation ? 'Do not allow entry' : 'Close',
                   style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
               ),
