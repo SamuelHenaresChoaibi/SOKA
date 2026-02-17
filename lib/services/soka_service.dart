@@ -3,9 +3,11 @@ import 'dart:typed_data';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import '../config/payment_config.dart';
 import '../models/models.dart';
 import 'cloudinary_service.dart';
 import 'notification_service.dart';
+import 'paypal_credentials_cache_service.dart';
 
 class SokaService extends ChangeNotifier {
   GlobalKey<FormState> formKey = GlobalKey<FormState>();
@@ -13,6 +15,8 @@ class SokaService extends ChangeNotifier {
       "soka-1a9f3-default-rtdb.europe-west1.firebasedatabase.app";
   final NotificationService _notificationService = NotificationService();
   final CloudinaryService _cloudinaryService = CloudinaryService();
+  final PaypalCredentialsCacheService _paypalCredentialsCacheService =
+      PaypalCredentialsCacheService();
   List<Company> companies = [];
   List<Event> events = [];
   List<Client> clients = [];
@@ -792,7 +796,6 @@ class SokaService extends ChangeNotifier {
     }
   }
 
-
   bool _matchesTicketOwner(
     SoldTicket ticket, {
     required String userId,
@@ -1053,6 +1056,69 @@ class SokaService extends ChangeNotifier {
     final h = local.hour.toString().padLeft(2, '0');
     final m = local.minute.toString().padLeft(2, '0');
     return '$h:$m';
+  }
+
+  //------------------------------------------
+  //----------CREDENTIALS PAYPAL--------------
+  //------------------------------------------
+  Future<PaypalCredentials?> resolvePaypalCredentials({
+    bool forceRefresh = false,
+  }) async {
+    if (PaymentConfig.paypalOverrideInsecureClientCredentials &&
+        PaymentConfig.isPayPalConfigured) {
+      final credentials = PaypalCredentials(
+        clientId: PaymentConfig.paypalClientId,
+        secretKey: PaymentConfig.paypalSecretKey,
+      );
+      credentials.validate();
+      return credentials;
+    }
+
+    if (!forceRefresh) {
+      final cached = await _paypalCredentialsCacheService.read();
+      if (cached != null) return cached;
+    }
+
+    try {
+      final remote = await fetchPaypalCredentials();
+      await _paypalCredentialsCacheService.save(remote);
+      return remote;
+    } catch (_) {
+      final cached = await _paypalCredentialsCacheService.read();
+      if (cached != null) return cached;
+
+      if (PaymentConfig.isPayPalConfigured) {
+        final fallback = PaypalCredentials(
+          clientId: PaymentConfig.paypalClientId,
+          secretKey: PaymentConfig.paypalSecretKey,
+        );
+        fallback.validate();
+        return fallback;
+      }
+      return null;
+    }
+  }
+
+  Future<void> clearPaypalCredentialsCache() async {
+    await _paypalCredentialsCacheService.clear();
+  }
+
+  Future<PaypalCredentials> fetchPaypalCredentials() async {
+    try {
+      final url = Uri.https(_baseUrl, '/paypalCredentials.json');
+      final response = await http.get(url);
+
+      if (response.statusCode == 200 && response.body != 'null') {
+        final Map<String, dynamic> credsMap = json.decode(response.body);
+        final credentials = PaypalCredentials.fromJson(credsMap);
+        credentials.validate();
+        return credentials;
+      }
+      throw Exception('No se pudieron obtener las credenciales de PayPal');
+    } catch (e) {
+      print('ERROR fetchPaypalCredentials: $e');
+      rethrow;
+    }
   }
 }
 
