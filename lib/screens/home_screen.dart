@@ -8,6 +8,7 @@ import 'package:soka/screens/calendar_screen.dart';
 import 'package:soka/screens/company_events_screen.dart';
 import 'package:soka/screens/favorites_history_screen.dart';
 import 'package:soka/screens/settings_screen.dart';
+import 'package:soka/screens/ticket_scan_screen.dart';
 import 'package:soka/services/services.dart';
 import 'package:soka/theme/app_colors.dart';
 import 'package:soka/widgets/widgets.dart';
@@ -35,8 +36,9 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
 
-    _authSubscription =
-        FirebaseAuth.instance.authStateChanges().listen((user) async {
+    _authSubscription = FirebaseAuth.instance.authStateChanges().listen((
+      user,
+    ) async {
       if (!mounted) return;
 
       if (user == null) {
@@ -80,7 +82,8 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (_) {
       if (!mounted) return;
       setState(() {
-        _errorMessage = 'Events could not be loaded. Please check your connection and try again.';
+        _errorMessage =
+            'Events could not be loaded. Please check your connection and try again.';
       });
     } finally {
       if (mounted) {
@@ -146,8 +149,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     final ticketEventIds = sokaService.soldTickets
         .where(
-          (t) =>
-              t.buyerUserId == clientId || t.buyerUserId == client.userName,
+          (t) => t.buyerUserId == clientId || t.buyerUserId == client.userName,
         )
         .map((t) => t.eventId.trim())
         .where((id) => id.isNotEmpty)
@@ -169,10 +171,9 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() => _client = updatedClient);
 
     try {
-      await sokaService.updateClient(
-        clientId,
-        {'historyEventIds': updatedHistory},
-      );
+      await sokaService.updateClient(clientId, {
+        'historyEventIds': updatedHistory,
+      });
     } catch (_) {
       // no-op
     }
@@ -196,10 +197,9 @@ class _HomeScreenState extends State<HomeScreen> {
     });
 
     try {
-      await context.read<SokaService>().updateClient(
-        clientId,
-        {'favoriteEventIds': updatedFavorites},
-      );
+      await context.read<SokaService>().updateClient(clientId, {
+        'favoriteEventIds': updatedFavorites,
+      });
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -207,6 +207,44 @@ class _HomeScreenState extends State<HomeScreen> {
       });
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Could not update favorites')),
+      );
+    }
+  }
+
+  Future<void> _openTicketScanner({
+    required bool isCompanyUser,
+    required bool isClientUser,
+  }) async {
+    if (!isCompanyUser && !isClientUser) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Necesitas perfil de cliente o compañía para escanear.',
+          ),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    final scannerMode = isCompanyUser
+        ? TicketScannerMode.company
+        : TicketScannerMode.client;
+
+    final validated = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => TicketScanScreen(mode: scannerMode)),
+    );
+
+    if (!mounted) return;
+    if (isCompanyUser && validated == true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cliente satisfecho'),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.green,
+        ),
       );
     }
   }
@@ -225,9 +263,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final selectedCategory = categories[safeSelectedIndex];
     final categoryFiltered = selectedCategory == 'All'
         ? events
-        : events
-            .where((event) => event.category == selectedCategory)
-            .toList();
+        : events.where((event) => event.category == selectedCategory).toList();
     final query = _query.trim().toLowerCase();
     final filteredEvents = query.isEmpty
         ? categoryFiltered
@@ -256,6 +292,12 @@ class _HomeScreenState extends State<HomeScreen> {
                     onSearchChanged: (value) {
                       setState(() => _query = value);
                     },
+                    onQrTap: () {
+                      _openTicketScanner(
+                        isCompanyUser: isCompanyUser,
+                        isClientUser: isClientUser,
+                      );
+                    },
                   ),
                 ),
               ),
@@ -263,9 +305,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SliverFillRemaining(
                   hasScrollBody: false,
                   child: Center(
-                    child: CircularProgressIndicator(
-                      color: AppColors.accent,
-                    ),
+                    child: CircularProgressIndicator(color: AppColors.accent),
                   ),
                 )
               else if (_errorMessage != null && events.isEmpty)
@@ -330,7 +370,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 0.2,
-                        color: theme.textTheme.bodyMedium?.color ??
+                        color:
+                            theme.textTheme.bodyMedium?.color ??
                             AppColors.textPrimary,
                       ),
                     ),
@@ -350,7 +391,8 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                             const SizedBox(height: 16),
                             Text(
-                              'No events available for the selected category or search query.', textAlign: TextAlign.center,
+                              'No events available for the selected category or search query.',
+                              textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 16,
                                 color: AppColors.cursorColor,
@@ -364,30 +406,26 @@ class _HomeScreenState extends State<HomeScreen> {
                   )
                 else
                   SliverList(
-                    delegate: SliverChildBuilderDelegate(
-                      (context, index) {
-                        final event = filteredEvents[index];
-                        final isFavorite = isClientUser &&
-                            (_client?.favoriteEventIds.contains(event.id) ??
-                                false);
+                    delegate: SliverChildBuilderDelegate((context, index) {
+                      final event = filteredEvents[index];
+                      final isFavorite =
+                          isClientUser &&
+                          (_client?.favoriteEventIds.contains(event.id) ??
+                              false);
 
-                        return EventCard(
-                          event: event,
-                          showFavoriteButton: isClientUser,
-                          isFavorite: isFavorite,
-                          onToggleFavorite: isClientUser
-                              ? () {
-                                  _toggleFavorite(event.id);
-                                }
-                              : null,
-                        );
-                      },
-                      childCount: filteredEvents.length,
-                    ),
+                      return EventCard(
+                        event: event,
+                        showFavoriteButton: isClientUser,
+                        isFavorite: isFavorite,
+                        onToggleFavorite: isClientUser
+                            ? () {
+                                _toggleFavorite(event.id);
+                              }
+                            : null,
+                      );
+                    }, childCount: filteredEvents.length),
                   ),
-                const SliverToBoxAdapter(
-                  child: SizedBox(height: 20),
-                ),
+                const SliverToBoxAdapter(child: SizedBox(height: 20)),
               ],
             ],
           ),
@@ -423,43 +461,42 @@ class _HomeScreenState extends State<HomeScreen> {
         isClientUser
             ? Icons.favorite_border
             : isCompanyUser
-                ? Icons.event_note_outlined
-                : Icons.person_outline,
+            ? Icons.event_note_outlined
+            : Icons.person_outline,
       ),
       selectedIcon: Icon(
         isClientUser
             ? Icons.favorite
             : isCompanyUser
-                ? Icons.event_note
-                : Icons.person,
+            ? Icons.event_note
+            : Icons.person,
       ),
       label: isClientUser
           ? 'Favorites'
           : isCompanyUser
-              ? 'My Events'
-              : 'Account',
+          ? 'My Events'
+          : 'Account',
     );
 
     return Scaffold(
       body: pages[_selectedIndex],
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
-        onDestinationSelected: (index) => setState(() => _selectedIndex = index),
+        onDestinationSelected: (index) =>
+            setState(() => _selectedIndex = index),
         backgroundColor: AppColors.primary,
         indicatorColor: AppColors.accent,
-        labelTextStyle: MaterialStateProperty.resolveWith<TextStyle?>(
-          (states) {
-            if (states.contains(MaterialState.selected)) {
-              return theme.textTheme.bodySmall?.copyWith(
-                color: AppColors.primary,
-                fontWeight: FontWeight.w600,
-              );
-            }
+        labelTextStyle: MaterialStateProperty.resolveWith<TextStyle?>((states) {
+          if (states.contains(MaterialState.selected)) {
             return theme.textTheme.bodySmall?.copyWith(
-              color: AppColors.cursorColor,
+              color: AppColors.primary,
+              fontWeight: FontWeight.w600,
             );
-          },
-        ),
+          }
+          return theme.textTheme.bodySmall?.copyWith(
+            color: AppColors.cursorColor,
+          );
+        }),
         destinations: [
           const NavigationDestination(
             icon: Icon(Icons.home_outlined),

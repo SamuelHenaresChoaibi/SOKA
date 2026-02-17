@@ -5,8 +5,7 @@ class SoldTicket {
   final String buyerUserId;
   final int idTicket;
   final DateTime purchaseDate;
-  final String qrCode;
-  final bool scanned;
+  final bool isCheckedIn;
   final String ticketType;
   final TicketHolder holder;
 
@@ -15,8 +14,7 @@ class SoldTicket {
     required this.buyerUserId,
     required this.idTicket,
     required this.purchaseDate,
-    required this.qrCode,
-    required this.scanned,
+    required this.isCheckedIn,
     required this.ticketType,
     required this.holder,
   });
@@ -28,8 +26,7 @@ class SoldTicket {
           json['buyerUserId']?.toString() ?? json['userId']?.toString() ?? '',
       idTicket: _parseInt(json['idTicket']),
       purchaseDate: _parseDate(json['purchaseDate']),
-      qrCode: json['qrCode']?.toString() ?? '',
-      scanned: json['scanned'] == true,
+      isCheckedIn: json['isCheckedIn'] == true,
       ticketType: json['ticketType']?.toString() ?? '',
       holder: _parseHolder(json),
     );
@@ -41,8 +38,7 @@ class SoldTicket {
       'buyerUserId': buyerUserId,
       'idTicket': idTicket,
       'purchaseDate': purchaseDate.toIso8601String(),
-      'qrCode': qrCode,
-      'scanned': scanned,
+      'isCheckedIn': isCheckedIn,
       'ticketType': ticketType,
       'holder': holder.toJson(),
     };

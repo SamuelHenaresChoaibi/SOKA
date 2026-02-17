@@ -469,19 +469,13 @@ class SokaService extends ChangeNotifier {
       try {
         for (var i = 0; i < quantity; i++) {
           final idTicket = baseTicketId + i;
-          final qrCode = _buildQrCode(
-            eventId: eventId,
-            ticketType: currentType.type,
-            idTicket: idTicket,
-          );
           final sold = SoldTicket(
             buyerUserId: userId,
             eventId: eventId,
             holder: holders[i],
             idTicket: idTicket,
             purchaseDate: now,
-            qrCode: qrCode,
-            scanned: false,
+            isCheckedIn: false,
             ticketType: currentType.type,
           );
           await createSoldTicket(sold, refresh: false);
@@ -621,6 +615,91 @@ class SokaService extends ChangeNotifier {
     return result;
   }
 
+  Future<MapEntry<String, SoldTicket>?> fetchSoldTicketEntryByIdTicket(
+    int idTicket,
+  ) async {
+    final url = Uri.https(_baseUrl, '/soldTickets.json', {
+      'orderBy': '"idTicket"',
+      'equalTo': '$idTicket',
+    });
+    final response = await http.get(url);
+
+    if (response.statusCode != 200 || response.body == 'null') {
+      return null;
+    }
+
+    final decoded = json.decode(response.body);
+    return _firstSoldTicketEntryFromDecoded(decoded);
+  }
+
+  Future<MapEntry<String, SoldTicket>?> fetchSoldTicketEntryByQrCode(
+    String qrCode,
+  ) async {
+    final normalized = qrCode.trim();
+    if (normalized.isEmpty) return null;
+
+    final url = Uri.https(_baseUrl, '/soldTickets.json', {
+      'orderBy': '"qrCode"',
+      'equalTo': '"$normalized"',
+    });
+    final response = await http.get(url);
+
+    if (response.statusCode != 200 || response.body == 'null') {
+      return null;
+    }
+
+    final decoded = json.decode(response.body);
+    return _firstSoldTicketEntryFromDecoded(decoded);
+  }
+
+  Future<MapEntry<String, SoldTicket>?> fetchSoldTicketEntryByScanValue(
+    String scanValue,
+  ) async {
+    final raw = scanValue.trim();
+    if (raw.isEmpty) return null;
+
+    final parsedId = int.tryParse(raw);
+    if (parsedId != null) {
+      final byId = await fetchSoldTicketEntryByIdTicket(parsedId);
+      if (byId != null) return byId;
+    }
+
+    final byQr = await fetchSoldTicketEntryByQrCode(raw);
+    if (byQr != null) return byQr;
+
+    final suffixMatch = RegExp(r'(\d+)$').firstMatch(raw);
+    if (suffixMatch != null) {
+      final suffixId = int.tryParse(suffixMatch.group(1)!);
+      if (suffixId != null && suffixId != parsedId) {
+        return fetchSoldTicketEntryByIdTicket(suffixId);
+      }
+    }
+
+    return null;
+  }
+
+  MapEntry<String, SoldTicket>? _firstSoldTicketEntryFromDecoded(
+    dynamic decoded,
+  ) {
+    if (decoded is! Map || decoded.isEmpty) return null;
+
+    for (final entry in decoded.entries) {
+      final key = entry.key.toString();
+      final value = entry.value;
+
+      if (value is Map<String, dynamic>) {
+        return MapEntry(key, SoldTicket.fromJson(value));
+      }
+
+      if (value is Map) {
+        final mapped = value.map((k, v) => MapEntry(k.toString(), v));
+        return MapEntry(key, SoldTicket.fromJson(mapped));
+      }
+    }
+
+    return null;
+  }
+
   Future<_EtaggedEvent> _fetchEventByIdWithEtag(String eventId) async {
     final url = Uri.https(_baseUrl, '/events/$eventId.json');
     final response = await http.get(
@@ -713,19 +792,6 @@ class SokaService extends ChangeNotifier {
     }
   }
 
-  static String _buildQrCode({
-    required String eventId,
-    required String ticketType,
-    required int idTicket,
-  }) {
-    final safeEvent = eventId
-        .replaceAll(RegExp(r'[^a-zA-Z0-9]+'), '')
-        .toUpperCase();
-    final safeType = ticketType
-        .replaceAll(RegExp(r'[^a-zA-Z0-9]+'), '')
-        .toUpperCase();
-    return '$safeEvent-$safeType-$idTicket';
-  }
 
   bool _matchesTicketOwner(
     SoldTicket ticket, {
@@ -809,8 +875,8 @@ class SokaService extends ChangeNotifier {
         : eventId.trim();
     final resolvedContentType =
         (contentType == null || contentType.trim().isEmpty)
-            ? 'image/jpeg'
-            : contentType.trim();
+        ? 'image/jpeg'
+        : contentType.trim();
     final folder = 'events/$normalizedOrganizerId/$folderId';
 
     try {
