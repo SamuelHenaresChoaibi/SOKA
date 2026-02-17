@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:soka/models/models.dart';
-import 'package:soka/screens/event_details_screen.dart';
+import 'package:soka/screens/ticket_details_screen.dart';
 import 'package:soka/services/services.dart';
 import 'package:soka/theme/app_colors.dart';
 import 'package:soka/widgets/event_card.dart';
@@ -240,18 +240,12 @@ class _TicketsList extends StatelessWidget {
               ),
               trailing: const Icon(Icons.chevron_right_rounded),
               onTap: () {
-                if (event == null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('No se pudo abrir el evento de este ticket'),
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                  return;
-                }
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (_) => EventDetailsScreen(event: event),
+                    builder: (_) => TicketDetailsScreen(
+                      ticket: ticket,
+                      event: event,
+                    ),
                   ),
                 );
               },

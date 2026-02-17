@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:soka/models/models.dart';
 import 'package:soka/services/auth_service.dart';
 import 'package:soka/services/services.dart';
 import 'package:soka/theme/app_colors.dart';
+import 'package:soka/utils/birth_date_input_formatter.dart';
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -99,15 +101,108 @@ class _SignupScreenState extends State<SignupScreen> {
   }
 
   Future<void> _signupWithGoogle() async {
+    if (isLoading) return;
+
     setState(() => isLoading = true);
 
     try {
-      await authService.signupWithGoogle();
+      final user = await authService.signupWithGoogle();
+      if (user == null) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Google sign-up cancelled')),
+        );
+        return;
+      }
+
+      await _createProfileForGoogleUser(user);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            _selectedTypeIndex == 0
+                ? 'Cuenta Google registrada como cliente'
+                : 'Cuenta Google registrada como empresa',
+          ),
+        ),
+      );
     } catch (e) {
-      print('Google signup failed: $e');
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Google signup failed: $e')),
+      );
     } finally {
-      setState(() => isLoading = false);
+      if (mounted) setState(() => isLoading = false);
     }
+  }
+
+  Future<void> _createProfileForGoogleUser(User user) async {
+    final sokaService = context.read<SokaService>();
+    final email = user.email?.trim().isNotEmpty == true
+        ? user.email!.trim()
+        : emailController.text.trim();
+    final displayName = (user.displayName ?? '').trim();
+    final displayParts = displayName.isEmpty ? <String>[] : displayName.split(' ');
+
+    if (_selectedTypeIndex == 0) {
+      final fallbackUserName = email.contains('@')
+          ? email.split('@').first
+          : user.uid.substring(0, 8);
+      final birthdateText = birthdateController.text.trim();
+      final parsedBirthdate = DateTime.tryParse(birthdateText);
+      final age = parsedBirthdate != null ? _calculateAge(parsedBirthdate) : 18;
+
+      final client = Client(
+        age: age,
+        createdAt: DateTime.now(),
+        email: email,
+        favoriteEventIds: const [],
+        historyEventIds: const [],
+        interests: const <String?>[],
+        name: nameController.text.trim().isNotEmpty
+            ? nameController.text.trim()
+            : (displayParts.isNotEmpty ? displayParts.first : 'Usuario'),
+        phoneNumber: phoneController.text.trim(),
+        surname: surnameController.text.trim().isNotEmpty
+            ? surnameController.text.trim()
+            : (displayParts.length > 1 ? displayParts.sublist(1).join(' ') : ''),
+        userName: userNameController.text.trim().isNotEmpty
+            ? userNameController.text.trim()
+            : fallbackUserName,
+      );
+      final status = await sokaService.createClientWithId(user.uid, client);
+      if (status != 200) {
+        throw Exception('No se pudo crear el perfil de cliente');
+      }
+      await sokaService.deleteCompany(user.uid);
+      return;
+    }
+
+    final companyName = companyNameController.text.trim().isNotEmpty
+        ? companyNameController.text.trim()
+        : (displayName.isNotEmpty
+              ? displayName
+              : (email.contains('@') ? email.split('@').first : 'Empresa'));
+
+    final company = Company(
+      companyName: companyName,
+      contactInfo: ContactInfo(
+        adress: companyAddressController.text.trim(),
+        email: email,
+        instagram: companyInstagramController.text.trim(),
+        phoneNumber: companyPhoneController.text.trim(),
+        website: companyWebsiteController.text.trim(),
+      ),
+      createdAt: DateTime.now(),
+      createdEventIds: const [],
+      description: companyDescriptionController.text.trim(),
+      verified: false,
+    );
+    final status = await sokaService.createCompany(user.uid, company);
+    if (status != 200) {
+      throw Exception('No se pudo crear el perfil de empresa');
+    }
+    await sokaService.deleteClient(user.uid);
   }
 
   @override
@@ -320,11 +415,29 @@ class _SignupScreenState extends State<SignupScreen> {
         keyboardType: TextInputType.phone,
       ),
       const SizedBox(height: 16.0),
-      _textInput(
+      TextFormField(
         controller: birthdateController,
-        label: 'Date of Birth',
-        readOnly: true,
-        onTap: _pickBirthdate,
+        keyboardType: TextInputType.number,
+        inputFormatters: [BirthDateInputFormatter()],
+        decoration: InputDecoration(
+          labelText: 'Date of Birth (YYYY-MM-DD)',
+          suffixIcon: IconButton(
+            icon: const Icon(Icons.calendar_today_outlined),
+            onPressed: _pickBirthdate,
+          ),
+        ),
+        validator: (value) {
+          final text = value?.trim() ?? '';
+          if (text.isEmpty) return 'Required field';
+          final parsed = DateTime.tryParse(text);
+          if (parsed == null || text.length != 10) {
+            return 'Use YYYY-MM-DD';
+          }
+          if (parsed.isAfter(DateTime.now())) {
+            return 'Birth date cannot be in the future';
+          }
+          return null;
+        },
       ),
     ];
   }

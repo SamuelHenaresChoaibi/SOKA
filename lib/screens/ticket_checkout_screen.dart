@@ -8,6 +8,7 @@ import 'package:soka/config/payment_config.dart';
 import 'package:soka/models/models.dart';
 import 'package:soka/services/services.dart';
 import 'package:soka/theme/app_colors.dart';
+import 'package:soka/utils/birth_date_input_formatter.dart';
 
 enum PaymentMethod { paypal }
 
@@ -955,7 +956,8 @@ class _TicketHolderFields extends StatelessWidget {
           TextField( 
             controller: draft.birthDateController, 
             enabled: enabled, 
-            keyboardType: TextInputType.datetime, 
+            keyboardType: TextInputType.number,
+            inputFormatters: [BirthDateInputFormatter()],
             decoration: const InputDecoration( 
               labelText: 'Fecha de nacimiento (YYYY-MM-DD)', 
               border: OutlineInputBorder(), 

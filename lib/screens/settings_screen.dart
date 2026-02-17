@@ -148,11 +148,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
             final Company? company =
                 snapshot.data != null ? snapshot.data![1] as Company? : null;
 
-            final displayName = company?.companyName ??
+            final rawDisplayName = company?.companyName ??
                 client?.userName ??
                 _user?.displayName ??
                 'User';
-            final email = _user?.email ?? client?.email ?? 'No email';
+            final rawEmail = _user?.email ?? client?.email ?? 'No email';
+            final displayName = _shareProfile ? rawDisplayName : 'Perfil privado';
+            final email =
+                (_shareProfile && _showEmail) ? rawEmail : 'Email oculto';
             final userType = company != null ? 'Company' : 'User';
             final initials = (displayName.isNotEmpty)
                 ? displayName.trim().substring(0, 1).toUpperCase()
@@ -278,6 +281,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _settingsSections(BuildContext context) {
     final sokaService = context.watch<SokaService>();
     final eventById = <String, Event>{for (final e in sokaService.events) e.id: e};
+    final privacySummary = !_shareProfile
+        ? 'Perfil oculto'
+        : _showEmail
+            ? 'Perfil y email visibles'
+            : 'Perfil visible sin email';
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -306,7 +314,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ListTile(
                   leading: const Icon(Icons.lock),
                   title: const Text("Privacidad"),
-                  subtitle: const Text("Controla qué información se muestra"),
+                  subtitle: Text(privacySummary),
                   onTap: () async {
                     await _loadPrivacySettings(force: true);
                     if (!context.mounted) return;
@@ -337,6 +345,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               final historyEvents = client.historyEventIds
                   .map((id) => eventById[id])
                   .whereType<Event>()
+                  .where((event) => event.date.isBefore(DateTime.now()))
                   .toList()
                 ..sort((a, b) => b.date.compareTo(a.date));
 

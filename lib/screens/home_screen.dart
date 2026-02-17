@@ -151,6 +151,7 @@ class _HomeScreenState extends State<HomeScreen> {
     if (clientId == null) return;
 
     final sokaService = context.read<SokaService>();
+    final now = DateTime.now();
 
     try {
       await sokaService.fetchSoldTickets();
@@ -158,24 +159,45 @@ class _HomeScreenState extends State<HomeScreen> {
       return;
     }
 
-    final ticketEventIds = sokaService.soldTickets
-        .where(
-          (t) => t.buyerUserId == clientId || t.buyerUserId == client.userName,
-        )
-        .map((t) => t.eventId.trim())
-        .where((id) => id.isNotEmpty)
-        .toList();
-
-    if (ticketEventIds.isEmpty) return;
-
-    final updatedHistory = List<String>.from(client.historyEventIds);
-    for (final id in ticketEventIds) {
-      if (!updatedHistory.contains(id)) {
-        updatedHistory.add(id);
+    if (sokaService.events.isEmpty) {
+      try {
+        await sokaService.fetchEvents();
+      } catch (_) {
+        // no-op
       }
     }
 
-    if (updatedHistory.length == client.historyEventIds.length) return;
+    final eventById = <String, Event>{for (final e in sokaService.events) e.id: e};
+
+    final attendedPastEventIds = sokaService.soldTickets
+        .where(
+          (t) =>
+              (t.buyerUserId == clientId || t.buyerUserId == client.userName) &&
+              t.isCheckedIn,
+        )
+        .map((t) => eventById[t.eventId.trim()])
+        .whereType<Event>()
+        .where((event) => event.date.isBefore(now))
+        .map((event) => event.id)
+        .toSet()
+        .toList()
+      ..sort((a, b) {
+        final dateA = eventById[a]?.date ?? DateTime.fromMillisecondsSinceEpoch(0);
+        final dateB = eventById[b]?.date ?? DateTime.fromMillisecondsSinceEpoch(0);
+        return dateB.compareTo(dateA);
+      });
+
+    final updatedHistory = attendedPastEventIds
+        .where((id) => id.isNotEmpty)
+        .toList();
+
+    final currentHistory = client.historyEventIds;
+    if (updatedHistory.length == currentHistory.length &&
+        updatedHistory.asMap().entries.every(
+          (entry) => currentHistory[entry.key] == entry.value,
+        )) {
+      return;
+    }
 
     final updatedClient = client.copyWith(historyEventIds: updatedHistory);
     if (!mounted) return;

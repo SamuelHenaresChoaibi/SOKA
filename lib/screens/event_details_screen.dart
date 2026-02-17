@@ -187,23 +187,6 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                 onTap: () => Navigator.pop(context),
               ),
             ),
-            actions: [
-              Padding(
-                padding: const EdgeInsets.only(right: 12),
-                child: IconCircle(
-                  icon: Icons.ios_share_outlined,
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Share (coming soon)'),
-                        backgroundColor: AppColors.primary,
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
             flexibleSpace: FlexibleSpaceBar(
               collapseMode: CollapseMode.parallax,
               background: _Hero(
