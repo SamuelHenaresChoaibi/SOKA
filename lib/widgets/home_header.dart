@@ -5,12 +5,13 @@ import 'package:soka/widgets/widgets.dart';
 class HomeHeader extends StatelessWidget {
   final int eventCount;
   final ValueChanged<String> onSearchChanged;
-  final VoidCallback onFilterTap;
+  final VoidCallback? onQrTap;
 
   const HomeHeader({
+    super.key,
     required this.eventCount,
     required this.onSearchChanged,
-    required this.onFilterTap,
+    this.onQrTap,
   });
 
   @override
@@ -19,9 +20,7 @@ class HomeHeader extends StatelessWidget {
     return Container(
       decoration: const BoxDecoration(
         color: AppColors.primary,
-        borderRadius: BorderRadius.vertical(
-          bottom: Radius.circular(28),
-        ),
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
       ),
       child: SafeArea(
         bottom: false,
@@ -60,7 +59,7 @@ class HomeHeader extends StatelessWidget {
                   ),
                   HeaderIconButton(
                     icon: Icons.qr_code_rounded,
-                    onTap: () {},
+                    onTap: onQrTap ?? () {},
                   ),
                   const SizedBox(width: 12),
                   HeaderIconButton(
@@ -72,11 +71,7 @@ class HomeHeader extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 18),
-              SearchBarSoka(
-                eventCount: eventCount,
-                onChanged: onSearchChanged,
-                onFilterTap: onFilterTap,
-              ),
+              SearchBarSoka(eventCount: eventCount, onChanged: onSearchChanged),
             ],
           ),
         ),

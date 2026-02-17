@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:soka/models/models.dart';
 import 'package:soka/screens/ticket_checkout_screen.dart';
+import 'package:soka/screens/ticket_details_screen.dart';
 import 'package:soka/services/services.dart';
 import 'package:soka/theme/app_colors.dart';
 import 'package:soka/widgets/bottom_cta.dart';
@@ -92,10 +93,10 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
     final priceLabel = !event.hasTicketTypes
         ? 'No tickets'
         : minPrice <= 0
-            ? 'Free'
-            : minPrice == maxPrice
-                ? '€$minPrice'
-                : 'From €$minPrice';
+        ? 'Free'
+        : minPrice == maxPrice
+        ? '€$minPrice'
+        : 'From €$minPrice';
 
     final ticketSubtitle = !event.hasTicketTypes
         ? 'No ticket types configured'
@@ -324,8 +325,9 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                         index,
                       ) {
                         final ticketType = event.ticketTypes[index];
-                        final typePriceLabel =
-                            ticketType.price <= 0 ? 'Free' : '€${ticketType.price}';
+                        final typePriceLabel = ticketType.price <= 0
+                            ? 'Free'
+                            : '€${ticketType.price}';
 
                         return Padding(
                           padding: EdgeInsets.only(
@@ -496,7 +498,6 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                 fontWeight: FontWeight.w700,
               ),
             ),
-           
           ],
         ),
       ),
@@ -509,7 +510,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
           padding: EdgeInsets.only(
             bottom: i == _userTickets.length - 1 ? 0 : 10,
           ),
-          child: _UserTicketCard(ticket: _userTickets[i]),
+          child: _UserTicketCard(ticket: _userTickets[i], event: event),
         ),
       );
     }
@@ -561,24 +562,17 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
     final hasCoords = lat != null && lng != null;
     final query = Uri.encodeComponent(location.trim());
     if (!hasCoords && query.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Location is empty.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Location is empty.')));
       return;
     }
 
     final uri = hasCoords
-        ? Uri.parse(
-            'https://www.google.com/maps/search/?api=1&query=$lat,$lng',
-          )
-        : Uri.parse(
-            'https://www.google.com/maps/search/?api=1&query=$query',
-          );
+        ? Uri.parse('https://www.google.com/maps/search/?api=1&query=$lat,$lng')
+        : Uri.parse('https://www.google.com/maps/search/?api=1&query=$query');
 
-    final launched = await launchUrl(
-      uri,
-      mode: LaunchMode.externalApplication,
-    );
+    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
 
     if (!launched && context.mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -586,6 +580,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
       );
     }
   }
+
   static String _formatDateTime(DateTime date) {
     return '${_formatDate(date)} ${_formatTime(date)}';
   }
@@ -898,68 +893,78 @@ class _TicketCard extends StatelessWidget {
 
 class _UserTicketCard extends StatelessWidget {
   final SoldTicket ticket;
+  final Event event;
 
-  const _UserTicketCard({required this.ticket});
+  const _UserTicketCard({required this.ticket, required this.event});
 
   @override
   Widget build(BuildContext context) {
-    final scannedLabel = ticket.scanned ? 'Escaneada' : 'Pendiente';
+    final scannedLabel = ticket.isCheckedIn ? 'Escaneada' : 'Pendiente';
     final holderName = ticket.holder.fullName.isEmpty
         ? 'Sin titular'
         : ticket.holder.fullName;
 
-    return _Card(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(
-                Icons.confirmation_number_outlined,
-                color: AppColors.textPrimary,
-                size: 18,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  ticket.ticketType,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary,
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        Navigator.push<void>(
+          context,
+          MaterialPageRoute(
+            builder: (_) => TicketDetailsScreen(ticket: ticket, event: event),
+          ),
+        );
+      },
+      child: _Card(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(
+                  Icons.confirmation_number_outlined,
+                  color: AppColors.textPrimary,
+                  size: 18,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    ticket.ticketType,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
                 ),
-              ),
-              Text(
-                scannedLabel,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  color: ticket.scanned ? Colors.green : AppColors.textMuted,
+                Text(
+                  scannedLabel,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: ticket.isCheckedIn ? Colors.green : AppColors.textMuted,
+                  ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          _KeyValueRow(label: 'Titular', value: holderName),
-          if (ticket.holder.dni.trim().isNotEmpty) ...[
-            const SizedBox(height: 8),
-            _KeyValueRow(label: 'Documento', value: ticket.holder.dni),
-          ],
-          const SizedBox(height: 8),
-          _KeyValueRow(label: 'ID ticket', value: ticket.idTicket.toString()),
-          const SizedBox(height: 8),
-          _KeyValueRow(label: 'QR', value: ticket.qrCode),
-          const SizedBox(height: 8),
-          _KeyValueRow(
-            label: 'Compra',
-            value: _EventDetailsScreenState._formatDateTime(
-              ticket.purchaseDate,
+              ],
             ),
-          ),
-        ],
+            const SizedBox(height: 10),
+            _KeyValueRow(label: 'Titular', value: holderName),
+            if (ticket.holder.dni.trim().isNotEmpty) ...[
+              const SizedBox(height: 8),
+              _KeyValueRow(label: 'Documento', value: ticket.holder.dni),
+            ],
+            const SizedBox(height: 8),
+            _KeyValueRow(label: 'ID ticket', value: ticket.idTicket.toString()),
+            const SizedBox(height: 8),
+            _KeyValueRow(
+              label: 'Compra',
+              value: _EventDetailsScreenState._formatDateTime(
+                ticket.purchaseDate,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
