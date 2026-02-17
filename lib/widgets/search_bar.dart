@@ -4,13 +4,13 @@ import 'package:soka/theme/app_colors.dart';
 class SearchBarSoka extends StatelessWidget {
   final int eventCount;
   final ValueChanged<String> onChanged;
-  final VoidCallback onFilterTap;
+  final VoidCallback? onFilterTap;
 
   const SearchBarSoka({
     super.key,
     required this.eventCount,
     required this.onChanged,
-    required this.onFilterTap,
+    this.onFilterTap,
   });
 
   @override
@@ -26,11 +26,11 @@ class SearchBarSoka extends StatelessWidget {
         color: fillColor,
         borderRadius: BorderRadius.circular(26),
         border: Border.all(
-          color: AppColors.cursorColor.withOpacity(0.35),
+          color: AppColors.cursorColor.withValues(alpha: 0.35),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 6),
           ),
@@ -62,7 +62,7 @@ class SearchBarSoka extends StatelessWidget {
           const SizedBox(width: 8),
           _CountPill(count: eventCount),
           const SizedBox(width: 8),
-          _FilterButton(onTap: onFilterTap),
+          _FilterButton(onTap: onFilterTap ?? () {}),
         ],
       ),
     );
@@ -109,11 +109,7 @@ class _FilterButton extends StatelessWidget {
         onTap: onTap,
         child: const Padding(
           padding: EdgeInsets.all(8),
-          child: Icon(
-            Icons.tune,
-            size: 18,
-            color: AppColors.primary,
-          ),
+          child: Icon(Icons.tune, size: 18, color: AppColors.primary),
         ),
       ),
     );

@@ -6,12 +6,14 @@ class HomeHeader extends StatelessWidget {
   final int eventCount;
   final ValueChanged<String> onSearchChanged;
   final VoidCallback? onQrTap;
+  final VoidCallback? onFilterTap;
 
   const HomeHeader({
     super.key,
     required this.eventCount,
     required this.onSearchChanged,
     this.onQrTap,
+    this.onFilterTap,
   });
 
   @override
@@ -39,7 +41,7 @@ class HomeHeader extends StatelessWidget {
                         Text(
                           'Hello,',
                           style: TextStyle(
-                            color: lightText.withOpacity(0.75),
+                            color: lightText.withValues(alpha: 0.75),
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
                           ),
@@ -71,7 +73,11 @@ class HomeHeader extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 18),
-              SearchBarSoka(eventCount: eventCount, onChanged: onSearchChanged),
+              SearchBarSoka(
+                eventCount: eventCount,
+                onChanged: onSearchChanged,
+                onFilterTap: onFilterTap,
+              ),
             ],
           ),
         ),

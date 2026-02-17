@@ -13,6 +13,10 @@ import 'package:soka/services/services.dart';
 import 'package:soka/theme/app_colors.dart';
 import 'package:soka/widgets/widgets.dart';
 
+enum _EventDateFilter { all, upcoming, thisWeek, thisMonth }
+
+enum _EventSortFilter { defaultOrder, nearestDate, latestDate, titleAz }
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -26,6 +30,11 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _isLoading = false;
   String? _errorMessage;
   String _query = '';
+  String _companyNameQuery = '';
+  _EventDateFilter _eventDateFilter = _EventDateFilter.all;
+  _EventSortFilter _eventSortFilter = _EventSortFilter.defaultOrder;
+  bool _onlyWithAvailableTickets = false;
+  final Map<String, String> _organizerNameById = {};
   String? _userId;
   Client? _client;
   Company? _company;
@@ -78,7 +87,9 @@ class _HomeScreenState extends State<HomeScreen> {
       _errorMessage = null;
     });
     try {
-      await Provider.of<SokaService>(context, listen: false).fetchEvents();
+      final sokaService = Provider.of<SokaService>(context, listen: false);
+      await sokaService.fetchEvents();
+      await _warmOrganizerNames(sokaService.events);
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -211,6 +222,275 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _warmOrganizerNames(List<Event> events) async {
+    final missingOrganizerIds = events
+        .map((event) => event.organizerId.trim())
+        .where((id) => id.isNotEmpty && !_organizerNameById.containsKey(id))
+        .toSet()
+        .toList();
+
+    if (missingOrganizerIds.isEmpty) return;
+
+    final sokaService = context.read<SokaService>();
+    final loadedEntries = await Future.wait(
+      missingOrganizerIds.map((organizerId) async {
+        try {
+          final company = await sokaService.fetchCompanyById(organizerId);
+          final companyName = company?.companyName.trim() ?? '';
+          return MapEntry(
+            organizerId,
+            companyName.isEmpty ? organizerId : companyName,
+          );
+        } catch (_) {
+          return MapEntry(organizerId, organizerId);
+        }
+      }),
+    );
+
+    if (!mounted) return;
+    setState(() {
+      for (final entry in loadedEntries) {
+        _organizerNameById[entry.key] = entry.value;
+      }
+    });
+  }
+
+  String _organizerNameForEvent(Event event) {
+    final organizerId = event.organizerId.trim();
+    if (organizerId.isEmpty) return 'Sin compañía';
+    return _organizerNameById[organizerId] ?? organizerId;
+  }
+
+  bool _matchesDateFilter(DateTime eventDate) {
+    if (_eventDateFilter == _EventDateFilter.all) return true;
+
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final date = DateTime(eventDate.year, eventDate.month, eventDate.day);
+
+    switch (_eventDateFilter) {
+      case _EventDateFilter.all:
+        return true;
+      case _EventDateFilter.upcoming:
+        return !date.isBefore(today);
+      case _EventDateFilter.thisWeek:
+        final weekEnd = today.add(const Duration(days: 7));
+        return !date.isBefore(today) && date.isBefore(weekEnd);
+      case _EventDateFilter.thisMonth:
+        return date.year == now.year &&
+            date.month == now.month &&
+            !date.isBefore(today);
+    }
+  }
+
+  String _labelForDateFilter(_EventDateFilter filter) {
+    switch (filter) {
+      case _EventDateFilter.all:
+        return 'Todos';
+      case _EventDateFilter.upcoming:
+        return 'Próximos';
+      case _EventDateFilter.thisWeek:
+        return 'Esta semana';
+      case _EventDateFilter.thisMonth:
+        return 'Este mes';
+    }
+  }
+
+  String _labelForSortFilter(_EventSortFilter filter) {
+    switch (filter) {
+      case _EventSortFilter.defaultOrder:
+        return 'Relevancia';
+      case _EventSortFilter.nearestDate:
+        return 'Más cercanos';
+      case _EventSortFilter.latestDate:
+        return 'Más lejanos';
+      case _EventSortFilter.titleAz:
+        return 'Nombre (A-Z)';
+    }
+  }
+
+  void _sortEvents(List<Event> events) {
+    switch (_eventSortFilter) {
+      case _EventSortFilter.defaultOrder:
+        return;
+      case _EventSortFilter.nearestDate:
+        events.sort((a, b) => a.date.compareTo(b.date));
+        return;
+      case _EventSortFilter.latestDate:
+        events.sort((a, b) => b.date.compareTo(a.date));
+        return;
+      case _EventSortFilter.titleAz:
+        events.sort(
+          (a, b) => a.title.toLowerCase().compareTo(b.title.toLowerCase()),
+        );
+        return;
+    }
+  }
+
+  Future<void> _openEventFilters({
+    required List<String> categories,
+    required String selectedCategory,
+  }) async {
+    final companyController = TextEditingController(text: _companyNameQuery);
+    var localCategory = selectedCategory;
+    var localDateFilter = _eventDateFilter;
+    var localSortFilter = _eventSortFilter;
+    var localOnlyWithTickets = _onlyWithAvailableTickets;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) {
+        final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.fromLTRB(16, 8, 16, bottomInset + 16),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Filtros',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    DropdownButtonFormField<String>(
+                      initialValue: categories.contains(localCategory)
+                          ? localCategory
+                          : categories.first,
+                      decoration: const InputDecoration(
+                        labelText: 'Tipo de evento',
+                      ),
+                      items: categories
+                          .map(
+                            (category) => DropdownMenuItem<String>(
+                              value: category,
+                              child: Text(category),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (value) {
+                        if (value == null) return;
+                        setModalState(() => localCategory = value);
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: companyController,
+                      decoration: const InputDecoration(
+                        labelText: 'Nombre de compañía',
+                        hintText: 'Ej: Soka Events',
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<_EventDateFilter>(
+                      initialValue: localDateFilter,
+                      decoration: const InputDecoration(
+                        labelText: 'Fecha del evento',
+                      ),
+                      items: _EventDateFilter.values
+                          .map(
+                            (filter) => DropdownMenuItem<_EventDateFilter>(
+                              value: filter,
+                              child: Text(_labelForDateFilter(filter)),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (value) {
+                        if (value == null) return;
+                        setModalState(() => localDateFilter = value);
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<_EventSortFilter>(
+                      initialValue: localSortFilter,
+                      decoration: const InputDecoration(labelText: 'Orden'),
+                      items: _EventSortFilter.values
+                          .map(
+                            (filter) => DropdownMenuItem<_EventSortFilter>(
+                              value: filter,
+                              child: Text(_labelForSortFilter(filter)),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (value) {
+                        if (value == null) return;
+                        setModalState(() => localSortFilter = value);
+                      },
+                    ),
+                    const SizedBox(height: 8),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Solo con entradas disponibles'),
+                      value: localOnlyWithTickets,
+                      onChanged: (value) {
+                        setModalState(() => localOnlyWithTickets = value);
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () {
+                              setState(() {
+                                _companyNameQuery = '';
+                                _eventDateFilter = _EventDateFilter.all;
+                                _eventSortFilter =
+                                    _EventSortFilter.defaultOrder;
+                                _onlyWithAvailableTickets = false;
+                                _selectedCategoryIndex = 0;
+                              });
+                              Navigator.pop(context);
+                            },
+                            child: const Text('Limpiar'),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () {
+                              final normalizedCompanyQuery = companyController
+                                  .text
+                                  .trim();
+                              final categoryIndex = categories.indexOf(
+                                localCategory,
+                              );
+
+                              setState(() {
+                                _companyNameQuery = normalizedCompanyQuery;
+                                _eventDateFilter = localDateFilter;
+                                _eventSortFilter = localSortFilter;
+                                _onlyWithAvailableTickets =
+                                    localOnlyWithTickets;
+                                _selectedCategoryIndex = categoryIndex < 0
+                                    ? 0
+                                    : categoryIndex;
+                              });
+                              Navigator.pop(context);
+                            },
+                            child: const Text('Aplicar'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+
+    companyController.dispose();
+  }
+
   Future<void> _openTicketScanner({
     required bool isCompanyUser,
     required bool isClientUser,
@@ -265,14 +545,30 @@ class _HomeScreenState extends State<HomeScreen> {
         ? events
         : events.where((event) => event.category == selectedCategory).toList();
     final query = _query.trim().toLowerCase();
-    final filteredEvents = query.isEmpty
+    final companyNameQuery = _companyNameQuery.trim().toLowerCase();
+
+    final textFiltered = query.isEmpty
         ? categoryFiltered
         : categoryFiltered.where((event) {
+            final organizerName = _organizerNameForEvent(event).toLowerCase();
             return event.title.toLowerCase().contains(query) ||
                 event.description.toLowerCase().contains(query) ||
                 event.location.toLowerCase().contains(query) ||
-                event.category.toLowerCase().contains(query);
+                event.category.toLowerCase().contains(query) ||
+                organizerName.contains(query);
           }).toList();
+
+    final filteredEvents = textFiltered.where((event) {
+      final organizerName = _organizerNameForEvent(event).toLowerCase();
+      final companyMatch =
+          companyNameQuery.isEmpty || organizerName.contains(companyNameQuery);
+      final dateMatch = _matchesDateFilter(event.date);
+      final availabilityMatch =
+          !_onlyWithAvailableTickets || event.totalRemaining > 0;
+      return companyMatch && dateMatch && availabilityMatch;
+    }).toList();
+
+    _sortEvents(filteredEvents);
 
     final pages = [
       // HOME REAL
@@ -288,9 +584,15 @@ class _HomeScreenState extends State<HomeScreen> {
                 pinned: true,
                 delegate: _HomeHeaderDelegate(
                   child: HomeHeader(
-                    eventCount: events.length,
+                    eventCount: filteredEvents.length,
                     onSearchChanged: (value) {
                       setState(() => _query = value);
+                    },
+                    onFilterTap: () {
+                      _openEventFilters(
+                        categories: categories,
+                        selectedCategory: selectedCategory,
+                      );
                     },
                     onQrTap: () {
                       _openTicketScanner(
@@ -486,8 +788,8 @@ class _HomeScreenState extends State<HomeScreen> {
             setState(() => _selectedIndex = index),
         backgroundColor: AppColors.primary,
         indicatorColor: AppColors.accent,
-        labelTextStyle: MaterialStateProperty.resolveWith<TextStyle?>((states) {
-          if (states.contains(MaterialState.selected)) {
+        labelTextStyle: WidgetStateProperty.resolveWith<TextStyle?>((states) {
+          if (states.contains(WidgetState.selected)) {
             return theme.textTheme.bodySmall?.copyWith(
               color: AppColors.primary,
               fontWeight: FontWeight.w600,
