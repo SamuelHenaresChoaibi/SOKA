@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:soka/models/models.dart';
-import 'package:soka/screens/event_editor_screen.dart';
+import 'package:soka/features/events/presentation/screens/event_editor_screen.dart';
 import 'package:soka/services/services.dart';
 import 'package:soka/theme/app_colors.dart';
 

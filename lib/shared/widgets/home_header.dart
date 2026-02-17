@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:soka/theme/app_colors.dart';
-import 'package:soka/widgets/widgets.dart';
+import 'package:soka/shared/widgets/widgets.dart';
 
 class HomeHeader extends StatelessWidget {
   final int eventCount;

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-import 'package:soka/screens/home_screen.dart';
-import 'package:soka/screens/login_screen.dart';
+import 'package:soka/features/home/presentation/screens/home_screen.dart';
+import 'package:soka/features/auth/presentation/screens/login_screen.dart';
 
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});

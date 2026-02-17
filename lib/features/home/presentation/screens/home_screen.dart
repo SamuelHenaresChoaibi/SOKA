@@ -4,14 +4,14 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:soka/models/models.dart';
-import 'package:soka/screens/calendar_screen.dart';
-import 'package:soka/screens/company_events_screen.dart';
-import 'package:soka/screens/favorites_history_screen.dart';
-import 'package:soka/screens/settings_screen.dart';
-import 'package:soka/screens/ticket_scan_screen.dart';
+import 'package:soka/features/home/presentation/screens/calendar_screen.dart';
+import 'package:soka/features/events/presentation/screens/company_events_screen.dart';
+import 'package:soka/features/events/presentation/screens/favorites_history_screen.dart';
+import 'package:soka/features/settings/presentation/screens/settings_screen.dart';
+import 'package:soka/features/tickets/presentation/screens/ticket_scan_screen.dart';
 import 'package:soka/services/services.dart';
 import 'package:soka/theme/app_colors.dart';
-import 'package:soka/widgets/widgets.dart';
+import 'package:soka/shared/widgets/widgets.dart';
 
 enum _EventDateFilter { all, upcoming, thisWeek, thisMonth }
 

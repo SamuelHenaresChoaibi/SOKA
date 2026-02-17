@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:soka/models/models.dart';
-import 'package:soka/screens/ticket_details_screen.dart';
+import 'package:soka/features/tickets/presentation/screens/ticket_details_screen.dart';
 import 'package:soka/services/services.dart';
 import 'package:soka/theme/app_colors.dart';
-import 'package:soka/widgets/event_card.dart';
+import 'package:soka/shared/widgets/event_card.dart';
 
 class FavoritesHistoryScreen extends StatelessWidget {
   final String userId;

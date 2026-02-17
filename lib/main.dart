@@ -7,11 +7,11 @@ import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'package:provider/provider.dart';
 import 'package:soka/firebase_options.dart';
 
-import 'package:soka/screens/home_screen.dart';
-import 'package:soka/screens/login_screen.dart';
-import 'package:soka/screens/signup_screen.dart';
-import 'package:soka/screens/event_details_screen.dart';
-import 'package:soka/screens/notifications_screen.dart';
+import 'package:soka/features/home/presentation/screens/home_screen.dart';
+import 'package:soka/features/auth/presentation/screens/login_screen.dart';
+import 'package:soka/features/auth/presentation/screens/signup_screen.dart';
+import 'package:soka/features/events/presentation/screens/event_details_screen.dart';
+import 'package:soka/features/home/presentation/screens/notifications_screen.dart';
 import 'package:soka/models/models.dart';
 import 'package:soka/services/services.dart';
 import 'package:soka/theme/app_theme.dart';

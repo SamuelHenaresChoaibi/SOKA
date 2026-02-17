@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:provider/provider.dart';
 import 'package:soka/models/models.dart';
-import 'package:soka/screens/event_details_screen.dart';
+import 'package:soka/features/events/presentation/screens/event_details_screen.dart';
 import 'package:soka/services/auth_service.dart';
 import 'package:soka/services/services.dart';
-import 'package:soka/screens/account_settings_screen.dart';
+import 'package:soka/features/settings/presentation/screens/account_settings_screen.dart';
 import 'package:soka/theme/app_colors.dart';
 
 class SettingsScreen extends StatefulWidget {

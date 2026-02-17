@@ -4,13 +4,13 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:soka/models/models.dart';
-import 'package:soka/screens/ticket_checkout_screen.dart';
-import 'package:soka/screens/ticket_details_screen.dart';
+import 'package:soka/features/tickets/presentation/screens/ticket_checkout_screen.dart';
+import 'package:soka/features/tickets/presentation/screens/ticket_details_screen.dart';
 import 'package:soka/services/services.dart';
 import 'package:soka/theme/app_colors.dart';
-import 'package:soka/widgets/bottom_cta.dart';
-import 'package:soka/widgets/category_chip.dart';
-import 'package:soka/widgets/icon_circle.dart';
+import 'package:soka/shared/widgets/bottom_cta.dart';
+import 'package:soka/shared/widgets/category_chip.dart';
+import 'package:soka/shared/widgets/icon_circle.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class EventDetailsScreen extends StatefulWidget {
