@@ -189,9 +189,9 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
 
     final resolvedCategory = _resolveCategory();
     if (resolvedCategory == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Select a valid category')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Select a valid category')));
       setState(() => _isSaving = false);
       return;
     }
@@ -204,7 +204,7 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
     final sokaService = context.read<SokaService>();
     final maxTicketsPerUser =
         int.tryParse(_maxTicketsPerUserController.text.trim()) ??
-            (widget.event?.maxTicketsPerUser ?? 4);
+        (widget.event?.maxTicketsPerUser ?? 4);
 
     try {
       var imageUrl = _imageUrlController.text.trim();
@@ -241,7 +241,7 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
           'title': _titleController.text.trim(),
           'validated': event.validated,
         };
-        
+
         await sokaService.updateEvent(event.id, updatedData);
         if (!mounted) return;
         Navigator.pop(context, event.id);
@@ -253,9 +253,9 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
           createdAt: now,
           date: _selectedDateTime!,
           description: _descriptionController.text.trim(),
-          imageUrl: imageUrl,           
+          imageUrl: imageUrl,
           //imageUrl: _imageUrlController.text.trim(),
-          location: location,           
+          location: location,
           //location: _locationController.text.trim(),
           locationFormatted: locationSuggestion?.formatted,
           locationLat: locationSuggestion?.lat,
@@ -265,7 +265,7 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
           locationPostcode: locationSuggestion?.postcode,
           locationCountry: locationSuggestion?.country,
           organizerId: widget.organizerId,
-          ticketTypes: ticketTypes,           
+          ticketTypes: ticketTypes,
           maxTicketsPerUser: maxTicketsPerUser,
           title: _titleController.text.trim(),
           validated: false,
@@ -571,7 +571,8 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
                                       const SizedBox(height: 12),
                                       _textField(
                                         controller: c.remaining,
-                                        label: 'Available tickets (leave empty to match capacity)',
+                                        label:
+                                            'Available tickets (leave empty to match capacity)',
                                         keyboardType: TextInputType.number,
                                         inputFormatters: [
                                           FilteringTextInputFormatter
@@ -773,9 +774,7 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
     if (!GeoapifyService.hasApiKey) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            'Configure GEOAPIFY_API_KEY to validate the location.',
-          ),
+          content: Text('Configure GEOAPIFY_API_KEY to validate the location.'),
         ),
       );
       return false;
@@ -792,9 +791,9 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
     try {
       final suggestions = await _geoapifyService.suggest(location, limit: 1);
       if (suggestions.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: const Text('Location not found.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: const Text('Location not found.')));
         return false;
       }
       _selectedLocation = suggestions.first;
@@ -1143,9 +1142,16 @@ class _Header extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      decoration: const BoxDecoration(
-        color: AppColors.primary,
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            AppColors.primary,
+            AppColors.secondary.withValues(alpha: 0.95),
+          ],
+        ),
+        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(30)),
       ),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 10, 16, 18),
@@ -1158,7 +1164,7 @@ class _Header extends StatelessWidget {
                   onPressed: onBack,
                   icon: const Icon(
                     Icons.arrow_back_ios_new_rounded,
-                    color: AppColors.surface,
+                    color: AppColors.textPrimary,
                     size: 20,
                   ),
                 ),
@@ -1167,7 +1173,7 @@ class _Header extends StatelessWidget {
                   child: Text(
                     title,
                     style: const TextStyle(
-                      color: AppColors.surface,
+                      color: AppColors.textPrimary,
                       fontSize: 26,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 0.2,
@@ -1182,7 +1188,7 @@ class _Header extends StatelessWidget {
               child: Text(
                 subtitle,
                 style: TextStyle(
-                  color: AppColors.surface.withAlpha(191),
+                  color: AppColors.textSecondary.withValues(alpha: 0.9),
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
                 ),

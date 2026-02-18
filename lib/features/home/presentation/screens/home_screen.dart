@@ -476,25 +476,31 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     }
 
-    final eventById = <String, Event>{for (final e in sokaService.events) e.id: e};
+    final eventById = <String, Event>{
+      for (final e in sokaService.events) e.id: e,
+    };
 
-    final attendedPastEventIds = sokaService.soldTickets
-        .where(
-          (t) =>
-              (t.buyerUserId == clientId || t.buyerUserId == client.userName) &&
-              t.isCheckedIn,
-        )
-        .map((t) => eventById[t.eventId.trim()])
-        .whereType<Event>()
-        .where((event) => event.date.isBefore(now))
-        .map((event) => event.id)
-        .toSet()
-        .toList()
-      ..sort((a, b) {
-        final dateA = eventById[a]?.date ?? DateTime.fromMillisecondsSinceEpoch(0);
-        final dateB = eventById[b]?.date ?? DateTime.fromMillisecondsSinceEpoch(0);
-        return dateB.compareTo(dateA);
-      });
+    final attendedPastEventIds =
+        sokaService.soldTickets
+            .where(
+              (t) =>
+                  (t.buyerUserId == clientId ||
+                      t.buyerUserId == client.userName) &&
+                  t.isCheckedIn,
+            )
+            .map((t) => eventById[t.eventId.trim()])
+            .whereType<Event>()
+            .where((event) => event.date.isBefore(now))
+            .map((event) => event.id)
+            .toSet()
+            .toList()
+          ..sort((a, b) {
+            final dateA =
+                eventById[a]?.date ?? DateTime.fromMillisecondsSinceEpoch(0);
+            final dateB =
+                eventById[b]?.date ?? DateTime.fromMillisecondsSinceEpoch(0);
+            return dateB.compareTo(dateA);
+          });
 
     final updatedHistory = attendedPastEventIds
         .where((id) => id.isNotEmpty)
@@ -614,32 +620,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  String _labelForDateFilter(_EventDateFilter filter) {
-    switch (filter) {
-      case _EventDateFilter.all:
-        return 'All';
-      case _EventDateFilter.upcoming:
-        return 'Upcoming';
-      case _EventDateFilter.thisWeek:
-        return 'This week';
-      case _EventDateFilter.thisMonth:
-        return 'This month';
-    }
-  }
-
-  String _labelForSortFilter(_EventSortFilter filter) {
-    switch (filter) {
-      case _EventSortFilter.defaultOrder:
-        return 'Proximity';
-      case _EventSortFilter.nearestDate:
-        return 'Nearest first';
-      case _EventSortFilter.latestDate:
-        return 'Latest';
-      case _EventSortFilter.titleAz:
-        return 'Name (A-Z)';
-    }
-  }
-
   void _sortEvents(List<Event> events) {
     switch (_eventSortFilter) {
       case _EventSortFilter.defaultOrder:
@@ -724,22 +704,28 @@ class _HomeScreenState extends State<HomeScreen> {
       return upcomingEvents.take(8).toList();
     }
 
-    final eventsWithCoords = upcomingEvents
-        .where((event) => event.locationLat != null && event.locationLng != null)
-        .toList()
-      ..sort(
-        (a, b) => _compareEventsByProximity(
-          a,
-          b,
-          userPosition.latitude,
-          userPosition.longitude,
-        ),
-      );
+    final eventsWithCoords =
+        upcomingEvents
+            .where(
+              (event) => event.locationLat != null && event.locationLng != null,
+            )
+            .toList()
+          ..sort(
+            (a, b) => _compareEventsByProximity(
+              a,
+              b,
+              userPosition.latitude,
+              userPosition.longitude,
+            ),
+          );
 
-    final eventsWithoutCoords = upcomingEvents
-        .where((event) => event.locationLat == null || event.locationLng == null)
-        .toList()
-      ..sort((a, b) => a.date.compareTo(b.date));
+    final eventsWithoutCoords =
+        upcomingEvents
+            .where(
+              (event) => event.locationLat == null || event.locationLng == null,
+            )
+            .toList()
+          ..sort((a, b) => a.date.compareTo(b.date));
 
     return [...eventsWithCoords, ...eventsWithoutCoords].take(8).toList();
   }
@@ -749,13 +735,14 @@ class _HomeScreenState extends State<HomeScreen> {
     required List<String> categories,
     required String selectedCategory,
   }) async {
-    final companySuggestions = <String>{
-      ..._organizerNameById.values.map((name) => name.trim()),
-      ...events
-          .map((event) => _organizerNameForEvent(event).trim())
-          .where((name) => name.isNotEmpty),
-    }.where((name) => name.isNotEmpty).toList()
-      ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    final companySuggestions =
+        <String>{
+            ..._organizerNameById.values.map((name) => name.trim()),
+            ...events
+                .map((event) => _organizerNameForEvent(event).trim())
+                .where((name) => name.isNotEmpty),
+          }.where((name) => name.isNotEmpty).toList()
+          ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
 
     final result = await showModalBottomSheet<_EventFiltersResult>(
       context: context,
@@ -790,9 +777,7 @@ class _HomeScreenState extends State<HomeScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            'You need a client or company profile to scan.',
-          ),
+          content: Text('You need a client or company profile to scan.'),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -862,13 +847,12 @@ class _HomeScreenState extends State<HomeScreen> {
     _sortEvents(filteredEvents);
     final nearbyEvents = _nearbyEvents(filteredEvents);
     final nearbyTitle = _userPosition == null
-        ? 'Eventos cercanos (activa ubicacion para mejorar)'
-        : 'Eventos cerca de ti';
+        ? 'Near you (enable location for better results)'
+        : 'Events near you';
 
     final pages = [
       // HOME REAL
-      Container(
-        color: AppColors.background,
+      SokaLuxuryBackground(
         child: RefreshIndicator(
           color: AppColors.accent,
           backgroundColor: AppColors.primary,
@@ -942,20 +926,26 @@ class _HomeScreenState extends State<HomeScreen> {
                 )
               else ...[
                 SliverToBoxAdapter(
-                  child: CategoryBar(
-                    categories: categories,
-                    selectedIndex: safeSelectedIndex,
-                    onSelected: (index) {
-                      setState(() => _selectedCategoryIndex = index);
-                    },
+                  child: SokaEntrance(
+                    delayMs: 40,
+                    child: CategoryBar(
+                      categories: categories,
+                      selectedIndex: safeSelectedIndex,
+                      onSelected: (index) {
+                        setState(() => _selectedCategoryIndex = index);
+                      },
+                    ),
                   ),
                 ),
                 SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.only(top: 8, bottom: 8),
-                    child: EventSlider(
-                      events: nearbyEvents,
-                      title: nearbyTitle,
+                  child: SokaEntrance(
+                    delayMs: 80,
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 8, bottom: 8),
+                      child: EventSlider(
+                        events: nearbyEvents,
+                        title: nearbyTitle,
+                      ),
                     ),
                   ),
                 ),
@@ -966,10 +956,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       vertical: 16,
                     ),
                     child: Text(
-                      'Events',
+                      'All events',
                       style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
                         letterSpacing: 0.2,
                         color:
                             theme.textTheme.bodyMedium?.color ??
@@ -1081,22 +1071,30 @@ class _HomeScreenState extends State<HomeScreen> {
     );
 
     return Scaffold(
-      body: pages[_selectedIndex],
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 320),
+        switchInCurve: Curves.easeOutCubic,
+        switchOutCurve: Curves.easeInCubic,
+        child: KeyedSubtree(
+          key: ValueKey<int>(_selectedIndex),
+          child: pages[_selectedIndex],
+        ),
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _selectedIndex,
         onDestinationSelected: (index) =>
             setState(() => _selectedIndex = index),
-        backgroundColor: AppColors.primary,
+        backgroundColor: AppColors.primary.withValues(alpha: 0.97),
         indicatorColor: AppColors.accent,
         labelTextStyle: WidgetStateProperty.resolveWith<TextStyle?>((states) {
           if (states.contains(WidgetState.selected)) {
             return theme.textTheme.bodySmall?.copyWith(
               color: AppColors.primary,
-              fontWeight: FontWeight.w600,
+              fontWeight: FontWeight.w700,
             );
           }
           return theme.textTheme.bodySmall?.copyWith(
-            color: AppColors.cursorColor,
+            color: AppColors.textMuted,
           );
         }),
         destinations: [
@@ -1128,10 +1126,10 @@ class _HomeHeaderDelegate extends SliverPersistentHeaderDelegate {
   const _HomeHeaderDelegate({required this.child});
 
   @override
-  double get minExtent => 230;
+  double get minExtent => 248;
 
   @override
-  double get maxExtent => 230;
+  double get maxExtent => 248;
 
   @override
   Widget build(

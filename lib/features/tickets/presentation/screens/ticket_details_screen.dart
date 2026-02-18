@@ -21,7 +21,7 @@ class TicketDetailsScreen extends StatelessWidget {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.surface,
+        foregroundColor: AppColors.textPrimary,
         title: const Text('Ticket details'),
       ),
       body: SingleChildScrollView(
@@ -101,7 +101,10 @@ class TicketDetailsScreen extends StatelessWidget {
                   const SizedBox(height: 8),
                   _DetailRow(label: 'Ticket ID', value: '${ticket.idTicket}'),
                   const SizedBox(height: 8),
-                  _DetailRow(label: 'QR Code', value: ticket.idTicket.toString()),
+                  _DetailRow(
+                    label: 'QR Code',
+                    value: ticket.idTicket.toString(),
+                  ),
                   const SizedBox(height: 8),
                   _DetailRow(
                     label: 'Purchased on',

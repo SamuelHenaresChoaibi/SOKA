@@ -106,5 +106,6 @@ flutter run \
 
 **Assets**
 - `lib/assets/SOKA.png`
+- `lib/assets/SOKA Icon.jpg`
 - `lib/assets/SOKA.gif`
 - `lib/assets/iconfinder-new-google-favicon-682665.png`

@@ -27,16 +27,17 @@ class FavoritesHistoryScreen extends StatelessWidget {
         .map((id) => eventById[id])
         .whereType<Event>()
         .toList();
-    final purchasedTickets = context
-        .watch<SokaService>()
-        .soldTickets
-        .where(
-          (ticket) =>
-              ticket.buyerUserId == userId ||
-              ticket.buyerUserId == client.userName,
-        )
-        .toList()
-      ..sort((a, b) => b.purchaseDate.compareTo(a.purchaseDate));
+    final purchasedTickets =
+        context
+            .watch<SokaService>()
+            .soldTickets
+            .where(
+              (ticket) =>
+                  ticket.buyerUserId == userId ||
+                  ticket.buyerUserId == client.userName,
+            )
+            .toList()
+          ..sort((a, b) => b.purchaseDate.compareTo(a.purchaseDate));
 
     return DefaultTabController(
       length: 2,
@@ -63,10 +64,7 @@ class FavoritesHistoryScreen extends StatelessWidget {
                     favoriteEventIds: client.favoriteEventIds,
                     onToggleFavorite: onToggleFavorite,
                   ),
-                  _TicketsList(
-                    tickets: purchasedTickets,
-                    eventById: eventById,
-                  ),
+                  _TicketsList(tickets: purchasedTickets, eventById: eventById),
                 ],
               ),
             ),
@@ -94,9 +92,7 @@ class _FavoritesHistoryHeader extends StatelessWidget {
       width: double.infinity,
       decoration: const BoxDecoration(
         color: AppColors.primary,
-        borderRadius: BorderRadius.vertical(
-          bottom: Radius.circular(28),
-        ),
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
       ),
       child: SafeArea(
         bottom: false,
@@ -108,7 +104,7 @@ class _FavoritesHistoryHeader extends StatelessWidget {
               const Text(
                 'Events & Tickets',
                 style: TextStyle(
-                  color: AppColors.surface,
+                  color: AppColors.textPrimary,
                   fontSize: 30,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.2,
@@ -118,7 +114,7 @@ class _FavoritesHistoryHeader extends StatelessWidget {
               Text(
                 subtitle,
                 style: TextStyle(
-                  color: AppColors.surface.withAlpha(191),
+                  color: AppColors.textSecondary.withValues(alpha: 0.9),
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
                 ),
@@ -174,10 +170,7 @@ class _TicketsList extends StatelessWidget {
   final List<SoldTicket> tickets;
   final Map<String, Event> eventById;
 
-  const _TicketsList({
-    required this.tickets,
-    required this.eventById,
-  });
+  const _TicketsList({required this.tickets, required this.eventById});
 
   @override
   Widget build(BuildContext context) {
@@ -220,7 +213,8 @@ class _TicketsList extends StatelessWidget {
           final ticket = tickets[index];
           final event = eventById[ticket.eventId];
           final title = event?.title ?? 'Event not available';
-          final subtitle = '${ticket.ticketType} · ${_formatDateTime(ticket.purchaseDate)}';
+          final subtitle =
+              '${ticket.ticketType} · ${_formatDateTime(ticket.purchaseDate)}';
 
           return Card(
             shape: RoundedRectangleBorder(
@@ -228,11 +222,7 @@ class _TicketsList extends StatelessWidget {
             ),
             child: ListTile(
               leading: const Icon(Icons.confirmation_number_outlined),
-              title: Text(
-                title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
+              title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
               subtitle: Text(
                 subtitle,
                 maxLines: 2,
@@ -242,10 +232,8 @@ class _TicketsList extends StatelessWidget {
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (_) => TicketDetailsScreen(
-                      ticket: ticket,
-                      event: event,
-                    ),
+                    builder: (_) =>
+                        TicketDetailsScreen(ticket: ticket, event: event),
                   ),
                 );
               },
@@ -295,19 +283,15 @@ class _EventsList extends StatelessWidget {
       final subtitle = idsCount > 0 && !hasEventsLoaded
           ? 'Events have not been loaded yet. Swipe to refresh.'
           : (idsCount > 0 && hasEventsLoaded
-              ? 'We couldn\'t find these events. They may no longer be available.'
-              : emptySubtitle);
+                ? 'We couldn\'t find these events. They may no longer be available.'
+                : emptySubtitle);
 
       child = ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(32, 48, 32, 24),
         children: [
           const SizedBox(height: 32),
-          _EmptyState(
-            icon: emptyIcon,
-            title: emptyTitle,
-            subtitle: subtitle,
-          ),
+          _EmptyState(icon: emptyIcon, title: emptyTitle, subtitle: subtitle),
         ],
       );
     } else {
@@ -354,11 +338,7 @@ class _EmptyState extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(
-          icon,
-          size: 64,
-          color: AppColors.cursorColor,
-        ),
+        Icon(icon, size: 64, color: AppColors.cursorColor),
         const SizedBox(height: 16),
         Text(
           title,

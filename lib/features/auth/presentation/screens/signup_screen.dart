@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:soka/models/models.dart';
+import 'package:soka/shared/widgets/widgets.dart';
 import 'package:soka/services/auth_service.dart';
 import 'package:soka/services/services.dart';
 import 'package:soka/theme/app_colors.dart';
@@ -128,9 +129,9 @@ class _SignupScreenState extends State<SignupScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Google signup failed: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Google signup failed: $e')));
     } finally {
       if (mounted) setState(() => isLoading = false);
     }
@@ -142,7 +143,9 @@ class _SignupScreenState extends State<SignupScreen> {
         ? user.email!.trim()
         : emailController.text.trim();
     final displayName = (user.displayName ?? '').trim();
-    final displayParts = displayName.isEmpty ? <String>[] : displayName.split(' ');
+    final displayParts = displayName.isEmpty
+        ? <String>[]
+        : displayName.split(' ');
 
     if (_selectedTypeIndex == 0) {
       final fallbackUserName = email.contains('@')
@@ -165,7 +168,9 @@ class _SignupScreenState extends State<SignupScreen> {
         phoneNumber: phoneController.text.trim(),
         surname: surnameController.text.trim().isNotEmpty
             ? surnameController.text.trim()
-            : (displayParts.length > 1 ? displayParts.sublist(1).join(' ') : ''),
+            : (displayParts.length > 1
+                  ? displayParts.sublist(1).join(' ')
+                  : ''),
         userName: userNameController.text.trim().isNotEmpty
             ? userNameController.text.trim()
             : fallbackUserName,
@@ -226,131 +231,212 @@ class _SignupScreenState extends State<SignupScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16.0),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Image(
-                    image: AssetImage('lib/assets/SOKA.png'),
-                    height: 200,
-                  ),
-                  const SizedBox(height: 24),
-                  ToggleButtons(
-                    isSelected: [
-                      _selectedTypeIndex == 0,
-                      _selectedTypeIndex == 1,
-                    ],
-                    onPressed: (index) {
-                      setState(() {
-                        _selectedTypeIndex = index;
-                      });
-                    },
-                    borderRadius: BorderRadius.circular(12),
-                    children: const [
-                      Padding(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 10,
+      body: SokaLuxuryBackground(
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 560),
+                child: SokaEntrance(
+                  child: Container(
+                    padding: const EdgeInsets.fromLTRB(20, 22, 20, 18),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface.withValues(alpha: 0.95),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: AppColors.border),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.34),
+                          blurRadius: 24,
+                          offset: const Offset(0, 14),
                         ),
-                        child: Text('Clients'),
+                      ],
+                    ),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Image(
+                            image: AssetImage('lib/assets/SOKA.png'),
+                            height: 100,
+                          ),
+                          const SizedBox(height: 10),
+                          const Text(
+                            'Create your account',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: AppColors.textPrimary,
+                              fontSize: 24,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Join as attendee or company and start publishing or buying tickets.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: AppColors.textSecondary.withValues(
+                                alpha: 0.9,
+                              ),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 18),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: AppColors.secondary,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: AppColors.border),
+                            ),
+                            child: ToggleButtons(
+                              isSelected: [
+                                _selectedTypeIndex == 0,
+                                _selectedTypeIndex == 1,
+                              ],
+                              onPressed: (index) {
+                                setState(() {
+                                  _selectedTypeIndex = index;
+                                });
+                              },
+                              borderColor: Colors.transparent,
+                              selectedBorderColor: Colors.transparent,
+                              fillColor: AppColors.accent,
+                              selectedColor: AppColors.primary,
+                              color: AppColors.textSecondary,
+                              borderRadius: BorderRadius.circular(12),
+                              constraints: const BoxConstraints(
+                                minWidth: 120,
+                                minHeight: 42,
+                              ),
+                              children: const [
+                                Padding(
+                                  padding: EdgeInsets.symmetric(horizontal: 14),
+                                  child: Text('Clients'),
+                                ),
+                                Padding(
+                                  padding: EdgeInsets.symmetric(horizontal: 14),
+                                  child: Text('Companies'),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: emailController,
+                            style: const TextStyle(
+                              color: AppColors.textPrimary,
+                            ),
+                            decoration: const InputDecoration(
+                              labelText: 'Email',
+                              prefixIcon: Icon(
+                                Icons.alternate_email_rounded,
+                                color: AppColors.accent,
+                              ),
+                            ),
+                            keyboardType: TextInputType.emailAddress,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Required field';
+                              }
+                              if (!value.contains('@')) {
+                                return 'Invalid email address';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 16),
+                          if (_selectedTypeIndex == 0) ..._buildClientFields(),
+                          if (_selectedTypeIndex == 1) ..._buildCompanyFields(),
+                          const SizedBox(height: 16),
+                          TextFormField(
+                            controller: passwordController,
+                            style: const TextStyle(
+                              color: AppColors.textPrimary,
+                            ),
+                            decoration: const InputDecoration(
+                              labelText: 'Password',
+                              prefixIcon: Icon(
+                                Icons.lock_outline_rounded,
+                                color: AppColors.accent,
+                              ),
+                            ),
+                            obscureText: true,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Please enter your password';
+                              }
+                              return null;
+                            },
+                          ),
+                          const SizedBox(height: 22),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 50,
+                            child: ElevatedButton(
+                              onPressed: isLoading ? null : _signup,
+                              child: isLoading
+                                  ? const SizedBox(
+                                      height: 18,
+                                      width: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2.4,
+                                        color: AppColors.primary,
+                                      ),
+                                    )
+                                  : const Text('Sign Up'),
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          Row(
+                            children: const [
+                              Expanded(child: Divider(color: AppColors.border)),
+                              Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 8),
+                                child: Text(
+                                  'OR',
+                                  style: TextStyle(
+                                    color: AppColors.textMuted,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                              Expanded(child: Divider(color: AppColors.border)),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            height: 50,
+                            child: OutlinedButton.icon(
+                              onPressed: isLoading ? null : _signupWithGoogle,
+                              icon: Image.asset(
+                                'lib/assets/iconfinder-new-google-favicon-682665.png',
+                                height: 22,
+                                width: 22,
+                              ),
+                              label: const Text('Continue with Google'),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Text('Already have an account?'),
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.pushNamed(context, 'login');
+                                },
+                                child: const Text('Log In'),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
-                      Padding(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 10,
-                        ),
-                        child: Text('Companies'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16.0),
-                  TextFormField(
-                    controller: emailController,
-                    style: const TextStyle(color: AppColors.textPrimary),
-                    decoration: const InputDecoration(labelText: 'Email'),
-                    keyboardType: TextInputType.emailAddress,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Required field';
-                      }
-                      if (!value.contains('@')) {
-                        return 'Invalid email address';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 16.0),
-                  if (_selectedTypeIndex == 0) ..._buildClientFields(),
-                  if (_selectedTypeIndex == 1) ..._buildCompanyFields(),
-                  const SizedBox(height: 16.0),
-                  TextFormField(
-                    controller: passwordController,
-                    style: const TextStyle(color: AppColors.textPrimary),
-                    decoration: const InputDecoration(labelText: 'Password'),
-                    obscureText: true,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter your password';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 24.0),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed: isLoading ? null : _signup,
-                      child: isLoading
-                          ? const CircularProgressIndicator()
-                          : const Text('Sign Up'),
                     ),
                   ),
-                  const SizedBox(height: 16.0),
-                  Row(
-                    children: const [
-                      Expanded(child: Divider(color: AppColors.border)),
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 8),
-                        child: Text('o'),
-                      ),
-                      Expanded(child: Divider(color: AppColors.border)),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    height: 50,
-                    child: OutlinedButton.icon(
-                      onPressed: isLoading ? null : _signupWithGoogle,
-                      icon: Image.asset(
-                        'lib/assets/iconfinder-new-google-favicon-682665.png',
-                        height: 24,
-                        width: 24,
-                      ),
-                      label: const Text('Continue with Google'),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text('Already have an account?'),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pushNamed(context, 'login');
-                        },
-                        child: const Text('Log In'),
-                      ),
-                    ],
-                  ),
-                ],
+                ),
               ),
             ),
           ),
@@ -396,7 +482,9 @@ class _SignupScreenState extends State<SignupScreen> {
     return [
       Row(
         children: [
-          Expanded(child: _textInput(controller: nameController, label: 'Name')),
+          Expanded(
+            child: _textInput(controller: nameController, label: 'Name'),
+          ),
           const SizedBox(width: 16),
           Expanded(
             child: _textInput(controller: surnameController, label: 'Surname'),
@@ -404,10 +492,7 @@ class _SignupScreenState extends State<SignupScreen> {
         ],
       ),
       const SizedBox(height: 16.0),
-      _textInput(
-        controller: userNameController,
-        label: 'Username',
-      ),
+      _textInput(controller: userNameController, label: 'Username'),
       const SizedBox(height: 16.0),
       _textInput(
         controller: phoneController,
@@ -445,10 +530,7 @@ class _SignupScreenState extends State<SignupScreen> {
   // Campos específicos para empresas
   List<Widget> _buildCompanyFields() {
     return [
-      _textInput(
-        controller: companyNameController,
-        label: 'Company Name',
-      ),
+      _textInput(controller: companyNameController, label: 'Company Name'),
       const SizedBox(height: 16.0),
       _textInput(
         controller: companyPhoneController,
@@ -456,10 +538,7 @@ class _SignupScreenState extends State<SignupScreen> {
         keyboardType: TextInputType.phone,
       ),
       const SizedBox(height: 16.0),
-      _textInput(
-        controller: companyAddressController,
-        label: 'Address',
-      ),
+      _textInput(controller: companyAddressController, label: 'Address'),
       const SizedBox(height: 16.0),
       _textInput(
         controller: companyWebsiteController,

@@ -10,18 +10,14 @@ class IconCircle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppColors.surface.withOpacity(0.16),
+      color: AppColors.surface.withValues(alpha: 0.26),
       shape: const CircleBorder(),
       child: InkWell(
         customBorder: const CircleBorder(),
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(10),
-          child: Icon(
-            icon,
-            color: AppColors.primary,
-            size: 20,
-          ),
+          child: Icon(icon, color: AppColors.textPrimary, size: 20),
         ),
       ),
     );

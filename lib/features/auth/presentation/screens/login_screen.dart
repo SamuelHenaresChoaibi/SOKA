@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:soka/shared/widgets/widgets.dart';
 import 'package:soka/services/auth_service.dart';
 import 'package:soka/theme/app_colors.dart';
 
@@ -107,14 +108,14 @@ class _LoginScreenState extends State<LoginScreen> {
       );
     } on FirebaseAuthException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_mapResetPasswordError(e))),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_mapResetPasswordError(e))));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error inesperado: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error inesperado: $e')));
     } finally {
       if (mounted) setState(() => isLoading = false);
     }
@@ -126,10 +127,7 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => isLoading = true);
 
     try {
-      await authService.login(
-        emailController.text,
-        passwordController.text,
-      );
+      await authService.login(emailController.text, passwordController.text);
       // AuthGate se encarga de la navegación
     } on FirebaseAuthException catch (e) {
       String message = 'Error sign in';
@@ -145,8 +143,9 @@ class _LoginScreenState extends State<LoginScreen> {
           break;
       }
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(message)));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
     } finally {
       if (mounted) setState(() => isLoading = false);
     }
@@ -164,9 +163,7 @@ class _LoginScreenState extends State<LoginScreen> {
         if (!mounted) return;
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Google sign-in cancelled'),
-          ),
+          const SnackBar(content: Text('Google sign-in cancelled')),
         );
         return;
       }
@@ -175,28 +172,23 @@ class _LoginScreenState extends State<LoginScreen> {
       debugPrint('Google Sign-In FirebaseAuthException message: ${e.message}');
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(_mapGoogleAuthError(e)),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_mapGoogleAuthError(e))));
     } catch (e, stackTrace) {
       debugPrint('Google Sign-In unexpected error: $e');
       debugPrint('StackTrace: $stackTrace');
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Unexpected error: $e'),
-        ),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Unexpected error: $e')));
     } finally {
       if (mounted) {
         setState(() => isLoading = false);
       }
     }
   }
-
 
   @override
   void dispose() {
@@ -208,86 +200,142 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const Image(
-                    image: AssetImage('lib/assets/SOKA.png'),
-                    height: 200,
-                  ),
-                  const SizedBox(height: 40),
-
-                  _input(emailController, 'Email', icon: Icons.person),
-                  const SizedBox(height: 16),
-                  _input(passwordController, 'Password',
-                      obscure: true, icon: Icons.lock),
-                  const SizedBox(height: 24),
-
-                  SizedBox(
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed: isLoading ? null : _login,
-                      child: isLoading
-                          ? const CircularProgressIndicator(
-                              color: AppColors.surface,
-                            )
-                          : const Text('Sign In'),
+      body: SokaLuxuryBackground(
+        child: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 520),
+                child: SokaEntrance(
+                  child: Container(
+                    padding: const EdgeInsets.fromLTRB(22, 24, 22, 20),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface.withValues(alpha: 0.95),
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: AppColors.border),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.35),
+                          blurRadius: 24,
+                          offset: const Offset(0, 14),
+                        ),
+                      ],
+                    ),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const Image(
+                            image: AssetImage('lib/assets/SOKA.png'),
+                            height: 110,
+                          ),
+                          const SizedBox(height: 12),
+                          const Text(
+                            'Welcome back',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: AppColors.textPrimary,
+                              fontSize: 24,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Sign in to continue exploring the best events.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: AppColors.textSecondary.withValues(
+                                alpha: 0.9,
+                              ),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 22),
+                          _input(
+                            emailController,
+                            'Email',
+                            icon: Icons.alternate_email_rounded,
+                          ),
+                          const SizedBox(height: 14),
+                          _input(
+                            passwordController,
+                            'Password',
+                            obscure: true,
+                            icon: Icons.lock_outline_rounded,
+                          ),
+                          const SizedBox(height: 22),
+                          SizedBox(
+                            height: 50,
+                            child: ElevatedButton(
+                              onPressed: isLoading ? null : _login,
+                              child: isLoading
+                                  ? const SizedBox(
+                                      height: 18,
+                                      width: 18,
+                                      child: CircularProgressIndicator(
+                                        color: AppColors.primary,
+                                        strokeWidth: 2.4,
+                                      ),
+                                    )
+                                  : const Text('Sign In'),
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                          Row(
+                            children: const [
+                              Expanded(child: Divider(color: AppColors.border)),
+                              Padding(
+                                padding: EdgeInsets.symmetric(horizontal: 8),
+                                child: Text(
+                                  'OR',
+                                  style: TextStyle(
+                                    color: AppColors.textMuted,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ),
+                              Expanded(child: Divider(color: AppColors.border)),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+                          SizedBox(
+                            height: 50,
+                            child: OutlinedButton.icon(
+                              onPressed: isLoading ? null : _loginWithGoogle,
+                              icon: Image.asset(
+                                'lib/assets/iconfinder-new-google-favicon-682665.png',
+                                height: 22,
+                                width: 22,
+                              ),
+                              label: const Text('Continue with Google'),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          TextButton(
+                            onPressed: isLoading ? null : _forgotPassword,
+                            child: const Text('Forgot your password?'),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Text("Don't have an account?"),
+                              TextButton(
+                                onPressed: () {
+                                  Navigator.pushNamed(context, 'register');
+                                },
+                                child: const Text('Register'),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 12),
-
-                  Row(
-                    children: [
-                      const Expanded(child: Divider(color: AppColors.border)),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 8),
-                        child: Text('o'),
-                      ),
-                      const Expanded(child: Divider(color: AppColors.border)),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-
-                  SizedBox(
-                    height: 50,
-                    child: OutlinedButton.icon(
-                      onPressed: isLoading ? null : _loginWithGoogle,
-                      icon: Image.asset(
-                        'lib/assets/iconfinder-new-google-favicon-682665.png',
-                        height: 24,
-                        width: 24,
-                      ),
-                      label: const Text('Continue with Google'),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-
-                  TextButton(
-                    onPressed: isLoading ? null : _forgotPassword,
-                    child: const Text('Forgot your password?'),
-                  ),
-
-                  const SizedBox(height: 12),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text("Don't have an account?"),
-                      TextButton(
-                        onPressed: () {
-                          Navigator.pushNamed(context, 'register');
-                        },
-                        child: const Text('Register'),
-                      ),
-                    ],
-                  ),
-                ],
+                ),
               ),
             ),
           ),
@@ -296,8 +344,12 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _input(TextEditingController controller, String label,
-      {bool obscure = false, IconData? icon}) {
+  Widget _input(
+    TextEditingController controller,
+    String label, {
+    bool obscure = false,
+    IconData? icon,
+  }) {
     return TextFormField(
       controller: controller,
       obscureText: obscure,
@@ -316,11 +368,9 @@ class _LoginScreenState extends State<LoginScreen> {
       },
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: icon != null ? Icon(icon, color: AppColors.textSecondary) : null,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.border),
-        ),
+        prefixIcon: icon != null
+            ? Icon(icon, color: AppColors.accent.withValues(alpha: 0.9))
+            : null,
       ),
     );
   }

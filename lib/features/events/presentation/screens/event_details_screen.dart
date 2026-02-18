@@ -117,7 +117,8 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
 
     final isSoldOut = !event.hasTicketTypes || totalRemaining <= 0;
     final isUserContextLoading = currentUser != null && _isLoadingUserTickets;
-    final isLimitReachedForUser = hasAuthenticatedSession &&
+    final isLimitReachedForUser =
+        hasAuthenticatedSession &&
         remainingByUser != null &&
         remainingByUser <= 0;
     final canOpenCheckout =
@@ -701,7 +702,7 @@ class _InfoTile extends StatelessWidget {
     final valueStyle = TextStyle(
       fontSize: 13,
       fontWeight: FontWeight.w700,
-      color: isInteractive ? AppColors.primary : AppColors.textPrimary,
+      color: isInteractive ? AppColors.accent : AppColors.textPrimary,
       height: 1.2,
       decoration: isInteractive ? TextDecoration.underline : null,
     );
@@ -776,7 +777,7 @@ class _ValidatedChip extends StatelessWidget {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w800,
-              color: AppColors.surface,
+              color: AppColors.textPrimary,
             ),
           ),
         ],
@@ -927,7 +928,9 @@ class _UserTicketCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
-                    color: ticket.isCheckedIn ? Colors.green : AppColors.textMuted,
+                    color: ticket.isCheckedIn
+                        ? Colors.green
+                        : AppColors.textMuted,
                   ),
                 ),
               ],
