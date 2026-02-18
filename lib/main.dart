@@ -14,19 +14,50 @@ import 'package:soka/models/models.dart';
 import 'package:soka/services/services.dart';
 import 'package:soka/theme/app_theme.dart';
 
+final ValueNotifier<String?> _globalErrorMessage = ValueNotifier<String?>(null);
+
+void _showErrorOnScreen(Object error) {
+  _globalErrorMessage.value = error.toString();
+}
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  ErrorWidget.builder = (details) {
+    _showErrorOnScreen(details.exception);
+    return Material(
+      color: Colors.red.shade700,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Text(
+          details.exceptionAsString(),
+          style: const TextStyle(color: Colors.white),
+        ),
+      ),
+    );
+  };
 
   if (!kIsWeb) {
     await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);
     FlutterError.onError = (errorDetails) {
       FlutterError.presentError(errorDetails);
+      _showErrorOnScreen(errorDetails.exception);
       FirebaseCrashlytics.instance.recordFlutterFatalError(errorDetails);
     };
     PlatformDispatcher.instance.onError = (error, stack) {
+      _showErrorOnScreen(error);
       FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
       return true;
+    };
+  } else {
+    FlutterError.onError = (errorDetails) {
+      FlutterError.presentError(errorDetails);
+      _showErrorOnScreen(errorDetails.exception);
+    };
+    PlatformDispatcher.instance.onError = (error, stack) {
+      _showErrorOnScreen(error);
+      return false;
     };
   }
 
@@ -68,13 +99,41 @@ class MyApp extends StatelessWidget {
       title: 'SOKA',
       builder: (context, child) {
         final mediaQuery = MediaQuery.of(context);
-        return MediaQuery(
-          data: mediaQuery.copyWith(
-            textScaler: TextScaler.linear(accessibility.textScaleFactor),
-            boldText: accessibility.boldText,
-            accessibleNavigation: accessibility.reduceMotion,
-          ),
-          child: child ?? const SizedBox.shrink(),
+        return Stack(
+          children: [
+            MediaQuery(
+              data: mediaQuery.copyWith(
+                textScaler: TextScaler.linear(accessibility.textScaleFactor),
+                boldText: accessibility.boldText,
+                accessibleNavigation: accessibility.reduceMotion,
+              ),
+              child: child ?? const SizedBox.shrink(),
+            ),
+            ValueListenableBuilder<String?>(
+              valueListenable: _globalErrorMessage,
+              builder: (context, errorMessage, _) {
+                if (errorMessage == null || errorMessage.isEmpty) {
+                  return const SizedBox.shrink();
+                }
+                return Positioned(
+                  top: mediaQuery.padding.top + 8,
+                  left: 8,
+                  right: 8,
+                  child: Material(
+                    color: Colors.red.shade700,
+                    borderRadius: BorderRadius.circular(8),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Text(
+                        errorMessage,
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
         );
       },
       initialRoute: '/',
