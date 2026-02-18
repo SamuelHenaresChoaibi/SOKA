@@ -686,7 +686,7 @@ class _TicketCheckoutScreenState extends State<TicketCheckoutScreen> {
                               ),
                             ),
                             Text(
-                              'LLimit: $limitLabel',
+                              'Limit: $limitLabel',
                               style: const TextStyle(
                                 color: AppColors.textSecondary,
                                 fontWeight: FontWeight.w600,
