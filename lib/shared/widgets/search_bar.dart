@@ -15,45 +15,39 @@ class SearchBarSoka extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final fillColor =
-        theme.inputDecorationTheme.fillColor ?? AppColors.secondary;
-    const textColor = AppColors.textPrimary;
     return Container(
-      height: 52,
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      height: 56,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
       decoration: BoxDecoration(
-        color: fillColor,
-        borderRadius: BorderRadius.circular(26),
-        border: Border.all(
-          color: AppColors.cursorColor.withValues(alpha: 0.35),
-        ),
+        color: AppColors.secondary.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: AppColors.accent.withValues(alpha: 0.26)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 6),
+            color: Colors.black.withValues(alpha: 0.22),
+            blurRadius: 20,
+            offset: const Offset(0, 9),
           ),
         ],
       ),
       child: Row(
         children: [
-          const Icon(Icons.search, color: AppColors.cursorColor, size: 20),
+          const Icon(Icons.search_rounded, color: AppColors.accent, size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: TextField(
               decoration: InputDecoration(
-                hintText: 'Buscar eventos...',
+                hintText: 'Search events...',
                 border: InputBorder.none,
                 isDense: true,
-                hintStyle: TextStyle(
+                hintStyle: const TextStyle(
                   color: AppColors.textMuted,
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              style: TextStyle(
+              style: const TextStyle(
                 fontSize: 14,
-                color: textColor,
+                color: AppColors.textPrimary,
                 fontWeight: FontWeight.w500,
               ),
               onChanged: onChanged,
@@ -77,10 +71,11 @@ class _CountPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
       decoration: BoxDecoration(
-        color: AppColors.primary,
-        borderRadius: BorderRadius.circular(16),
+        color: AppColors.primary.withValues(alpha: 0.82),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.accent.withValues(alpha: 0.35)),
       ),
       child: Text(
         '$count',
@@ -102,14 +97,23 @@ class _FilterButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppColors.accent,
-      shape: const CircleBorder(),
+      color: Colors.transparent,
       child: InkWell(
-        customBorder: const CircleBorder(),
+        borderRadius: BorderRadius.circular(999),
         onTap: onTap,
-        child: const Padding(
-          padding: EdgeInsets.all(8),
-          child: Icon(Icons.tune, size: 18, color: AppColors.primary),
+        child: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: AppColors.accent,
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.accent.withValues(alpha: 0.35),
+                blurRadius: 10,
+              ),
+            ],
+          ),
+          child: const Icon(Icons.tune, size: 18, color: AppColors.primary),
         ),
       ),
     );

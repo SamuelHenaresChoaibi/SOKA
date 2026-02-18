@@ -7,6 +7,9 @@ class Client {
   final List<String?> interests;
   final String name;
   final String phoneNumber;
+  final double profileImageOffsetX;
+  final double profileImageOffsetY;
+  final String profileImageUrl;
   final String surname;
   final String userName;
 
@@ -19,6 +22,9 @@ class Client {
     required this.interests,
     required this.name,
     required this.phoneNumber,
+    required this.profileImageOffsetX,
+    required this.profileImageOffsetY,
+    required this.profileImageUrl,
     required this.surname,
     required this.userName,
   });
@@ -26,15 +32,18 @@ class Client {
   factory Client.fromJson(Map<String, dynamic> json) {
     return Client(
       age: (json['age'] ?? 0) as int,
-      createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
+      createdAt:
+          DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
           DateTime.now(),
       email: json['email'] ?? '',
       favoriteEventIds: _parseStringList(json['favoriteEventIds']),
       historyEventIds: _parseStringList(json['historyEventIds']),
-      interests:
-          List<String?>.from((json['interests'] ?? const <String?>[])),
+      interests: List<String?>.from((json['interests'] ?? const <String?>[])),
       name: json['name'] ?? '',
       phoneNumber: json['phoneNumber'] ?? '',
+      profileImageOffsetX: _parseDouble(json['profileImageOffsetX']),
+      profileImageOffsetY: _parseDouble(json['profileImageOffsetY']),
+      profileImageUrl: json['profileImageUrl'] ?? '',
       surname: json['surname'] ?? '',
       userName: json['userName'] ?? '',
     );
@@ -50,6 +59,9 @@ class Client {
       'interests': interests,
       'name': name,
       'phoneNumber': phoneNumber,
+      'profileImageOffsetX': profileImageOffsetX,
+      'profileImageOffsetY': profileImageOffsetY,
+      'profileImageUrl': profileImageUrl,
       'surname': surname,
       'userName': userName,
     };
@@ -64,6 +76,9 @@ class Client {
     List<String?>? interests,
     String? name,
     String? phoneNumber,
+    double? profileImageOffsetX,
+    double? profileImageOffsetY,
+    String? profileImageUrl,
     String? surname,
     String? userName,
   }) {
@@ -76,6 +91,9 @@ class Client {
       interests: interests ?? this.interests,
       name: name ?? this.name,
       phoneNumber: phoneNumber ?? this.phoneNumber,
+      profileImageOffsetX: profileImageOffsetX ?? this.profileImageOffsetX,
+      profileImageOffsetY: profileImageOffsetY ?? this.profileImageOffsetY,
+      profileImageUrl: profileImageUrl ?? this.profileImageUrl,
       surname: surname ?? this.surname,
       userName: userName ?? this.userName,
     );
@@ -88,5 +106,11 @@ class Client {
         .map((e) => e.toString())
         .where((e) => e.isNotEmpty)
         .toList();
+  }
+
+  static double _parseDouble(dynamic value) {
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 0.0;
+    return 0.0;
   }
 }

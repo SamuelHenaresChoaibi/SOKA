@@ -70,6 +70,7 @@ dev_dependencies:
 flutter:
   assets:
     - lib/assets/SOKA.png
+    - lib/assets/SOKA Icon.jpg
     - lib/assets/iconfinder-new-google-favicon-682665.png
 
   # The following line ensures that the Material Icons font is
@@ -109,5 +110,5 @@ flutter_launcher_icons:
   ios: true
   web:
     generate: true
-  image_path: "lib/assets/SOKA.png"
+  image_path: "lib/assets/SOKA Icon.jpg"
   min_sdk_android: 21

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:soka/models/models.dart';
+import 'package:soka/shared/widgets/widgets.dart';
 import 'package:soka/services/services.dart';
 import 'package:soka/theme/app_colors.dart';
 import 'package:table_calendar/table_calendar.dart';
@@ -26,61 +27,72 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final events = context.watch<SokaService>().events;
+    final events = context
+        .watch<SokaService>()
+        .events
+        .where((event) => event.isActive)
+        .toList();
     final eventsByDay = _groupEventsByDay(events);
     final selectedEvents = eventsByDay[_normalizeDay(_selectedDay)] ?? const [];
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: RefreshIndicator(
-        color: AppColors.accent,
-        backgroundColor: AppColors.primary,
-        onRefresh: () => context.read<SokaService>().fetchEvents(),
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const _CalendarHeader(),
-              _CalendarCard(
-                focusedDay: _focusedDay,
-                selectedDay: _selectedDay,
-                eventsByDay: eventsByDay,
-                onDaySelected: (selectedDay, focusedDay) {
-                  setState(() {
-                    _selectedDay = selectedDay;
-                    _focusedDay = focusedDay;
-                  });
-                },
-                onPageChanged: (focusedDay) {
-                  setState(() => _focusedDay = focusedDay);
-                },
-              ),
-              if (selectedEvents.isNotEmpty) ...[
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
-                  child: Text(
-                    'Event ${_selectedDay.day} of ${_monthName(_selectedDay.month)}',
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.2,
-                      color: AppColors.textPrimary,
-                    ),
+      body: SokaLuxuryBackground(
+        child: RefreshIndicator(
+          color: AppColors.accent,
+          backgroundColor: AppColors.primary,
+          onRefresh: () => context.read<SokaService>().fetchEvents(),
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const _CalendarHeader(),
+                SokaEntrance(
+                  child: _CalendarCard(
+                    focusedDay: _focusedDay,
+                    selectedDay: _selectedDay,
+                    eventsByDay: eventsByDay,
+                    onDaySelected: (selectedDay, focusedDay) {
+                      setState(() {
+                        _selectedDay = selectedDay;
+                        _focusedDay = focusedDay;
+                      });
+                    },
+                    onPageChanged: (focusedDay) {
+                      setState(() => _focusedDay = focusedDay);
+                    },
                   ),
                 ),
-                ListView.builder(
-                  itemCount: selectedEvents.length,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  padding: const EdgeInsets.only(bottom: 24),
-                  itemBuilder: (context, index) {
-                    return _DayEventCard(event: selectedEvents[index]);
-                  },
-                ),
-              ] else
-                const SizedBox(height: 24),
-            ],
+                if (selectedEvents.isNotEmpty) ...[
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 20, 16, 8),
+                    child: Text(
+                      'Events on ${_selectedDay.day} ${_monthName(_selectedDay.month)}',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.2,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                  ListView.builder(
+                    itemCount: selectedEvents.length,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    padding: const EdgeInsets.only(bottom: 24),
+                    itemBuilder: (context, index) {
+                      return SokaEntrance(
+                        delayMs: 40 + (index * 70),
+                        child: _DayEventCard(event: selectedEvents[index]),
+                      );
+                    },
+                  ),
+                ] else
+                  const SizedBox(height: 24),
+              ],
+            ),
           ),
         ),
       ),
@@ -130,11 +142,16 @@ class _CalendarHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      decoration: const BoxDecoration(
-        color: AppColors.primary,
-        borderRadius: BorderRadius.vertical(
-          bottom: Radius.circular(28),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            AppColors.primary,
+            AppColors.secondary.withValues(alpha: 0.95),
+          ],
         ),
+        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
       ),
       child: SafeArea(
         bottom: false,
@@ -146,7 +163,7 @@ class _CalendarHeader extends StatelessWidget {
               const Text(
                 'Calendar',
                 style: TextStyle(
-                  color: AppColors.surface,
+                  color: AppColors.textPrimary,
                   fontSize: 30,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.2,
@@ -156,7 +173,7 @@ class _CalendarHeader extends StatelessWidget {
               Text(
                 'Plan your leisure in Mallorca',
                 style: TextStyle(
-                  color: AppColors.surface.withAlpha(191),
+                  color: AppColors.textSecondary.withValues(alpha: 0.9),
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
                 ),
@@ -315,15 +332,15 @@ class _DayCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final backgroundColor = isSelected
-        ? AppColors.primary
+        ? AppColors.accent
         : hasEvents
-            ? AppColors.secondary
-            : Colors.transparent;
+        ? AppColors.secondary
+        : Colors.transparent;
     final border = isToday && !isSelected
         ? Border.all(color: AppColors.border)
         : null;
-    final textColor = isSelected ? AppColors.surface : AppColors.textPrimary;
-    final dotColor = isSelected ? AppColors.surface : AppColors.primary;
+    final textColor = isSelected ? AppColors.primary : AppColors.textPrimary;
+    final dotColor = isSelected ? AppColors.primary : AppColors.accent;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 150),
@@ -375,10 +392,10 @@ class _DayEventCard extends StatelessWidget {
     final priceLabel = !event.hasTicketTypes
         ? 'No tickets'
         : minPrice <= 0
-            ? 'Free'
-            : minPrice == maxPrice
-                ? '${minPrice}€'
-                : 'From ${minPrice}€';
+        ? 'Free'
+        : minPrice == maxPrice
+        ? '$minPrice€'
+        : 'From $minPrice€';
     final timeLabel = _formatTime(event.date.toLocal());
 
     return Padding(
@@ -390,11 +407,7 @@ class _DayEventCard extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(18),
           onTap: () {
-            Navigator.pushNamed(
-              context,
-              'details',
-              arguments: event,
-            );
+            Navigator.pushNamed(context, 'details', arguments: event);
           },
           child: Container(
             decoration: BoxDecoration(

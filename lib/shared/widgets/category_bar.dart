@@ -6,7 +6,8 @@ class CategoryBar extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onSelected;
 
-  const CategoryBar({super.key, 
+  const CategoryBar({
+    super.key,
     required this.categories,
     required this.selectedIndex,
     required this.onSelected,
@@ -14,9 +15,8 @@ class CategoryBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Container(
-      color: AppColors.background,
+      color: Colors.transparent,
       padding: const EdgeInsets.symmetric(vertical: 14),
       child: SizedBox(
         height: 44,
@@ -27,23 +27,44 @@ class CategoryBar extends StatelessWidget {
           separatorBuilder: (_, _) => const SizedBox(width: 10),
           itemBuilder: (context, index) {
             final isSelected = index == selectedIndex;
-            return ChoiceChip(
-              label: Text(categories[index]),
-              selected: isSelected,
-              onSelected: (_) => onSelected(index),
-              labelStyle: TextStyle(
-                fontWeight: FontWeight.w600,
-                color: isSelected
-                    ? AppColors.primary
-                    : theme.textTheme.bodyMedium?.color ??
-                        AppColors.textSecondary,
-              ),
-              backgroundColor: AppColors.secondary,
-              selectedColor: AppColors.accent,
-              side: const BorderSide(color: AppColors.secondary),
-              padding: const EdgeInsets.symmetric(horizontal: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(22),
+            return Material(
+              color: Colors.transparent,
+              child: InkWell(
+                borderRadius: BorderRadius.circular(24),
+                onTap: () => onSelected(index),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  curve: Curves.easeOutCubic,
+                  padding: const EdgeInsets.symmetric(horizontal: 15),
+                  decoration: BoxDecoration(
+                    color: isSelected ? AppColors.accent : AppColors.secondary,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: isSelected
+                          ? AppColors.accent
+                          : AppColors.border.withValues(alpha: 0.9),
+                    ),
+                    boxShadow: isSelected
+                        ? [
+                            BoxShadow(
+                              color: AppColors.accent.withValues(alpha: 0.26),
+                              blurRadius: 12,
+                            ),
+                          ]
+                        : null,
+                  ),
+                  child: Center(
+                    child: Text(
+                      categories[index],
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: isSelected
+                            ? AppColors.primary
+                            : AppColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                ),
               ),
             );
           },

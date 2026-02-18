@@ -23,13 +23,16 @@ class CompanyEventsScreen extends StatefulWidget {
 
 class _CompanyEventsScreenState extends State<CompanyEventsScreen> {
   bool _isWorking = false;
+  final Set<String> _visibilityUpdatingIds = <String>{};
 
   Future<void> _refresh() async {
     final sokaService = context.read<SokaService>();
     await sokaService.fetchEvents();
 
     try {
-      final updatedCompany = await sokaService.fetchCompanyById(widget.companyId);
+      final updatedCompany = await sokaService.fetchCompanyById(
+        widget.companyId,
+      );
       if (!mounted) return;
       if (updatedCompany != null) {
         widget.onCompanyUpdated(updatedCompany);
@@ -59,10 +62,9 @@ class _CompanyEventsScreenState extends State<CompanyEventsScreen> {
         createdEventId.trim(),
       ];
 
-      await context.read<SokaService>().updateCompany(
-        widget.companyId,
-        {'createdEventIds': updatedIds},
-      );
+      await context.read<SokaService>().updateCompany(widget.companyId, {
+        'createdEventIds': updatedIds,
+      });
 
       if (!mounted) return;
       widget.onCompanyUpdated(
@@ -81,10 +83,8 @@ class _CompanyEventsScreenState extends State<CompanyEventsScreen> {
     await Navigator.push<String>(
       context,
       MaterialPageRoute(
-        builder: (_) => EventEditorScreen(
-          organizerId: widget.companyId,
-          event: event,
-        ),
+        builder: (_) =>
+            EventEditorScreen(organizerId: widget.companyId, event: event),
       ),
     );
   }
@@ -100,10 +100,9 @@ class _CompanyEventsScreenState extends State<CompanyEventsScreen> {
         ...eventIds,
       }.toList();
 
-      await context.read<SokaService>().updateCompany(
-        widget.companyId,
-        {'createdEventIds': updatedIds},
-      );
+      await context.read<SokaService>().updateCompany(widget.companyId, {
+        'createdEventIds': updatedIds,
+      });
 
       if (!mounted) return;
       widget.onCompanyUpdated(
@@ -115,9 +114,9 @@ class _CompanyEventsScreenState extends State<CompanyEventsScreen> {
       );
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to link events')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Failed to link events')));
     } finally {
       if (mounted) setState(() => _isWorking = false);
     }
@@ -157,10 +156,9 @@ class _CompanyEventsScreenState extends State<CompanyEventsScreen> {
       if (widget.company.createdEventIds.contains(event.id)) {
         final updatedIds = List<String>.from(widget.company.createdEventIds)
           ..remove(event.id);
-        await context.read<SokaService>().updateCompany(
-          widget.companyId,
-          {'createdEventIds': updatedIds},
-        );
+        await context.read<SokaService>().updateCompany(widget.companyId, {
+          'createdEventIds': updatedIds,
+        });
         widget.onCompanyUpdated(
           widget.company.copyWith(createdEventIds: updatedIds),
         );
@@ -172,11 +170,41 @@ class _CompanyEventsScreenState extends State<CompanyEventsScreen> {
       );
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Failed to delete event')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Failed to delete event')));
     } finally {
       if (mounted) setState(() => _isWorking = false);
+    }
+  }
+
+  Future<void> _toggleEventVisibility(Event event, bool isActive) async {
+    if (_visibilityUpdatingIds.contains(event.id)) return;
+
+    setState(() => _visibilityUpdatingIds.add(event.id));
+    try {
+      await context.read<SokaService>().updateEvent(event.id, {
+        'isActive': isActive,
+      });
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isActive
+                ? 'Event is now visible for clients'
+                : 'Event hidden from clients',
+          ),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not update event visibility')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _visibilityUpdatingIds.remove(event.id));
+      }
     }
   }
 
@@ -192,10 +220,7 @@ class _CompanyEventsScreenState extends State<CompanyEventsScreen> {
         .toList();
 
     String normalize(String value) {
-      return value
-          .trim()
-          .toLowerCase()
-          .replaceAll(RegExp(r'[^a-z0-9]'), '');
+      return value.trim().toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
     }
 
     final normalizedCompanyId = normalize(widget.companyId);
@@ -235,7 +260,8 @@ class _CompanyEventsScreenState extends State<CompanyEventsScreen> {
         return true;
       }
 
-      if (rawCompanyInstagram.isNotEmpty && organizerRaw == rawCompanyInstagram) {
+      if (rawCompanyInstagram.isNotEmpty &&
+          organizerRaw == rawCompanyInstagram) {
         return true;
       }
 
@@ -284,8 +310,7 @@ class _CompanyEventsScreenState extends State<CompanyEventsScreen> {
                   child: _InfoBanner(
                     text:
                         'Showing events detected by organizer. You can link them to your account for easier management.',
-                    actionLabel:
-                        missingLinkedIds.isEmpty ? null : 'Vincular',
+                    actionLabel: missingLinkedIds.isEmpty ? null : 'Vincular',
                     onAction: missingLinkedIds.isEmpty
                         ? null
                         : () => _linkDetectedEvents(missingLinkedIds),
@@ -304,6 +329,11 @@ class _CompanyEventsScreenState extends State<CompanyEventsScreen> {
                     event: visibleEvents[index],
                     onEdit: () => _editEvent(visibleEvents[index]),
                     onDelete: () => _deleteEvent(visibleEvents[index]),
+                    onToggleVisibility: (value) =>
+                        _toggleEventVisibility(visibleEvents[index], value),
+                    isUpdatingVisibility: _visibilityUpdatingIds.contains(
+                      visibleEvents[index].id,
+                    ),
                   ),
                   childCount: visibleEvents.length,
                 ),
@@ -337,9 +367,7 @@ class _CompanyEventsHeader extends StatelessWidget {
       width: double.infinity,
       decoration: const BoxDecoration(
         color: AppColors.primary,
-        borderRadius: BorderRadius.vertical(
-          bottom: Radius.circular(28),
-        ),
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(28)),
       ),
       child: SafeArea(
         bottom: false,
@@ -354,7 +382,7 @@ class _CompanyEventsHeader extends StatelessWidget {
                     child: Text(
                       'My events',
                       style: TextStyle(
-                        color: AppColors.surface,
+                        color: AppColors.textPrimary,
                         fontSize: 30,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 0.2,
@@ -394,7 +422,7 @@ class _CompanyEventsHeader extends StatelessWidget {
               Text(
                 subtitle,
                 style: TextStyle(
-                  color: AppColors.surface.withAlpha(191),
+                  color: AppColors.textSecondary.withValues(alpha: 0.9),
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
                 ),
@@ -411,11 +439,15 @@ class _CompanyEventCard extends StatelessWidget {
   final Event event;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final ValueChanged<bool> onToggleVisibility;
+  final bool isUpdatingVisibility;
 
   const _CompanyEventCard({
     required this.event,
     required this.onEdit,
     required this.onDelete,
+    required this.onToggleVisibility,
+    required this.isUpdatingVisibility,
   });
 
   @override
@@ -425,10 +457,10 @@ class _CompanyEventCard extends StatelessWidget {
     final priceLabel = !event.hasTicketTypes
         ? 'No tickets'
         : minPrice <= 0
-            ? 'Free'
-            : minPrice == maxPrice
-                ? '€$minPrice'
-                : 'From €$minPrice';
+        ? 'Free'
+        : minPrice == maxPrice
+        ? '€$minPrice'
+        : 'From €$minPrice';
     final dateLabel = _formatDateTime(event.date.toLocal());
     final remaining = event.totalRemaining;
 
@@ -535,6 +567,63 @@ class _CompanyEventCard extends StatelessWidget {
                 const SizedBox(height: 12),
                 Row(
                   children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: event.isActive
+                            ? Colors.green.withValues(alpha: 0.16)
+                            : Colors.redAccent.withValues(alpha: 0.16),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: event.isActive
+                              ? Colors.green.withValues(alpha: 0.45)
+                              : Colors.redAccent.withValues(alpha: 0.45),
+                        ),
+                      ),
+                      child: Text(
+                        event.isActive ? 'Active' : 'Hidden',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          color: event.isActive
+                              ? Colors.green.shade200
+                              : Colors.red.shade200,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        event.isActive
+                            ? 'Visible for clients'
+                            : 'Not visible for clients',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textSecondary,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (isUpdatingVisibility)
+                      const SizedBox(
+                        height: 16,
+                        width: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    else
+                      Switch(
+                        value: event.isActive,
+                        onChanged: onToggleVisibility,
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
                     const Icon(
                       Icons.confirmation_number_outlined,
                       size: 18,
@@ -551,13 +640,13 @@ class _CompanyEventCard extends StatelessWidget {
                     ),
                     const Spacer(),
                     TextButton.icon(
-                      onPressed: onEdit,
+                      onPressed: isUpdatingVisibility ? null : onEdit,
                       icon: const Icon(Icons.edit_rounded, size: 18),
                       label: const Text('Edit'),
                     ),
                     const SizedBox(width: 4),
                     TextButton.icon(
-                      onPressed: onDelete,
+                      onPressed: isUpdatingVisibility ? null : onDelete,
                       icon: const Icon(Icons.delete_outline_rounded, size: 18),
                       label: const Text('Delete'),
                       style: TextButton.styleFrom(
@@ -650,11 +739,7 @@ class _InfoBanner extends StatelessWidget {
   final String? actionLabel;
   final VoidCallback? onAction;
 
-  const _InfoBanner({
-    required this.text,
-    this.actionLabel,
-    this.onAction,
-  });
+  const _InfoBanner({required this.text, this.actionLabel, this.onAction});
 
   @override
   Widget build(BuildContext context) {

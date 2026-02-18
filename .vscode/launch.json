@@ -9,6 +9,12 @@
         "--dart-define=CLOUDINARY_CLOUD_NAME=dex9qoxcc",
         "--dart-define=CLOUDINARY_UPLOAD_PRESET=Presets"
       ]
+    },
+    {
+      "name": "Flutter (lib\\main.dart)",
+      "type": "dart",
+      "request": "launch",
+      "program": "lib\\main.dart"
     }
   ]
 }

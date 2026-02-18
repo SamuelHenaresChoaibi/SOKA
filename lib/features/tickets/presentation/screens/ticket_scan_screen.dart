@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:provider/provider.dart';
 import 'package:soka/models/models.dart';
+import 'package:soka/shared/widgets/widgets.dart';
 import 'package:soka/services/services.dart';
 import 'package:soka/theme/app_colors.dart';
 
@@ -116,15 +117,60 @@ class _TicketScanScreenState extends State<TicketScanScreen> {
       backgroundColor: Colors.black,
       appBar: AppBar(
         backgroundColor: Colors.black,
-        foregroundColor: AppColors.surface,
-        title: Text(
-          _canValidateAccess ? 'Scan ticket' : 'Scan ticket QR',
-        ),
+        foregroundColor: AppColors.textPrimary,
+        title: Text(_canValidateAccess ? 'Scan ticket' : 'Scan ticket QR'),
       ),
       body: Stack(
         fit: StackFit.expand,
         children: [
           MobileScanner(controller: _scannerController, onDetect: _onDetect),
+          Center(
+            child: IgnorePointer(
+              child: SizedBox(
+                width: 260,
+                height: 260,
+                child: Stack(
+                  children: [
+                    Container(
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(
+                          color: AppColors.accent.withValues(alpha: 0.82),
+                          width: 2,
+                        ),
+                      ),
+                    ),
+                    TweenAnimationBuilder<double>(
+                      tween: Tween(begin: 0.15, end: 0.85),
+                      duration: const Duration(milliseconds: 1200),
+                      curve: Curves.easeInOut,
+                      builder: (context, value, _) {
+                        return Positioned(
+                          top: 240 * value,
+                          left: 18,
+                          right: 18,
+                          child: Container(
+                            height: 2,
+                            decoration: BoxDecoration(
+                              color: AppColors.accent,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppColors.accent.withValues(
+                                    alpha: 0.55,
+                                  ),
+                                  blurRadius: 10,
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
           Positioned(
             left: 16,
             right: 16,
@@ -132,8 +178,11 @@ class _TicketScanScreenState extends State<TicketScanScreen> {
             child: Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.62),
-                borderRadius: BorderRadius.circular(12),
+                color: AppColors.primary.withValues(alpha: 0.74),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: AppColors.accent.withValues(alpha: 0.3),
+                ),
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -142,7 +191,7 @@ class _TicketScanScreenState extends State<TicketScanScreen> {
                   const Text(
                     'Point the camera at the ticket QR.',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: AppColors.textPrimary,
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
                     ),
@@ -152,8 +201,8 @@ class _TicketScanScreenState extends State<TicketScanScreen> {
                     _canValidateAccess
                         ? 'Companies: validate the ticket and allow access to the event.'
                         : 'Client mode: you can only view ticket details.',
-                    style: const TextStyle(
-                      color: Colors.white70,
+                    style: TextStyle(
+                      color: AppColors.textSecondary.withValues(alpha: 0.95),
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                     ),
@@ -229,7 +278,9 @@ class _ScannedTicketValidationScreenState
         setState(() => _isSubmitting = false);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('This ticket has already been validated and cannot be scanned again.'),
+            content: Text(
+              'This ticket has already been validated and cannot be scanned again.',
+            ),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -268,120 +319,126 @@ class _ScannedTicketValidationScreenState
       backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.surface,
+        foregroundColor: AppColors.textPrimary,
         title: Text(
           widget.allowValidation ? 'Validate ticket' : 'Ticket details',
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 22),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _InfoCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    alreadyCheckedIn
-                        ? 'This ticket has already been scanned and validated.'
-                        : widget.allowValidation
-                        ? 'Ticket pending validation.'
-                        : 'Ticket pending. Only viewable for client.',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: alreadyCheckedIn
-                          ? Colors.orange
-                          : AppColors.textMuted,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-            _InfoCard(
-              child: Column(
-                children: [
-                  _InfoRow(label: 'Holder', value: holderName),
-                  const SizedBox(height: 8),
-                  _InfoRow(label: 'Type', value: ticket.ticketType),
-                  const SizedBox(height: 8),
-                  _InfoRow(label: 'Ticket ID', value: '${ticket.idTicket}'),
-                  const SizedBox(height: 8),
-                  _InfoRow(label: 'Scanned QR', value: widget.scannedValue),
-                  const SizedBox(height: 8),
-                  _InfoRow(
-                    label: 'Purchased on',
-                    value: _formatDateTime(ticket.purchaseDate),
-                  ),
-                  if (ticket.holder.dni.trim().isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    _InfoRow(label: 'Document', value: ticket.holder.dni),
-                  ],
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed:
-                    !widget.allowValidation || _isSubmitting || alreadyCheckedIn
-                    ? null
-                    : _allowAccess,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: widget.allowValidation
-                      ? Colors.green
-                      : AppColors.textMuted,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-                child: _isSubmitting
-                    ? const SizedBox(
-                        height: 18,
-                        width: 18,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
+      body: SokaLuxuryBackground(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 22),
+          child: SokaEntrance(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _InfoCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textPrimary,
                         ),
-                      )
-                    : Text(
-                        widget.allowValidation
-                            ? (alreadyCheckedIn
-                                  ? 'Already used'
-                                  : 'Allow entry')
-                            : 'Read-only',
-                        style: const TextStyle(fontWeight: FontWeight.w700),
                       ),
-              ),
-            ),
-            const SizedBox(height: 10),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton(
-                onPressed: _isSubmitting
-                    ? null
-                    : () => Navigator.pop(context, false),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
+                      const SizedBox(height: 8),
+                      Text(
+                        alreadyCheckedIn
+                            ? 'This ticket has already been scanned and validated.'
+                            : widget.allowValidation
+                            ? 'Ticket pending validation.'
+                            : 'Ticket pending. Only viewable for client.',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: alreadyCheckedIn
+                              ? Colors.orange
+                              : AppColors.textMuted,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                child: Text(
-                  widget.allowValidation ? 'Do not allow entry' : 'Close',
-                  style: const TextStyle(fontWeight: FontWeight.w700),
+                const SizedBox(height: 12),
+                _InfoCard(
+                  child: Column(
+                    children: [
+                      _InfoRow(label: 'Holder', value: holderName),
+                      const SizedBox(height: 8),
+                      _InfoRow(label: 'Type', value: ticket.ticketType),
+                      const SizedBox(height: 8),
+                      _InfoRow(label: 'Ticket ID', value: '${ticket.idTicket}'),
+                      const SizedBox(height: 8),
+                      _InfoRow(label: 'Scanned QR', value: widget.scannedValue),
+                      const SizedBox(height: 8),
+                      _InfoRow(
+                        label: 'Purchased on',
+                        value: _formatDateTime(ticket.purchaseDate),
+                      ),
+                      if (ticket.holder.dni.trim().isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        _InfoRow(label: 'Document', value: ticket.holder.dni),
+                      ],
+                    ],
+                  ),
                 ),
-              ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed:
+                        !widget.allowValidation ||
+                            _isSubmitting ||
+                            alreadyCheckedIn
+                        ? null
+                        : _allowAccess,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: widget.allowValidation
+                          ? AppColors.accent
+                          : AppColors.textMuted,
+                      foregroundColor: AppColors.primary,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    child: _isSubmitting
+                        ? const SizedBox(
+                            height: 18,
+                            width: 18,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppColors.primary,
+                            ),
+                          )
+                        : Text(
+                            widget.allowValidation
+                                ? (alreadyCheckedIn
+                                      ? 'Already used'
+                                      : 'Allow entry')
+                                : 'Read-only',
+                            style: const TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    onPressed: _isSubmitting
+                        ? null
+                        : () => Navigator.pop(context, false),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                    child: Text(
+                      widget.allowValidation ? 'Do not allow entry' : 'Close',
+                      style: const TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -412,6 +469,13 @@ class _InfoCard extends StatelessWidget {
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.22),
+            blurRadius: 16,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: child,
     );

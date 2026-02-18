@@ -7,3 +7,4 @@ export 'package:soka/shared/widgets/header_icon_button.dart';
 export 'package:soka/shared/widgets/icon_circle.dart';
 export 'package:soka/shared/widgets/category_chip.dart';
 export 'package:soka/shared/widgets/bottom_cta.dart';
+export 'package:soka/shared/widgets/soka_visuals.dart';

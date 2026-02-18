@@ -102,7 +102,10 @@ class _TicketCheckoutScreenState extends State<TicketCheckoutScreen> {
       _prefillFirstHolderFromClient();
     } catch (_) {
       if (!mounted) return;
-      setState(() => _errorMessage = 'Could not load event details. Please try again later.');
+      setState(
+        () => _errorMessage =
+            'Could not load event details. Please try again later.',
+      );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -263,9 +266,7 @@ class _TicketCheckoutScreenState extends State<TicketCheckoutScreen> {
       if (_paymentMethod == PaymentMethod.paypal && paypalCredentials == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text(
-              'Could not load secure PayPal credentials.',
-            ),
+            content: Text('Could not load secure PayPal credentials.'),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -450,9 +451,10 @@ class _TicketCheckoutScreenState extends State<TicketCheckoutScreen> {
 
   bool _isValidInternationalPhone(String countryCode, String phoneNumber) {
     final normalizedCode = countryCode.trim().replaceAll(RegExp(r'\s+'), '');
-    final normalizedPhone = phoneNumber
-        .trim()
-        .replaceAll(RegExp(r'[\s\-\(\)]'), '');
+    final normalizedPhone = phoneNumber.trim().replaceAll(
+      RegExp(r'[\s\-\(\)]'),
+      '',
+    );
     if (!RegExp(r'^\d{6,14}$').hasMatch(normalizedPhone)) return false;
     final merged = '$normalizedCode$normalizedPhone';
     return RegExp(r'^\+[1-9]\d{7,14}$').hasMatch(merged);
@@ -555,7 +557,7 @@ class _TicketCheckoutScreenState extends State<TicketCheckoutScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         backgroundColor: AppColors.primary,
-        foregroundColor: AppColors.surface,
+        foregroundColor: AppColors.textPrimary,
         elevation: 0,
         title: const Text(
           'Buy tickets',
@@ -950,7 +952,7 @@ class _TicketHolderFields extends StatelessWidget {
               isDense: true,
             ),
           ),
-          const SizedBox(height: 8), 
+          const SizedBox(height: 8),
           Row(
             children: [
               Expanded(
@@ -985,16 +987,18 @@ class _TicketHolderFields extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 8), 
-          TextField( 
-            controller: draft.birthDateController, 
-            enabled: enabled, 
+          const SizedBox(height: 8),
+          TextField(
+            controller: draft.birthDateController,
+            enabled: enabled,
             keyboardType: TextInputType.number,
             inputFormatters: [BirthDateInputFormatter()],
-            decoration: const InputDecoration( 
-              labelText: 'Birth date (YYYY-MM-DD)', 
-              border: OutlineInputBorder(), 
-              isDense: true, ), ),
+            decoration: const InputDecoration(
+              labelText: 'Birth date (YYYY-MM-DD)',
+              border: OutlineInputBorder(),
+              isDense: true,
+            ),
+          ),
         ],
       ),
     );

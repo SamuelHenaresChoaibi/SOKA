@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:soka/models/models.dart';
+import 'package:soka/shared/widgets/widgets.dart';
 import 'package:soka/services/services.dart';
 import 'package:soka/theme/app_colors.dart';
 
@@ -9,39 +10,42 @@ class NotificationsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final events = context.watch<SokaService>().events;
+    final events = context
+        .watch<SokaService>()
+        .events
+        .where((event) => event.isActive)
+        .toList();
     final upcoming = _nextWeekEvents(events);
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: RefreshIndicator(
-        color: AppColors.accent,
-        backgroundColor: AppColors.primary,
-        onRefresh: () => context.read<SokaService>().fetchEvents(),
-        child: CustomScrollView(
-          slivers: [
-            SliverToBoxAdapter(
-              child: _NotificationsHeader(
-                count: upcoming.length,
-                onBack: () => Navigator.pop(context),
-              ),
-            ),
-            if (upcoming.isEmpty)
-              SliverFillRemaining(
-                hasScrollBody: false,
-                child: _EmptyState(),
-              )
-            else
-              SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) => _NotificationCard(event: upcoming[index]),
-                  childCount: upcoming.length,
+      body: SokaLuxuryBackground(
+        child: RefreshIndicator(
+          color: AppColors.accent,
+          backgroundColor: AppColors.primary,
+          onRefresh: () => context.read<SokaService>().fetchEvents(),
+          child: CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(
+                child: _NotificationsHeader(
+                  count: upcoming.length,
+                  onBack: () => Navigator.pop(context),
                 ),
               ),
-            const SliverToBoxAdapter(
-              child: SizedBox(height: 24),
-            ),
-          ],
+              if (upcoming.isEmpty)
+                SliverFillRemaining(hasScrollBody: false, child: _EmptyState())
+              else
+                SliverList(
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    return SokaEntrance(
+                      delayMs: 30 + (index * 65),
+                      child: _NotificationCard(event: upcoming[index]),
+                    );
+                  }, childCount: upcoming.length),
+                ),
+              const SliverToBoxAdapter(child: SizedBox(height: 24)),
+            ],
+          ),
         ),
       ),
     );
@@ -62,20 +66,22 @@ class _NotificationsHeader extends StatelessWidget {
   final int count;
   final VoidCallback onBack;
 
-  const _NotificationsHeader({
-    required this.count,
-    required this.onBack,
-  });
+  const _NotificationsHeader({required this.count, required this.onBack});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      decoration: const BoxDecoration(
-        color: AppColors.primary,
-        borderRadius: BorderRadius.vertical(
-          bottom: Radius.circular(28),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            AppColors.primary,
+            AppColors.secondary.withValues(alpha: 0.95),
+          ],
         ),
+        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
       ),
       child: SafeArea(
         bottom: false,
@@ -90,7 +96,7 @@ class _NotificationsHeader extends StatelessWidget {
                     onPressed: onBack,
                     icon: const Icon(
                       Icons.arrow_back_ios_new_rounded,
-                      color: AppColors.surface,
+                      color: AppColors.textPrimary,
                       size: 20,
                     ),
                   ),
@@ -99,7 +105,7 @@ class _NotificationsHeader extends StatelessWidget {
                     child: Text(
                       'Notifications',
                       style: TextStyle(
-                        color: AppColors.surface,
+                        color: AppColors.textPrimary,
                         fontSize: 30,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 0.2,
@@ -114,7 +120,7 @@ class _NotificationsHeader extends StatelessWidget {
                     ? 'No notifications for now'
                     : 'You have $count event${count == 1 ? '' : 's'} in the next 7 days',
                 style: TextStyle(
-                  color: AppColors.surface.withAlpha(191),
+                  color: AppColors.textSecondary.withValues(alpha: 0.9),
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
                 ),

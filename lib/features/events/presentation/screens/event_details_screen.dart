@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:soka/models/models.dart';
+import 'package:soka/features/events/presentation/screens/company_profile_screen.dart';
 import 'package:soka/features/tickets/presentation/screens/ticket_checkout_screen.dart';
 import 'package:soka/features/tickets/presentation/screens/ticket_details_screen.dart';
 import 'package:soka/services/services.dart';
@@ -103,7 +104,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
         : event.ticketTypes.length == 1
         ? '${event.ticketTypes.first.type} • ${event.ticketTypes.first.remaining} disponibles'
         : '${event.ticketTypes.length} tipos • $totalRemaining disponibles';
-    Future<Company?> company = Provider.of<SokaService>(
+    final companyFuture = Provider.of<SokaService>(
       context,
       listen: false,
     ).fetchCompanyById(event.organizerId);
@@ -117,7 +118,8 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
 
     final isSoldOut = !event.hasTicketTypes || totalRemaining <= 0;
     final isUserContextLoading = currentUser != null && _isLoadingUserTickets;
-    final isLimitReachedForUser = hasAuthenticatedSession &&
+    final isLimitReachedForUser =
+        hasAuthenticatedSession &&
         remainingByUser != null &&
         remainingByUser <= 0;
     final canOpenCheckout =
@@ -350,14 +352,41 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                         ),
                         const Divider(height: 24, color: AppColors.border),
                         FutureBuilder<Company?>(
-                          future: company,
+                          future: companyFuture,
                           builder: (context, companySnapshot) {
+                            final organizer = companySnapshot.data;
                             final companyName =
-                                companySnapshot.data?.companyName ??
-                                'Desconocido';
-                            return _KeyValueRow(
-                              label: 'Organizer',
-                              value: _shortId(companyName),
+                                organizer?.companyName.trim().isNotEmpty == true
+                                ? organizer!.companyName.trim()
+                                : 'Unknown organizer';
+
+                            return Column(
+                              children: [
+                                _KeyValueRow(
+                                  label: 'Organizer',
+                                  value: _shortId(companyName),
+                                ),
+                                const SizedBox(height: 12),
+                                _OrganizerPreviewCard(
+                                  companyId: event.organizerId,
+                                  company: organizer,
+                                  onTap: organizer == null
+                                      ? null
+                                      : () {
+                                          Navigator.push<void>(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) =>
+                                                  CompanyProfileScreen(
+                                                    companyId:
+                                                        event.organizerId,
+                                                    initialCompany: organizer,
+                                                  ),
+                                            ),
+                                          );
+                                        },
+                                ),
+                              ],
                             );
                           },
                         ),
@@ -701,7 +730,7 @@ class _InfoTile extends StatelessWidget {
     final valueStyle = TextStyle(
       fontSize: 13,
       fontWeight: FontWeight.w700,
-      color: isInteractive ? AppColors.primary : AppColors.textPrimary,
+      color: isInteractive ? AppColors.accent : AppColors.textPrimary,
       height: 1.2,
       decoration: isInteractive ? TextDecoration.underline : null,
     );
@@ -755,6 +784,181 @@ class _InfoTile extends StatelessWidget {
   }
 }
 
+class _OrganizerPreviewCard extends StatelessWidget {
+  final String companyId;
+  final Company? company;
+  final VoidCallback? onTap;
+
+  const _OrganizerPreviewCard({
+    required this.companyId,
+    required this.company,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (company == null) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppColors.secondary,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: const Text(
+          'Organizer profile not available',
+          style: TextStyle(
+            fontSize: 12,
+            color: AppColors.textSecondary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      );
+    }
+
+    final organizer = company!;
+    final companyName = organizer.companyName.trim().isEmpty
+        ? companyId
+        : organizer.companyName.trim();
+    final description = organizer.description.trim();
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: AppColors.secondary,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          children: [
+            _OrganizerAvatar(
+              imageUrl: organizer.profileImageUrl,
+              fallbackText: companyName.isEmpty
+                  ? 'C'
+                  : companyName.substring(0, 1).toUpperCase(),
+              alignment: Alignment(
+                organizer.profileImageOffsetX.clamp(-1.0, 1.0),
+                organizer.profileImageOffsetY.clamp(-1.0, 1.0),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          companyName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ),
+                      if (organizer.verified)
+                        const Icon(
+                          Icons.verified_rounded,
+                          size: 16,
+                          color: AppColors.accent,
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    description.isEmpty
+                        ? 'Tap to view company profile and all events'
+                        : description,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                      height: 1.35,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _OrganizerAvatar extends StatelessWidget {
+  final String imageUrl;
+  final String fallbackText;
+  final Alignment alignment;
+
+  const _OrganizerAvatar({
+    required this.imageUrl,
+    required this.fallbackText,
+    required this.alignment,
+  });
+
+  bool get _hasImage {
+    final trimmed = imageUrl.trim();
+    return trimmed.startsWith('http://') || trimmed.startsWith('https://');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_hasImage) {
+      return CircleAvatar(
+        radius: 20,
+        backgroundColor: AppColors.accent,
+        child: Text(
+          fallbackText,
+          style: const TextStyle(
+            color: AppColors.primary,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: AppColors.accent,
+        border: Border.all(color: AppColors.border),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Image.network(
+        imageUrl.trim(),
+        fit: BoxFit.cover,
+        alignment: alignment,
+        errorBuilder: (context, error, stackTrace) {
+          return Center(
+            child: Text(
+              fallbackText,
+              style: const TextStyle(
+                color: AppColors.primary,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
 class _ValidatedChip extends StatelessWidget {
   const _ValidatedChip();
 
@@ -776,7 +980,7 @@ class _ValidatedChip extends StatelessWidget {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w800,
-              color: AppColors.surface,
+              color: AppColors.textPrimary,
             ),
           ),
         ],
@@ -927,7 +1131,9 @@ class _UserTicketCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
-                    color: ticket.isCheckedIn ? Colors.green : AppColors.textMuted,
+                    color: ticket.isCheckedIn
+                        ? Colors.green
+                        : AppColors.textMuted,
                   ),
                 ),
               ],

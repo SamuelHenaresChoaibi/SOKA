@@ -9,6 +9,7 @@ class Event {
   final DateTime date;
   final String description;
   final String imageUrl;
+  final bool isActive;
   final String location;
   final String? locationFormatted;
   final double? locationLat;
@@ -17,6 +18,7 @@ class Event {
   final String? locationState;
   final String? locationPostcode;
   final String? locationCountry;
+
   /// Máximo de entradas que puede comprar un usuario para este evento.
   ///
   /// Si es `0` (o menor), se interpreta como "sin límite".
@@ -33,6 +35,7 @@ class Event {
     required this.date,
     required this.description,
     required this.imageUrl,
+    required this.isActive,
     required this.location,
     this.locationFormatted,
     this.locationLat,
@@ -58,6 +61,7 @@ class Event {
       date: _parseDate(json['date']),
       description: json['description']?.toString() ?? '',
       imageUrl: json['imageUrl']?.toString() ?? '',
+      isActive: json['isActive'] is bool ? json['isActive'] as bool : true,
       location: json['location']?.toString() ?? '',
       locationFormatted: json['locationFormatted']?.toString(),
       locationLat: (json['locationLat'] as num?)?.toDouble(),
@@ -85,6 +89,7 @@ class Event {
       'date': date.toIso8601String(),
       'description': description,
       'imageUrl': imageUrl,
+      'isActive': isActive,
       'location': location,
       'locationFormatted': locationFormatted,
       'locationLat': locationLat,

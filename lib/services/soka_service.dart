@@ -228,6 +228,9 @@ class SokaService extends ChangeNotifier {
           'createdAt': newCompany.createdAt.toIso8601String(),
           'createdEventIds': newCompany.createdEventIds,
           'description': newCompany.description,
+          'profileImageOffsetX': newCompany.profileImageOffsetX,
+          'profileImageOffsetY': newCompany.profileImageOffsetY,
+          'profileImageUrl': newCompany.profileImageUrl,
           'verified': newCompany.verified,
         }),
       );
@@ -270,7 +273,7 @@ class SokaService extends ChangeNotifier {
 
       if (response.statusCode == 200 && response.body != 'null') {
         final Map<String, dynamic> companyMap = json.decode(response.body);
-        return Company.fromJson(companyMap);
+        return Company.fromJson(companyMap, id: companyId);
       }
       return null;
     } catch (e) {
@@ -290,13 +293,14 @@ class SokaService extends ChangeNotifier {
         if (decoded is Map<String, dynamic>) {
           decoded.forEach((key, value) {
             if (value == null) return;
-            companies.add(Company.fromJson(value));
+            companies.add(Company.fromJson(value, id: key));
           });
         } else if (decoded is List) {
-          for (final value in decoded) {
+          for (var i = 0; i < decoded.length; i++) {
+            final value = decoded[i];
             if (value == null) continue;
             if (value is Map<String, dynamic>) {
-              companies.add(Company.fromJson(value));
+              companies.add(Company.fromJson(value, id: i.toString()));
             }
           }
         }
@@ -527,6 +531,7 @@ class SokaService extends ChangeNotifier {
         date: event.date,
         description: event.description,
         imageUrl: event.imageUrl,
+        isActive: event.isActive,
         location: event.location,
         maxTicketsPerUser: event.maxTicketsPerUser,
         organizerId: event.organizerId,
@@ -891,6 +896,32 @@ class SokaService extends ChangeNotifier {
     } catch (e) {
       throw Exception('Cloudinary: $e (contentType: $resolvedContentType)');
     }
+  }
+
+  Future<String> uploadUserProfileImage({
+    required Uint8List bytes,
+    required String userId,
+    required bool isCompany,
+    String? fileName,
+  }) async {
+    final normalizedUserId = userId.trim();
+    if (normalizedUserId.isEmpty) {
+      throw Exception('No se pudo subir la imagen: userId vacío');
+    }
+
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final safeFileName = (fileName == null || fileName.trim().isEmpty)
+        ? 'profile_$timestamp.jpg'
+        : '${timestamp}_${fileName.trim().replaceAll(RegExp(r'[^a-zA-Z0-9._-]'), '_')}';
+    final folder = isCompany
+        ? 'users/companies/$normalizedUserId/profile'
+        : 'users/clients/$normalizedUserId/profile';
+
+    return _cloudinaryService.uploadImage(
+      bytes: bytes,
+      folder: folder,
+      fileName: safeFileName,
+    );
   }
 
   //-----------------------------------------
