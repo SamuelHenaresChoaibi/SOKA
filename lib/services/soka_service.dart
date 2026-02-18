@@ -417,11 +417,32 @@ class SokaService extends ChangeNotifier {
 
   Future<void> deleteEvent(String eventId) async {
     try {
-      final url = Uri.https(_baseUrl, '/events/$eventId.json');
-      final response = await http.delete(url);
+      final normalizedEventId = eventId.trim();
+      if (normalizedEventId.isEmpty) {
+        throw Exception('Event ID cannot be empty');
+      }
+
+      final soldTicketKeys = await _fetchSoldTicketKeysForEvent(
+        normalizedEventId,
+      );
+      final deletionPayload = <String, dynamic>{
+        'events/$normalizedEventId': null,
+      };
+      for (final ticketKey in soldTicketKeys) {
+        deletionPayload['soldTickets/$ticketKey'] = null;
+      }
+
+      final url = Uri.https(_baseUrl, '/.json');
+      final response = await http.patch(
+        url,
+        body: json.encode(deletionPayload),
+      );
       if (response.statusCode == 200) {
-        print('Event deleted successfully');
+        print(
+          'Event deleted successfully with ${soldTicketKeys.length} associated sold ticket(s)',
+        );
         await fetchEvents();
+        await fetchSoldTickets();
       } else {
         throw Exception('Failed to delete event');
       }
@@ -690,6 +711,23 @@ class SokaService extends ChangeNotifier {
     }
 
     return result;
+  }
+
+  Future<List<String>> _fetchSoldTicketKeysForEvent(String eventId) async {
+    final url = Uri.https(_baseUrl, '/soldTickets.json', {
+      'orderBy': '"eventId"',
+      'equalTo': '"$eventId"',
+    });
+    final response = await http.get(url);
+
+    if (response.statusCode != 200 || response.body == 'null') {
+      return const [];
+    }
+
+    final decoded = json.decode(response.body);
+    if (decoded is! Map) return const [];
+
+    return decoded.keys.map((key) => key.toString()).toList(growable: false);
   }
 
   Future<MapEntry<String, SoldTicket>?> fetchSoldTicketEntryByIdTicket(
