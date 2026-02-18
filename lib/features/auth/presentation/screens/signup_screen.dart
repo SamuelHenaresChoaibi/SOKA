@@ -37,11 +37,29 @@ class _SignupScreenState extends State<SignupScreen> {
   bool isLoading = false;
   int _selectedTypeIndex = 0;
 
+  String _mapGoogleAuthError(FirebaseAuthException e) {
+    switch (e.code) {
+      case 'popup-blocked':
+        return 'Popup blocked by the browser. Enable popups and try again.';
+      case 'popup-closed-by-user':
+        return 'Google sign-in window was closed before completion.';
+      case 'unauthorized-domain':
+        return 'Unauthorized domain in Firebase Authentication.';
+      case 'operation-not-allowed':
+        return 'Google sign-in is not enabled in Firebase Authentication.';
+      case 'network-request-failed':
+        return 'Network error. Check your connection and try again.';
+      default:
+        return e.message ?? 'Google sign-in failed.';
+    }
+  }
+
   Future<void> _signup() async {
     if (!_formKey.currentState!.validate()) return;
     if (isLoading) return;
 
     setState(() => isLoading = true);
+    final sokaService = context.read<SokaService>();
 
     try {
       final user = await authService.signup(
@@ -53,7 +71,6 @@ class _SignupScreenState extends State<SignupScreen> {
         throw Exception('Could not create user');
       }
 
-      final sokaService = context.read<SokaService>();
       if (_selectedTypeIndex == 0) {
         final birthdate = DateTime.parse(birthdateController.text);
         final age = _calculateAge(birthdate);
@@ -100,8 +117,7 @@ class _SignupScreenState extends State<SignupScreen> {
         }
       }
     } catch (e) {
-      // Handle error, e.g., show a snackbar or print the error
-      print('Signup failed: $e');
+      debugPrint('Signup failed: $e');
     } finally {
       setState(() => isLoading = false);
     }
@@ -121,18 +137,13 @@ class _SignupScreenState extends State<SignupScreen> {
         );
         return;
       }
-
-      await _createProfileForGoogleUser(user);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            _selectedTypeIndex == 0
-                ? 'Cuenta Google registrada como cliente'
-                : 'Cuenta Google registrada como empresa',
-          ),
-        ),
-      );
+      Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(_mapGoogleAuthError(e))));
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
@@ -141,85 +152,6 @@ class _SignupScreenState extends State<SignupScreen> {
     } finally {
       if (mounted) setState(() => isLoading = false);
     }
-  }
-
-  Future<void> _createProfileForGoogleUser(User user) async {
-    final sokaService = context.read<SokaService>();
-    final email = user.email?.trim().isNotEmpty == true
-        ? user.email!.trim()
-        : emailController.text.trim();
-    final displayName = (user.displayName ?? '').trim();
-    final displayParts = displayName.isEmpty
-        ? <String>[]
-        : displayName.split(' ');
-
-    if (_selectedTypeIndex == 0) {
-      final fallbackUserName = email.contains('@')
-          ? email.split('@').first
-          : user.uid.substring(0, 8);
-      final birthdateText = birthdateController.text.trim();
-      final parsedBirthdate = DateTime.tryParse(birthdateText);
-      final age = parsedBirthdate != null ? _calculateAge(parsedBirthdate) : 18;
-
-      final client = Client(
-        age: age,
-        createdAt: DateTime.now(),
-        email: email,
-        favoriteEventIds: const [],
-        historyEventIds: const [],
-        interests: const <String?>[],
-        name: nameController.text.trim().isNotEmpty
-            ? nameController.text.trim()
-            : (displayParts.isNotEmpty ? displayParts.first : 'Usuario'),
-        phoneNumber: phoneController.text.trim(),
-        profileImageOffsetX: 0,
-        profileImageOffsetY: 0,
-        profileImageUrl: user.photoURL?.trim() ?? '',
-        surname: surnameController.text.trim().isNotEmpty
-            ? surnameController.text.trim()
-            : (displayParts.length > 1
-                  ? displayParts.sublist(1).join(' ')
-                  : ''),
-        userName: userNameController.text.trim().isNotEmpty
-            ? userNameController.text.trim()
-            : fallbackUserName,
-      );
-      final status = await sokaService.createClientWithId(user.uid, client);
-      if (status != 200) {
-        throw Exception('No se pudo crear el perfil de cliente');
-      }
-      await sokaService.deleteCompany(user.uid);
-      return;
-    }
-
-    final companyName = companyNameController.text.trim().isNotEmpty
-        ? companyNameController.text.trim()
-        : (displayName.isNotEmpty
-              ? displayName
-              : (email.contains('@') ? email.split('@').first : 'Empresa'));
-
-    final company = Company(
-      companyName: companyName,
-      contactInfo: ContactInfo(
-        adress: companyAddressController.text.trim(),
-        email: email,
-        instagram: companyInstagramController.text.trim(),
-        phoneNumber: companyPhoneController.text.trim(),
-        website: companyWebsiteController.text.trim(),
-      ),
-      createdAt: DateTime.now(),
-      createdEventIds: const [],
-      description: companyDescriptionController.text.trim(),
-      profileImageOffsetX: 0,
-      profileImageOffsetY: 0,
-      profileImageUrl: user.photoURL?.trim() ?? '',
-      verified: false,
-    );
-    final status = await sokaService.createCompany(user.uid, company);
-    if (status != 200) {
-      throw Exception('No se pudo crear el perfil de empresa');
-    }
-    await sokaService.deleteClient(user.uid);
   }
 
   @override

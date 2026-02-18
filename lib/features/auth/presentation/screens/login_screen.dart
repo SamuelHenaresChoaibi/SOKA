@@ -167,6 +167,9 @@ class _LoginScreenState extends State<LoginScreen> {
         );
         return;
       }
+
+      if (!mounted) return;
+      Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
     } on FirebaseAuthException catch (e) {
       debugPrint('Google Sign-In FirebaseAuthException code: ${e.code}');
       debugPrint('Google Sign-In FirebaseAuthException message: ${e.message}');
