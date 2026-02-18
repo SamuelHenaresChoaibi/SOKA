@@ -899,7 +899,7 @@ class SokaService extends ChangeNotifier {
 
   Future<List<Event>> fetchEvents() async {
     try {
-      events.clear();
+      final loadedEvents = <Event>[];
       final url = Uri.https(_baseUrl, '/events.json');
       final response = await http.get(url);
       if (response.statusCode == 200 && response.body != 'null') {
@@ -907,19 +907,23 @@ class SokaService extends ChangeNotifier {
         if (decoded is Map<String, dynamic>) {
           decoded.forEach((key, value) {
             if (value == null) return;
-            events.add(Event.fromJson(value, id: key));
+            loadedEvents.add(Event.fromJson(value, id: key));
           });
         } else if (decoded is List) {
           for (var i = 0; i < decoded.length; i++) {
             final value = decoded[i];
             if (value == null) continue;
             if (value is Map<String, dynamic>) {
-              events.add(Event.fromJson(value, id: i.toString()));
+              loadedEvents.add(Event.fromJson(value, id: i.toString()));
             }
           }
         }
       }
 
+      // Replace in one shot to avoid duplicated rows when concurrent fetches overlap.
+      events
+        ..clear()
+        ..addAll(loadedEvents);
       notifyListeners();
       return events;
     } catch (e) {
