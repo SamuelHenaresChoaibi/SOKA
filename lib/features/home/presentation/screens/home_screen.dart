@@ -316,6 +316,16 @@ class _HomeScreenState extends State<HomeScreen> {
   Position? _userPosition;
   bool _isResolvingLocation = false;
 
+  String _featuredCompanyKey(Company company) {
+    final normalizedName = company.companyName.trim().toLowerCase();
+    if (normalizedName.isNotEmpty) return 'name:$normalizedName';
+
+    final normalizedId = company.id.trim().toLowerCase();
+    if (normalizedId.isNotEmpty) return 'id:$normalizedId';
+
+    return 'created:${company.createdAt.toIso8601String()}';
+  }
+
   @override
   void initState() {
     super.initState();
@@ -912,6 +922,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final sokaService = Provider.of<SokaService>(context);
+    final topPadding = MediaQuery.of(context).padding.top;
     final events = sokaService.events;
     final companies = sokaService.companies
         .where((company) => company.id.trim().isNotEmpty)
@@ -941,7 +952,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
         return b.createdAt.compareTo(a.createdAt);
       });
-    final featuredTop = featuredCompanies.take(10).toList();
+    final featuredTop = <Company>[];
+    final seenFeaturedKeys = <String>{};
+    for (final company in featuredCompanies) {
+      final key = _featuredCompanyKey(company);
+      if (!seenFeaturedKeys.add(key)) continue;
+      featuredTop.add(company);
+      if (featuredTop.length == 10) break;
+    }
     final theme = Theme.of(context);
     final isCompanyUser = _company != null;
     final isClientUser = _client != null && !isCompanyUser;
@@ -1000,6 +1018,7 @@ class _HomeScreenState extends State<HomeScreen> {
               SliverPersistentHeader(
                 pinned: true,
                 delegate: _HomeHeaderDelegate(
+                  topPadding: topPadding,
                   child: HomeHeader(
                     eventCount: filteredEvents.length,
                     onSearchChanged: (value) {
@@ -1473,14 +1492,17 @@ class _HomeCompanyStats {
 
 class _HomeHeaderDelegate extends SliverPersistentHeaderDelegate {
   final Widget child;
+  final double topPadding;
 
-  const _HomeHeaderDelegate({required this.child});
+  const _HomeHeaderDelegate({required this.child, required this.topPadding});
+
+  static const double _baseExtent = 248;
 
   @override
-  double get minExtent => 248;
+  double get minExtent => _baseExtent + topPadding;
 
   @override
-  double get maxExtent => 248;
+  double get maxExtent => _baseExtent + topPadding;
 
   @override
   Widget build(
@@ -1493,7 +1515,7 @@ class _HomeHeaderDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   bool shouldRebuild(covariant _HomeHeaderDelegate oldDelegate) {
-    return oldDelegate.child != child;
+    return oldDelegate.child != child || oldDelegate.topPadding != topPadding;
   }
 }
 

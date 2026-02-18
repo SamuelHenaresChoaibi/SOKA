@@ -319,6 +319,74 @@ class SokaService extends ChangeNotifier {
   //-----------------------------------------
   //-----------------------------------------
   //EVENTS
+  Future<List<String>> fetchEventCategories() async {
+    try {
+      final url = Uri.https(_baseUrl, '/categories.json');
+      final response = await http.get(url);
+
+      if (response.statusCode != 200 || response.body == 'null') {
+        return const [];
+      }
+
+      final decoded = json.decode(response.body);
+      final categories = <String>[];
+      final seen = <String>{};
+
+      void addCategory(dynamic raw) {
+        if (raw == null) return;
+        final value = raw.toString().trim();
+        if (value.isEmpty) return;
+        final key = value.toLowerCase();
+        if (!seen.add(key)) return;
+        categories.add(value);
+      }
+
+      if (decoded is List) {
+        for (final item in decoded) {
+          if (item is Map) {
+            addCategory(item['name'] ?? item['label'] ?? item['value']);
+          } else {
+            addCategory(item);
+          }
+        }
+      } else if (decoded is Map) {
+        final nested = decoded['categories'];
+        if (nested is List) {
+          for (final item in nested) {
+            if (item is Map) {
+              addCategory(item['name'] ?? item['label'] ?? item['value']);
+            } else {
+              addCategory(item);
+            }
+          }
+        } else if (nested is Map) {
+          for (final item in nested.values) {
+            if (item is Map) {
+              addCategory(item['name'] ?? item['label'] ?? item['value']);
+            } else {
+              addCategory(item);
+            }
+          }
+        } else {
+          for (final item in decoded.values) {
+            if (item is Map) {
+              addCategory(item['name'] ?? item['label'] ?? item['value']);
+            } else {
+              addCategory(item);
+            }
+          }
+        }
+      } else {
+        addCategory(decoded);
+      }
+
+      return categories;
+    } catch (e) {
+      print('ERROR fetchEventCategories: $e');
+      return const [];
+    }
+  }
+
   Future<String?> createEvent(Event newEvent) async {
     try {
       events.clear();

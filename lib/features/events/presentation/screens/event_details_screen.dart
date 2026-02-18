@@ -227,57 +227,49 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                     ),
                   ),
                   const SizedBox(height: 18),
-                  Wrap(
-                    spacing: 12,
-                    runSpacing: 12,
+                  const _SectionTitle('When & where'),
+                  const SizedBox(height: 12),
+                  Row(
                     children: [
-                      _InfoTile(
-                        icon: Icons.calendar_today_outlined,
-                        label: 'Date',
-                        value: _formatDate(event.date),
-                      ),
-                      _InfoTile(
-                        icon: Icons.schedule_outlined,
-                        label: 'Time',
-                        value: _formatTime(event.date),
-                      ),
-                      _InfoTile(
-                        icon: Icons.location_on_outlined,
-                        label: 'Location',
-                        value: event.locationLabel,
-                        onTap: () => _openMaps(
-                          context,
-                          event.locationLabel,
-                          event.locationLat,
-                          event.locationLng,
+                      Expanded(
+                        child: _InfoTile(
+                          icon: Icons.calendar_today_outlined,
+                          label: 'Date',
+                          value: _formatDate(event.date),
                         ),
                       ),
-                      if (_hasExtraLocation(event)) ...[
-                        _InfoTile(
-                          icon: Icons.location_city_outlined,
-                          label: 'City',
-                          value: event.locationCity?.trim() ?? '-',
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _InfoTile(
+                          icon: Icons.schedule_outlined,
+                          label: 'Time',
+                          value: _formatTime(event.date),
                         ),
-                        _InfoTile(
-                          icon: Icons.public_outlined,
-                          label: 'Country',
-                          value: event.locationCountry?.trim() ?? '-',
-                        ),
-                        if ((event.locationState ?? '').trim().isNotEmpty)
-                          _InfoTile(
-                            icon: Icons.map_outlined,
-                            label: 'State',
-                            value: event.locationState!.trim(),
-                          ),
-                        if ((event.locationPostcode ?? '').trim().isNotEmpty)
-                          _InfoTile(
-                            icon: Icons.markunread_mailbox_outlined,
-                            label: 'Postal Code',
-                            value: event.locationPostcode!.trim(),
-                          ),
-                      ],
+                      ),
                     ],
                   ),
+                  const SizedBox(height: 12),
+                  _InfoTile(
+                    icon: Icons.location_on_outlined,
+                    label: 'Location',
+                    value: event.locationLabel,
+                    maxLines: 3,
+                    onTap: () => _openMaps(
+                      context,
+                      event.locationLabel,
+                      event.locationLat,
+                      event.locationLng,
+                    ),
+                  ),
+                  if (_hasExtraLocation(event)) ...[
+                    const SizedBox(height: 12),
+                    _LocationMetaCard(
+                      city: event.locationCity,
+                      state: event.locationState,
+                      country: event.locationCountry,
+                      postcode: event.locationPostcode,
+                    ),
+                  ],
                   const SizedBox(height: 30),
                   const _SectionTitle('About the event'),
                   const SizedBox(height: 12),
@@ -715,12 +707,14 @@ class _InfoTile extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
+  final int maxLines;
   final VoidCallback? onTap;
 
   const _InfoTile({
     required this.icon,
     required this.label,
     required this.value,
+    this.maxLines = 2,
     this.onTap,
   });
 
@@ -735,10 +729,10 @@ class _InfoTile extends StatelessWidget {
       decoration: isInteractive ? TextDecoration.underline : null,
     );
 
-    return ConstrainedBox(
-      constraints: const BoxConstraints(minWidth: 150, maxWidth: 260),
-      child: GestureDetector(
-        onTap: onTap,
+    return GestureDetector(
+      onTap: onTap,
+      child: SizedBox(
+        width: double.infinity,
         child: _Card(
           child: Row(
             children: [
@@ -769,7 +763,7 @@ class _InfoTile extends StatelessWidget {
                     const SizedBox(height: 6),
                     Text(
                       value,
-                      maxLines: 2,
+                      maxLines: maxLines,
                       overflow: TextOverflow.ellipsis,
                       style: valueStyle,
                     ),
@@ -779,6 +773,109 @@ class _InfoTile extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _LocationMetaCard extends StatelessWidget {
+  final String? city;
+  final String? state;
+  final String? country;
+  final String? postcode;
+
+  const _LocationMetaCard({this.city, this.state, this.country, this.postcode});
+
+  @override
+  Widget build(BuildContext context) {
+    final items = <({IconData icon, String label, String value})>[];
+
+    void addItem(IconData icon, String label, String? value) {
+      final trimmed = value?.trim() ?? '';
+      if (trimmed.isEmpty) return;
+      items.add((icon: icon, label: label, value: trimmed));
+    }
+
+    addItem(Icons.location_city_outlined, 'City', city);
+    addItem(Icons.map_outlined, 'State', state);
+    addItem(Icons.public_outlined, 'Country', country);
+    addItem(Icons.markunread_mailbox_outlined, 'Postal Code', postcode);
+
+    if (items.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return _Card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Area details',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textMuted,
+              letterSpacing: 0.6,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: items
+                .map(
+                  (item) => _LocationMetaChip(
+                    icon: item.icon,
+                    label: item.label,
+                    value: item.value,
+                  ),
+                )
+                .toList(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LocationMetaChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+
+  const _LocationMetaChip({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 280),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: AppColors.secondary,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: AppColors.textSecondary),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              '$label: $value',
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

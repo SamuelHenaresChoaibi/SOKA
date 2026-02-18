@@ -43,7 +43,7 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
   Timer? _locationDebounce;
   bool _ignoreLocationChange = false;
 
-  static const List<String> _categoryOptions = [
+  static const List<String> _defaultCategoryOptions = [
     'Verbena',
     'Club',
     'Festival',
@@ -51,7 +51,10 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
     'Pubs',
     'Other',
   ];
-  String _selectedCategory = 'Verbena';
+  static const String _otherCategoryOption = 'Other';
+  List<String> _categoryOptions = List<String>.from(_defaultCategoryOptions);
+  String _selectedCategory = _defaultCategoryOptions.first;
+  bool _isLoadingCategories = false;
 
   DateTime? _selectedDateTime;
   bool _isSaving = false;
@@ -71,13 +74,8 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
     _titleController = TextEditingController(text: event?.title ?? '');
     final initialCategory = event?.category ?? '';
     _categoryController = TextEditingController(text: initialCategory);
-    _otherCategoryController = TextEditingController(
-      text: _categoryOptions.contains(initialCategory) ? '' : initialCategory,
-    );
-    _selectedCategory =
-        _categoryOptions.contains(initialCategory) && initialCategory.isNotEmpty
-        ? initialCategory
-        : 'Other';
+    _otherCategoryController = TextEditingController();
+    _configureCategorySelection(initialCategory);
     _locationController = TextEditingController(text: event?.location ?? '');
     _descriptionController = TextEditingController(
       text: event?.description ?? '',
@@ -102,6 +100,7 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
     }
 
     _initialLocation = _locationController.text.trim();
+    Future.microtask(_loadCategoryOptionsFromFirebase);
   }
 
   @override
@@ -356,7 +355,10 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
                             ),
                             const SizedBox(height: 14),
                             DropdownButtonFormField<String>(
-                              value: _selectedCategory,
+                              value:
+                                  _categoryOptions.contains(_selectedCategory)
+                                  ? _selectedCategory
+                                  : _categoryOptions.first,
                               items: _categoryOptions
                                   .map(
                                     (category) => DropdownMenuItem(
@@ -365,16 +367,20 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
                                     ),
                                   )
                                   .toList(),
-                              onChanged: (value) {
-                                if (value == null) return;
-                                setState(() {
-                                  _selectedCategory = value;
-                                  if (value != 'Other') {
-                                    _categoryController.text = value;
-                                    _otherCategoryController.clear();
-                                  }
-                                });
-                              },
+                              onChanged: _isLoadingCategories
+                                  ? null
+                                  : (value) {
+                                      if (value == null) return;
+                                      setState(() {
+                                        _selectedCategory = value;
+                                        if (!_isOtherCategory(value)) {
+                                          _categoryController.text = value;
+                                          _otherCategoryController.clear();
+                                        } else {
+                                          _categoryController.clear();
+                                        }
+                                      });
+                                    },
                               validator: (value) {
                                 if (value == null || value.trim().isEmpty) {
                                   return 'Select a category';
@@ -385,7 +391,12 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
                                 labelText: 'Category',
                               ),
                             ),
-                            if (_selectedCategory == 'Other') ...[
+                            if (_isLoadingCategories)
+                              const Padding(
+                                padding: EdgeInsets.only(top: 10),
+                                child: LinearProgressIndicator(minHeight: 2),
+                              ),
+                            if (_isOtherCategory(_selectedCategory)) ...[
                               const SizedBox(height: 10),
                               _textField(
                                 controller: _otherCategoryController,
@@ -679,11 +690,87 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
   }
 
   String? _resolveCategory() {
-    if (_selectedCategory == 'Other') {
+    if (_isOtherCategory(_selectedCategory)) {
       final other = _otherCategoryController.text.trim();
       return other.isEmpty ? null : other;
     }
     return _selectedCategory.trim().isEmpty ? null : _selectedCategory;
+  }
+
+  Future<void> _loadCategoryOptionsFromFirebase() async {
+    if (!mounted) return;
+    setState(() => _isLoadingCategories = true);
+
+    final remoteCategories = await context
+        .read<SokaService>()
+        .fetchEventCategories();
+    final normalized = _normalizeCategoryOptions(remoteCategories);
+    final initialCategory = widget.event?.category ?? '';
+
+    if (!mounted) return;
+    setState(() {
+      _categoryOptions = normalized.isEmpty
+          ? List<String>.from(_defaultCategoryOptions)
+          : normalized;
+      _configureCategorySelection(initialCategory);
+      _isLoadingCategories = false;
+    });
+  }
+
+  List<String> _normalizeCategoryOptions(List<String> input) {
+    final normalized = <String>[];
+    final seen = <String>{};
+
+    for (final raw in input) {
+      final category = raw.trim();
+      if (category.isEmpty) continue;
+      final key = category.toLowerCase();
+      if (!seen.add(key)) continue;
+      normalized.add(category);
+    }
+
+    if (!normalized.any((item) => _isOtherCategory(item))) {
+      normalized.add(_otherCategoryOption);
+    }
+
+    return normalized;
+  }
+
+  void _configureCategorySelection(String initialCategory) {
+    final normalizedInitial = initialCategory.trim();
+    if (normalizedInitial.isNotEmpty) {
+      final match = _categoryOptions.firstWhere(
+        (option) => option.toLowerCase() == normalizedInitial.toLowerCase(),
+        orElse: () => '',
+      );
+
+      if (match.isNotEmpty && !_isOtherCategory(match)) {
+        _selectedCategory = match;
+        _categoryController.text = match;
+        _otherCategoryController.clear();
+        return;
+      }
+
+      _selectedCategory = _categoryOptions.firstWhere(
+        _isOtherCategory,
+        orElse: () => _otherCategoryOption,
+      );
+      _categoryController.clear();
+      _otherCategoryController.text = normalizedInitial;
+      return;
+    }
+
+    final defaultCategory = _categoryOptions.firstWhere(
+      (option) => !_isOtherCategory(option),
+      orElse: () => _categoryOptions.first,
+    );
+    _selectedCategory = defaultCategory;
+    _categoryController.text = defaultCategory;
+    _otherCategoryController.clear();
+  }
+
+  bool _isOtherCategory(String value) {
+    return value.trim().toLowerCase() == _otherCategoryOption.toLowerCase();
   }
 
   void _onLocationChanged(String value) {

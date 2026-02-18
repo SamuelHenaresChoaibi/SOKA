@@ -367,108 +367,223 @@ class _CompanyHeaderCard extends StatelessWidget {
   final VoidCallback? onOpenWebsite;
   final VoidCallback? onOpenInstagram;
   final VoidCallback? onOpenEmail;
-
   const _CompanyHeaderCard({
     required this.company,
     this.onOpenWebsite,
     this.onOpenInstagram,
     this.onOpenEmail,
   });
-
   @override
   Widget build(BuildContext context) {
     final companyName = company.companyName.trim().isEmpty
         ? 'Company'
         : company.companyName.trim();
     final description = company.description.trim();
+    final website = company.contactInfo.website.trim();
+    final instagram = company.contactInfo.instagram.trim();
+    final email = company.contactInfo.email.trim();
+    final address = company.contactInfo.adress.trim();
+    final phone = company.contactInfo.phoneNumber.trim();
+    final hasContactLinks =
+        website.isNotEmpty || instagram.isNotEmpty || email.isNotEmpty;
+    Widget buildInfoPill(IconData icon, String text) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: AppColors.secondary,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: AppColors.textSecondary),
+            const SizedBox(width: 6),
+            Text(
+              text,
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.fromLTRB(18, 20, 18, 16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(22),
         border: Border.all(color: AppColors.border),
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            AppColors.primary.withValues(alpha: 0.94),
+            AppColors.surface,
+          ],
+          stops: const [0, 0.42],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 20,
+            offset: const Offset(0, 12),
+          ),
+        ],
       ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _CompanyAvatar(
-                imageUrl: company.profileImageUrl,
-                fallbackText: companyName.substring(0, 1).toUpperCase(),
-                alignment: Alignment(
-                  company.profileImageOffsetX.clamp(-1.0, 1.0),
-                  company.profileImageOffsetY.clamp(-1.0, 1.0),
-                ),
+          Container(
+            padding: const EdgeInsets.all(4),
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: AppColors.accent.withValues(alpha: 0.55),
+                width: 2,
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            companyName,
-                            style: const TextStyle(
-                              color: AppColors.textPrimary,
-                              fontSize: 18,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ),
-                        if (company.verified)
-                          const Icon(
-                            Icons.verified_rounded,
-                            color: AppColors.accent,
-                            size: 20,
-                          ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      description.isEmpty
-                          ? 'No company description available.'
-                          : description,
-                      style: const TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 13,
-                        height: 1.4,
-                      ),
-                    ),
-                  ],
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.accent.withValues(alpha: 0.24),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
                 ),
+              ],
+            ),
+            child: _CompanyAvatar(
+              imageUrl: company.profileImageUrl,
+              fallbackText: companyName.substring(0, 1).toUpperCase(),
+              alignment: Alignment(
+                company.profileImageOffsetX.clamp(-1.0, 1.0),
+                company.profileImageOffsetY.clamp(-1.0, 1.0),
               ),
-            ],
+            ),
           ),
           const SizedBox(height: 12),
           Wrap(
+            alignment: WrapAlignment.center,
+            crossAxisAlignment: WrapCrossAlignment.center,
             spacing: 8,
-            runSpacing: 8,
+            runSpacing: 6,
             children: [
-              if (company.contactInfo.website.trim().isNotEmpty)
-                ActionChip(
-                  avatar: const Icon(Icons.language_rounded, size: 16),
-                  label: const Text('Website'),
-                  onPressed: onOpenWebsite,
+              Text(
+                companyName,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
                 ),
-              if (company.contactInfo.instagram.trim().isNotEmpty)
-                ActionChip(
-                  avatar: const Icon(Icons.camera_alt_rounded, size: 16),
-                  label: const Text('Instagram'),
-                  onPressed: onOpenInstagram,
-                ),
-              if (company.contactInfo.email.trim().isNotEmpty)
-                ActionChip(
-                  avatar: const Icon(Icons.email_outlined, size: 16),
-                  label: const Text('Email'),
-                  onPressed: onOpenEmail,
+              ),
+              if (company.verified)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: AppColors.accent.withValues(alpha: 0.16),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: AppColors.accent.withValues(alpha: 0.45),
+                    ),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.verified_rounded,
+                        color: AppColors.accent,
+                        size: 14,
+                      ),
+                      SizedBox(width: 4),
+                      Text(
+                        'Verified',
+                        style: TextStyle(
+                          color: AppColors.accent,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
             ],
           ),
+          const SizedBox(height: 10),
+          Text(
+            description.isEmpty
+                ? 'No company description available.'
+                : description,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 13,
+              height: 1.4,
+            ),
+          ),
+          if (address.isNotEmpty || phone.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                if (address.isNotEmpty)
+                  buildInfoPill(Icons.location_on_outlined, address),
+                if (phone.isNotEmpty) buildInfoPill(Icons.call_outlined, phone),
+              ],
+            ),
+          ],
+          if (hasContactLinks) ...[
+            const SizedBox(height: 14),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                if (website.isNotEmpty)
+                  ActionChip(
+                    avatar: const Icon(Icons.language_rounded, size: 16),
+                    label: const Text('Website'),
+                    backgroundColor: AppColors.secondary,
+                    side: const BorderSide(color: AppColors.border),
+                    labelStyle: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    onPressed: onOpenWebsite,
+                  ),
+                if (instagram.isNotEmpty)
+                  ActionChip(
+                    avatar: const Icon(Icons.camera_alt_rounded, size: 16),
+                    label: const Text('Instagram'),
+                    backgroundColor: AppColors.secondary,
+                    side: const BorderSide(color: AppColors.border),
+                    labelStyle: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    onPressed: onOpenInstagram,
+                  ),
+                if (email.isNotEmpty)
+                  ActionChip(
+                    avatar: const Icon(Icons.email_outlined, size: 16),
+                    label: const Text('Email'),
+                    backgroundColor: AppColors.secondary,
+                    side: const BorderSide(color: AppColors.border),
+                    labelStyle: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                    onPressed: onOpenEmail,
+                  ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -495,22 +610,22 @@ class _CompanyAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     if (!_hasImage) {
       return CircleAvatar(
-        radius: 30,
+        radius: 42,
         backgroundColor: AppColors.accent,
         child: Text(
           fallbackText,
           style: const TextStyle(
             color: AppColors.primary,
             fontWeight: FontWeight.w800,
-            fontSize: 20,
+            fontSize: 28,
           ),
         ),
       );
     }
 
     return Container(
-      width: 60,
-      height: 60,
+      width: 84,
+      height: 84,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: AppColors.accent,
@@ -528,7 +643,7 @@ class _CompanyAvatar extends StatelessWidget {
               style: const TextStyle(
                 color: AppColors.primary,
                 fontWeight: FontWeight.w800,
-                fontSize: 20,
+                fontSize: 28,
               ),
             ),
           );
