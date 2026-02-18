@@ -4,7 +4,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_paypal_payment/flutter_paypal_payment.dart';
 import 'package:provider/provider.dart';
-import 'package:soka/config/payment_config.dart';
 import 'package:soka/models/models.dart';
 import 'package:soka/services/services.dart';
 import 'package:soka/theme/app_colors.dart';
@@ -24,7 +23,6 @@ class TicketCheckoutScreen extends StatefulWidget {
 class _TicketCheckoutScreenState extends State<TicketCheckoutScreen> {
   Event? _event;
   Client? _client;
-  PaypalCredentials? _paypalCredentials;
   String? _errorMessage;
   final List<_TicketHolderDraft> _holderDrafts = [];
 
@@ -67,12 +65,6 @@ class _TicketCheckoutScreenState extends State<TicketCheckoutScreen> {
       final client = currentUser == null
           ? null
           : await sokaService.fetchClientById(currentUser.uid);
-      PaypalCredentials? paypalCredentials;
-      try {
-        paypalCredentials = await sokaService.resolvePaypalCredentials();
-      } catch (_) {
-        paypalCredentials = null;
-      }
 
       if (!mounted) return;
 
@@ -84,7 +76,6 @@ class _TicketCheckoutScreenState extends State<TicketCheckoutScreen> {
       setState(() {
         _event = loadedEvent;
         _client = client;
-        _paypalCredentials = paypalCredentials;
         _selectedTicketTypeIndex = defaultIndex;
       });
 
@@ -149,23 +140,10 @@ class _TicketCheckoutScreenState extends State<TicketCheckoutScreen> {
       _quantity >= 1;
 
   Future<PaypalCredentials?> _ensurePaypalCredentials() async {
-    final current = _paypalCredentials;
-    if (current != null) {
-      try {
-        current.validate();
-        return current;
-      } catch (_) {
-        // Continue with remote/cache resolution.
-      }
-    }
-
-    final resolved = await context
-        .read<SokaService>()
-        .resolvePaypalCredentials();
+    final resolved = await context.read<SokaService>().resolvePaypalCredentials(
+      forceRefresh: true,
+    );
     if (resolved == null) return null;
-    if (mounted) {
-      setState(() => _paypalCredentials = resolved);
-    }
     return resolved;
   }
 
@@ -486,7 +464,7 @@ class _TicketCheckoutScreenState extends State<TicketCheckoutScreen> {
     final result = await Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => PaypalCheckoutView(
-          sandboxMode: PaymentConfig.paypalSandboxMode,
+          sandboxMode: credentials.sandboxMode,
           clientId: credentials.clientId,
           secretKey: credentials.secretKey,
           transactions: [

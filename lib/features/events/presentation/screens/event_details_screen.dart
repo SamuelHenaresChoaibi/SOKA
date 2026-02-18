@@ -597,36 +597,106 @@ class _Hero extends StatelessWidget {
 
   const _Hero({required this.priceLabel, required this.imageUrl});
 
+  void _openPosterPreview(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => _EventPosterPreviewScreen(imageUrl: imageUrl),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => _openPosterPreview(context),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          SizedBox.expand(
+            child: _EventPosterImage(imageUrl: imageUrl, fit: BoxFit.cover),
+          ),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  AppColors.primary.withValues(alpha: 0.65),
+                  Colors.transparent,
+                  AppColors.primary.withValues(alpha: 0.55),
+                ],
+              ),
+            ),
+          ),
+          Positioned(left: 20, bottom: 22, child: _PricePill(text: priceLabel)),
+        ],
+      ),
+    );
+  }
+}
+
+class _EventPosterImage extends StatelessWidget {
+  final String imageUrl;
+  final BoxFit fit;
+
+  const _EventPosterImage({required this.imageUrl, required this.fit});
+
   @override
   Widget build(BuildContext context) {
     final url = imageUrl.trim();
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        SizedBox.expand(
-          child: url.isEmpty
-              ? Image.asset('lib/assets/SOKA.png', fit: BoxFit.cover)
-              : FadeInImage(
-                  placeholder: const AssetImage('lib/assets/SOKA.png'),
-                  image: NetworkImage(url),
-                  fit: BoxFit.cover,
+    if (url.isEmpty) {
+      return Image.asset('lib/assets/SOKA.png', fit: fit);
+    }
+
+    return FadeInImage(
+      placeholder: const AssetImage('lib/assets/SOKA.png'),
+      image: NetworkImage(url),
+      fit: fit,
+      imageErrorBuilder: (context, error, stackTrace) {
+        return Image.asset('lib/assets/SOKA.png', fit: fit);
+      },
+    );
+  }
+}
+
+class _EventPosterPreviewScreen extends StatelessWidget {
+  final String imageUrl;
+
+  const _EventPosterPreviewScreen({required this.imageUrl});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          Positioned.fill(
+            child: InteractiveViewer(
+              minScale: 1,
+              maxScale: 4,
+              child: Center(
+                child: _EventPosterImage(
+                  imageUrl: imageUrl,
+                  fit: BoxFit.contain,
                 ),
-        ),
-        DecoratedBox(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                AppColors.primary.withValues(alpha: 0.65),
-                Colors.transparent,
-                AppColors.primary.withValues(alpha: 0.55),
-              ],
+              ),
             ),
           ),
-        ),
-        Positioned(left: 20, bottom: 22, child: _PricePill(text: priceLabel)),
-      ],
+          SafeArea(
+            child: Align(
+              alignment: Alignment.topRight,
+              child: Padding(
+                padding: const EdgeInsets.only(top: 12, right: 12),
+                child: IconCircle(
+                  icon: Icons.close_rounded,
+                  onTap: () => Navigator.of(context).pop(),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

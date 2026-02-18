@@ -39,6 +39,11 @@
       "userId": "s4m"
     }
   },
+  "paypalCredentials": {
+    "clientId": "YOUR_PAYPAL_CLIENT_ID",
+    "secretKey": "YOUR_PAYPAL_SECRET_KEY",
+    "sandboxMode": true
+  },
   "users": {
     "clients": {
       "s4m": {

@@ -1,10 +1,12 @@
 class PaypalCredentials {
   final String clientId;
   final String secretKey;
+  final bool sandboxMode;
 
   PaypalCredentials({
     required this.clientId,
     required this.secretKey,
+    required this.sandboxMode,
   });
 
   void validate() {
@@ -20,6 +22,7 @@ class PaypalCredentials {
     return {
       'clientId': clientId,
       'secretKey': secretKey,
+      'sandboxMode': sandboxMode,
     };
   }
 
@@ -27,7 +30,27 @@ class PaypalCredentials {
     return PaypalCredentials(
       clientId: json['clientId']?.toString() ?? '',
       secretKey: json['secretKey']?.toString() ?? '',
+      sandboxMode: _parseSandboxMode(json['sandboxMode']),
     );
   }
 
+  static bool _parseSandboxMode(dynamic value) {
+    if (value is bool) return value;
+    if (value is num) return value != 0;
+    if (value is String) {
+      final normalized = value.trim().toLowerCase();
+      if (normalized == 'true' ||
+          normalized == '1' ||
+          normalized == 'sandbox') {
+        return true;
+      }
+      if (normalized == 'false' ||
+          normalized == '0' ||
+          normalized == 'live' ||
+          normalized == 'production') {
+        return false;
+      }
+    }
+    return true;
+  }
 }

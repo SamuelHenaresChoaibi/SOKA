@@ -1168,6 +1168,7 @@ class SokaService extends ChangeNotifier {
       final credentials = PaypalCredentials(
         clientId: PaymentConfig.paypalClientId,
         secretKey: PaymentConfig.paypalSecretKey,
+        sandboxMode: PaymentConfig.paypalSandboxMode,
       );
       credentials.validate();
       return credentials;
@@ -1190,6 +1191,7 @@ class SokaService extends ChangeNotifier {
         final fallback = PaypalCredentials(
           clientId: PaymentConfig.paypalClientId,
           secretKey: PaymentConfig.paypalSecretKey,
+          sandboxMode: PaymentConfig.paypalSandboxMode,
         );
         fallback.validate();
         return fallback;
