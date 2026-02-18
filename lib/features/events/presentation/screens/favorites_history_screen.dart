@@ -21,10 +21,14 @@ class FavoritesHistoryScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final events = context.watch<SokaService>().events;
-    final eventById = <String, Event>{for (final e in events) e.id: e};
+    final allEventById = <String, Event>{for (final e in events) e.id: e};
+    final activeEventById = <String, Event>{
+      for (final e in events)
+        if (e.isActive) e.id: e,
+    };
 
     final favoriteEvents = client.favoriteEventIds
-        .map((id) => eventById[id])
+        .map((id) => activeEventById[id])
         .whereType<Event>()
         .toList();
     final purchasedTickets =
@@ -64,7 +68,10 @@ class FavoritesHistoryScreen extends StatelessWidget {
                     favoriteEventIds: client.favoriteEventIds,
                     onToggleFavorite: onToggleFavorite,
                   ),
-                  _TicketsList(tickets: purchasedTickets, eventById: eventById),
+                  _TicketsList(
+                    tickets: purchasedTickets,
+                    eventById: allEventById,
+                  ),
                 ],
               ),
             ),

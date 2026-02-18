@@ -40,6 +40,9 @@ class AppState extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        ChangeNotifierProvider<AccessibilityService>(
+          create: (_) => AccessibilityService(),
+        ),
         ChangeNotifierProvider<SokaService>(create: (_) => SokaService()),
       ],
       child: const MyApp(),
@@ -52,10 +55,28 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final accessibility = context.watch<AccessibilityService>();
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme,
+      theme: AppTheme.lightTheme(highContrast: accessibility.highContrast),
+      darkTheme: AppTheme.darkTheme(highContrast: accessibility.highContrast),
+      themeMode: accessibility.themeMode,
+      themeAnimationDuration: accessibility.reduceMotion
+          ? Duration.zero
+          : const Duration(milliseconds: 250),
       title: 'SOKA',
+      builder: (context, child) {
+        final mediaQuery = MediaQuery.of(context);
+        return MediaQuery(
+          data: mediaQuery.copyWith(
+            textScaler: TextScaler.linear(accessibility.textScaleFactor),
+            boldText: accessibility.boldText,
+            accessibleNavigation: accessibility.reduceMotion,
+          ),
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
       initialRoute: '/',
       routes: {
         'homePage': (context) => const HomeScreen(),

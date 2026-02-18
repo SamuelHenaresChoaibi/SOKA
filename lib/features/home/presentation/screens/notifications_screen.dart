@@ -10,7 +10,11 @@ class NotificationsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final events = context.watch<SokaService>().events;
+    final events = context
+        .watch<SokaService>()
+        .events
+        .where((event) => event.isActive)
+        .toList();
     final upcoming = _nextWeekEvents(events);
 
     return Scaffold(

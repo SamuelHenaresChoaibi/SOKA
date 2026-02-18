@@ -23,6 +23,7 @@ class CompanyEventsScreen extends StatefulWidget {
 
 class _CompanyEventsScreenState extends State<CompanyEventsScreen> {
   bool _isWorking = false;
+  final Set<String> _visibilityUpdatingIds = <String>{};
 
   Future<void> _refresh() async {
     final sokaService = context.read<SokaService>();
@@ -177,6 +178,36 @@ class _CompanyEventsScreenState extends State<CompanyEventsScreen> {
     }
   }
 
+  Future<void> _toggleEventVisibility(Event event, bool isActive) async {
+    if (_visibilityUpdatingIds.contains(event.id)) return;
+
+    setState(() => _visibilityUpdatingIds.add(event.id));
+    try {
+      await context.read<SokaService>().updateEvent(event.id, {
+        'isActive': isActive,
+      });
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            isActive
+                ? 'Event is now visible for clients'
+                : 'Event hidden from clients',
+          ),
+        ),
+      );
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not update event visibility')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _visibilityUpdatingIds.remove(event.id));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final events = context.watch<SokaService>().events;
@@ -298,6 +329,11 @@ class _CompanyEventsScreenState extends State<CompanyEventsScreen> {
                     event: visibleEvents[index],
                     onEdit: () => _editEvent(visibleEvents[index]),
                     onDelete: () => _deleteEvent(visibleEvents[index]),
+                    onToggleVisibility: (value) =>
+                        _toggleEventVisibility(visibleEvents[index], value),
+                    isUpdatingVisibility: _visibilityUpdatingIds.contains(
+                      visibleEvents[index].id,
+                    ),
                   ),
                   childCount: visibleEvents.length,
                 ),
@@ -403,11 +439,15 @@ class _CompanyEventCard extends StatelessWidget {
   final Event event;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final ValueChanged<bool> onToggleVisibility;
+  final bool isUpdatingVisibility;
 
   const _CompanyEventCard({
     required this.event,
     required this.onEdit,
     required this.onDelete,
+    required this.onToggleVisibility,
+    required this.isUpdatingVisibility,
   });
 
   @override
@@ -527,6 +567,63 @@ class _CompanyEventCard extends StatelessWidget {
                 const SizedBox(height: 12),
                 Row(
                   children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: event.isActive
+                            ? Colors.green.withValues(alpha: 0.16)
+                            : Colors.redAccent.withValues(alpha: 0.16),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: event.isActive
+                              ? Colors.green.withValues(alpha: 0.45)
+                              : Colors.redAccent.withValues(alpha: 0.45),
+                        ),
+                      ),
+                      child: Text(
+                        event.isActive ? 'Active' : 'Hidden',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          color: event.isActive
+                              ? Colors.green.shade200
+                              : Colors.red.shade200,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        event.isActive
+                            ? 'Visible for clients'
+                            : 'Not visible for clients',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textSecondary,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (isUpdatingVisibility)
+                      const SizedBox(
+                        height: 16,
+                        width: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    else
+                      Switch(
+                        value: event.isActive,
+                        onChanged: onToggleVisibility,
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
                     const Icon(
                       Icons.confirmation_number_outlined,
                       size: 18,
@@ -543,13 +640,13 @@ class _CompanyEventCard extends StatelessWidget {
                     ),
                     const Spacer(),
                     TextButton.icon(
-                      onPressed: onEdit,
+                      onPressed: isUpdatingVisibility ? null : onEdit,
                       icon: const Icon(Icons.edit_rounded, size: 18),
                       label: const Text('Edit'),
                     ),
                     const SizedBox(width: 4),
                     TextButton.icon(
-                      onPressed: onDelete,
+                      onPressed: isUpdatingVisibility ? null : onDelete,
                       icon: const Icon(Icons.delete_outline_rounded, size: 18),
                       label: const Text('Delete'),
                       style: TextButton.styleFrom(

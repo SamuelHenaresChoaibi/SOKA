@@ -103,7 +103,7 @@ class HomeHeader extends StatelessWidget {
                               ),
                               const SizedBox(height: 10),
                               const Text(
-                                'Explore Mallorca',
+                                'SOKA - The Night Network',
                                 style: TextStyle(
                                   color: AppColors.textPrimary,
                                   fontSize: 25,

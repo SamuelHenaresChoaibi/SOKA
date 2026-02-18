@@ -167,12 +167,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _user?.displayName ??
                 'User';
             final rawEmail = _user?.email ?? client?.email ?? 'No email';
+            final rawProfileImageUrl =
+                company?.profileImageUrl ?? client?.profileImageUrl ?? '';
+            final rawProfileImageOffsetX =
+                company?.profileImageOffsetX ??
+                client?.profileImageOffsetX ??
+                0;
+            final rawProfileImageOffsetY =
+                company?.profileImageOffsetY ??
+                client?.profileImageOffsetY ??
+                0;
             final displayName = _shareProfile
                 ? rawDisplayName
                 : 'Profile hidden';
             final email = (_shareProfile && _showEmail)
                 ? rawEmail
                 : 'Email hidden';
+            final profileImageUrl = _shareProfile
+                ? rawProfileImageUrl.trim()
+                : '';
+            final profileImageOffsetX = rawProfileImageOffsetX.clamp(-1.0, 1.0);
+            final profileImageOffsetY = rawProfileImageOffsetY.clamp(-1.0, 1.0);
+            final hasProfileImage =
+                profileImageUrl.startsWith('http://') ||
+                profileImageUrl.startsWith('https://');
             final userType = company != null ? 'Company' : 'User';
             final initials = (displayName.isNotEmpty)
                 ? displayName.trim().substring(0, 1).toUpperCase()
@@ -193,18 +211,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   },
                   child: Stack(
                     children: [
-                      CircleAvatar(
+                      _SettingsProfileAvatar(
                         radius: 30,
-                        backgroundColor: AppColors.accent,
-                        child: Text(
-                          initials,
-                          style: const TextStyle(
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 22,
+                        imageUrl: profileImageUrl,
+                        alignment: Alignment(
+                          profileImageOffsetX,
+                          profileImageOffsetY,
+                        ),
+                        fallbackText: initials,
+                      ),
+                      if (hasProfileImage)
+                        Positioned.fill(
+                          child: DecoratedBox(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(30),
+                              border: Border.all(
+                                color: AppColors.accent.withValues(alpha: 0.5),
+                                width: 1.2,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
                       Positioned(
                         right: -2,
                         bottom: -2,
@@ -301,6 +328,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Widget _settingsSections(BuildContext context) {
     final sokaService = context.watch<SokaService>();
+    final accessibility = context.watch<AccessibilityService>();
     final eventById = <String, Event>{
       for (final e in sokaService.events) e.id: e,
     };
@@ -309,6 +337,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         : _showEmail
         ? 'Profile and email visible'
         : 'Profile visible without email';
+    final accessibilitySummary = _buildAccessibilitySummary(accessibility);
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -342,6 +371,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     await _loadPrivacySettings(force: true);
                     if (!context.mounted) return;
                     _showPrivacySheet(context);
+                  },
+                ),
+                const Divider(height: 1),
+                ListTile(
+                  leading: const Icon(Icons.accessibility_new_rounded),
+                  title: const Text("Accessibility"),
+                  subtitle: Text(accessibilitySummary),
+                  onTap: () {
+                    _showAccessibilitySheet(context);
                   },
                 ),
                 const Divider(height: 1),
@@ -464,7 +502,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           child: ListView.separated(
             padding: const EdgeInsets.fromLTRB(12, 16, 12, 24),
             itemCount: historyEvents.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 8),
+            separatorBuilder: (_, index) => const SizedBox(height: 8),
             itemBuilder: (_, index) {
               final event = historyEvents[index];
               return Card(
@@ -504,6 +542,150 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final hour = value.hour.toString().padLeft(2, '0');
     final minute = value.minute.toString().padLeft(2, '0');
     return '$day/$month/$year - $hour:$minute';
+  }
+
+  String _buildAccessibilitySummary(AccessibilityService service) {
+    final themeLabel = _themeModeLabel(service.themeMode);
+    final textSize = (service.textScaleFactor * 100).round();
+    final flags = <String>[];
+    if (service.highContrast) flags.add('high contrast');
+    if (service.boldText) flags.add('bold text');
+    if (service.reduceMotion) flags.add('reduced motion');
+    if (flags.isEmpty) return '$themeLabel - text $textSize%';
+    return '$themeLabel - text $textSize% - ${flags.join(', ')}';
+  }
+
+  String _themeModeLabel(ThemeMode mode) {
+    switch (mode) {
+      case ThemeMode.light:
+        return 'Light mode';
+      case ThemeMode.dark:
+        return 'Dark mode';
+      case ThemeMode.system:
+        return 'System mode';
+    }
+  }
+
+  void _showAccessibilitySheet(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        final bottomInset = MediaQuery.of(sheetContext).viewInsets.bottom;
+        return Consumer<AccessibilityService>(
+          builder: (context, accessibility, _) {
+            final textSize = (accessibility.textScaleFactor * 100).round();
+            return Padding(
+              padding: EdgeInsets.fromLTRB(16, 16, 16, 24 + bottomInset),
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Accessibility',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<ThemeMode>(
+                      initialValue: accessibility.themeMode,
+                      decoration: const InputDecoration(
+                        labelText: 'Appearance mode',
+                      ),
+                      items: const [
+                        DropdownMenuItem(
+                          value: ThemeMode.system,
+                          child: Text('System default'),
+                        ),
+                        DropdownMenuItem(
+                          value: ThemeMode.light,
+                          child: Text('Light'),
+                        ),
+                        DropdownMenuItem(
+                          value: ThemeMode.dark,
+                          child: Text('Dark'),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        if (value != null) {
+                          accessibility.setThemeMode(value);
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Text size ($textSize%)',
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
+                    Slider(
+                      value: accessibility.textScaleFactor,
+                      min: 0.9,
+                      max: 1.5,
+                      divisions: 12,
+                      label: '$textSize%',
+                      onChanged: accessibility.setTextScaleFactor,
+                    ),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      value: accessibility.highContrast,
+                      onChanged: accessibility.setHighContrast,
+                      title: const Text('High contrast'),
+                      subtitle: const Text(
+                        'Improve legibility with stronger contrast colors',
+                      ),
+                    ),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      value: accessibility.boldText,
+                      onChanged: accessibility.setBoldText,
+                      title: const Text('Bold text'),
+                      subtitle: const Text(
+                        'Use bolder text throughout the app',
+                      ),
+                    ),
+                    SwitchListTile(
+                      contentPadding: EdgeInsets.zero,
+                      value: accessibility.reduceMotion,
+                      onChanged: accessibility.setReduceMotion,
+                      title: const Text('Reduce motion'),
+                      subtitle: const Text(
+                        'Minimize transitions and visual movement',
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () async {
+                              await accessibility.resetDefaults();
+                            },
+                            child: const Text('Reset'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () => Navigator.pop(sheetContext),
+                            child: const Text('Done'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   void _showPrivacySheet(BuildContext context) {
@@ -765,6 +947,71 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
         );
       },
+    );
+  }
+}
+
+class _SettingsProfileAvatar extends StatelessWidget {
+  final double radius;
+  final String imageUrl;
+  final Alignment alignment;
+  final String fallbackText;
+
+  const _SettingsProfileAvatar({
+    required this.radius,
+    required this.imageUrl,
+    required this.alignment,
+    required this.fallbackText,
+  });
+
+  bool get _hasImage {
+    final trimmed = imageUrl.trim();
+    return trimmed.startsWith('http://') || trimmed.startsWith('https://');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final diameter = radius * 2;
+    if (!_hasImage) {
+      return CircleAvatar(
+        radius: radius,
+        backgroundColor: AppColors.accent,
+        child: Text(
+          fallbackText,
+          style: const TextStyle(
+            color: AppColors.primary,
+            fontWeight: FontWeight.w600,
+            fontSize: 22,
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      width: diameter,
+      height: diameter,
+      decoration: BoxDecoration(
+        color: AppColors.accent,
+        shape: BoxShape.circle,
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Image.network(
+        imageUrl.trim(),
+        fit: BoxFit.cover,
+        alignment: alignment,
+        errorBuilder: (context, error, stackTrace) {
+          return Center(
+            child: Text(
+              fallbackText,
+              style: const TextStyle(
+                color: AppColors.primary,
+                fontWeight: FontWeight.w600,
+                fontSize: 22,
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 }

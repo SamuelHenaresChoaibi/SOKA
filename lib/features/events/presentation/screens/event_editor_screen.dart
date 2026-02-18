@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:typed_data';
 
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -227,6 +226,7 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
           'date': _selectedDateTime!.toIso8601String(),
           'description': _descriptionController.text.trim(),
           'imageUrl': imageUrl,
+          'isActive': event.isActive,
           'location': location,
           'locationFormatted': locationSuggestion?.formatted,
           'locationLat': locationSuggestion?.lat,
@@ -254,6 +254,7 @@ class _EventEditorScreenState extends State<EventEditorScreen> {
           date: _selectedDateTime!,
           description: _descriptionController.text.trim(),
           imageUrl: imageUrl,
+          isActive: true,
           //imageUrl: _imageUrlController.text.trim(),
           location: location,
           //location: _locationController.text.trim(),

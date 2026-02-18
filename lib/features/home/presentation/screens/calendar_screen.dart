@@ -27,7 +27,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final events = context.watch<SokaService>().events;
+    final events = context
+        .watch<SokaService>()
+        .events
+        .where((event) => event.isActive)
+        .toList();
     final eventsByDay = _groupEventsByDay(events);
     final selectedEvents = eventsByDay[_normalizeDay(_selectedDay)] ?? const [];
 

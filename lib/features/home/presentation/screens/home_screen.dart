@@ -6,8 +6,10 @@ import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 import 'package:soka/models/models.dart';
 import 'package:soka/features/home/presentation/screens/calendar_screen.dart';
+import 'package:soka/features/events/presentation/screens/company_profile_screen.dart';
 import 'package:soka/features/events/presentation/screens/company_events_screen.dart';
 import 'package:soka/features/events/presentation/screens/favorites_history_screen.dart';
+import 'package:soka/features/home/presentation/screens/companies_directory_screen.dart';
 import 'package:soka/features/settings/presentation/screens/settings_screen.dart';
 import 'package:soka/features/tickets/presentation/screens/ticket_scan_screen.dart';
 import 'package:soka/services/services.dart';
@@ -363,7 +365,9 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final sokaService = Provider.of<SokaService>(context, listen: false);
       await sokaService.fetchEvents();
-      await _warmOrganizerNames(sokaService.events);
+      await sokaService.fetchCompanies();
+      final activeEvents = sokaService.events.where((e) => e.isActive).toList();
+      await _warmOrganizerNames(activeEvents);
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -598,6 +602,106 @@ class _HomeScreenState extends State<HomeScreen> {
     return _organizerNameById[organizerId] ?? organizerId;
   }
 
+  String _normalizeCompanyIdentifier(String value) {
+    return value.trim().toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+  }
+
+  bool _eventBelongsToCompany(Event event, Company company) {
+    final organizerRaw = event.organizerId.trim();
+    if (organizerRaw.isEmpty) return false;
+
+    final rawCompanyName = company.companyName.trim();
+    final rawCompanyId = company.id.trim();
+    final rawCompanyEmail = company.contactInfo.email.trim();
+    final rawCompanyInstagram = company.contactInfo.instagram.trim();
+
+    if (organizerRaw == rawCompanyId || organizerRaw == rawCompanyName) {
+      return true;
+    }
+
+    final normalizedCompanyIdentifiers = <String>{
+      _normalizeCompanyIdentifier(rawCompanyId),
+      _normalizeCompanyIdentifier(rawCompanyName),
+      if (rawCompanyEmail.isNotEmpty)
+        _normalizeCompanyIdentifier(rawCompanyEmail),
+      if (rawCompanyInstagram.isNotEmpty)
+        _normalizeCompanyIdentifier(rawCompanyInstagram),
+    }..removeWhere((e) => e.isEmpty);
+
+    final organizer = _normalizeCompanyIdentifier(organizerRaw);
+    if (normalizedCompanyIdentifiers.contains(organizer)) {
+      return true;
+    }
+
+    for (final id in normalizedCompanyIdentifiers) {
+      if (organizer.contains(id) || id.contains(organizer)) {
+        return true;
+      }
+    }
+
+    if (rawCompanyEmail.isNotEmpty && organizerRaw == rawCompanyEmail) {
+      return true;
+    }
+    if (rawCompanyInstagram.isNotEmpty && organizerRaw == rawCompanyInstagram) {
+      return true;
+    }
+
+    return false;
+  }
+
+  Map<String, _HomeCompanyStats> _buildCompanyStatsMap({
+    required List<Company> companies,
+    required List<Event> events,
+  }) {
+    final eventById = <String, Event>{for (final e in events) e.id: e};
+    final statsById = <String, _HomeCompanyStats>{};
+
+    for (final company in companies) {
+      final linkedEvents = company.createdEventIds
+          .map((id) => eventById[id])
+          .whereType<Event>()
+          .toList();
+      final detectedEvents = events
+          .where((event) => _eventBelongsToCompany(event, company))
+          .toList();
+
+      final merged = <String, Event>{
+        for (final event in linkedEvents) event.id: event,
+        for (final event in detectedEvents) event.id: event,
+      };
+      final mergedEvents = merged.values.toList();
+      final activeEventsCount = mergedEvents
+          .where((event) => event.isActive)
+          .length;
+      statsById[company.id] = _HomeCompanyStats(
+        totalEvents: mergedEvents.length,
+        activeEvents: activeEventsCount,
+      );
+    }
+
+    return statsById;
+  }
+
+  Future<void> _openCompanyProfile(Company company) async {
+    if (company.id.trim().isEmpty) return;
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => CompanyProfileScreen(
+          companyId: company.id,
+          initialCompany: company,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openCompaniesDirectory() async {
+    await Navigator.push<void>(
+      context,
+      MaterialPageRoute(builder: (_) => const CompaniesDirectoryScreen()),
+    );
+  }
+
   bool _matchesDateFilter(DateTime eventDate) {
     if (_eventDateFilter == _EventDateFilter.all) return true;
 
@@ -807,19 +911,53 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final events = Provider.of<SokaService>(context).events;
+    final sokaService = Provider.of<SokaService>(context);
+    final events = sokaService.events;
+    final companies = sokaService.companies
+        .where((company) => company.id.trim().isNotEmpty)
+        .toList();
+    final browseEvents = events.where((event) => event.isActive).toList();
+    final companyStatsById = _buildCompanyStatsMap(
+      companies: companies,
+      events: events,
+    );
+    final featuredCompanies = List<Company>.from(companies)
+      ..sort((a, b) {
+        final statsA = companyStatsById[a.id] ?? const _HomeCompanyStats();
+        final statsB = companyStatsById[b.id] ?? const _HomeCompanyStats();
+
+        final verifiedCompare = (b.verified ? 1 : 0).compareTo(
+          a.verified ? 1 : 0,
+        );
+        if (verifiedCompare != 0) return verifiedCompare;
+
+        final activeCompare = statsB.activeEvents.compareTo(
+          statsA.activeEvents,
+        );
+        if (activeCompare != 0) return activeCompare;
+
+        final totalCompare = statsB.totalEvents.compareTo(statsA.totalEvents);
+        if (totalCompare != 0) return totalCompare;
+
+        return b.createdAt.compareTo(a.createdAt);
+      });
+    final featuredTop = featuredCompanies.take(10).toList();
     final theme = Theme.of(context);
     final isCompanyUser = _company != null;
     final isClientUser = _client != null && !isCompanyUser;
-    final categorySet = <String>{...events.map((event) => event.category)};
+    final categorySet = <String>{
+      ...browseEvents.map((event) => event.category),
+    };
     final categories = <String>['All', ...categorySet];
     final safeSelectedIndex = _selectedCategoryIndex
         .clamp(0, categories.length - 1)
         .toInt();
     final selectedCategory = categories[safeSelectedIndex];
     final categoryFiltered = selectedCategory == 'All'
-        ? events
-        : events.where((event) => event.category == selectedCategory).toList();
+        ? browseEvents
+        : browseEvents
+              .where((event) => event.category == selectedCategory)
+              .toList();
     final query = _query.trim().toLowerCase();
     final companyNameQuery = _companyNameQuery.trim().toLowerCase();
 
@@ -869,7 +1007,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     },
                     onFilterTap: () {
                       _openEventFilters(
-                        events: events,
+                        events: browseEvents,
                         categories: categories,
                         selectedCategory: selectedCategory,
                       );
@@ -946,6 +1084,17 @@ class _HomeScreenState extends State<HomeScreen> {
                         events: nearbyEvents,
                         title: nearbyTitle,
                       ),
+                    ),
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: SokaEntrance(
+                    delayMs: 100,
+                    child: _FeaturedCompaniesSection(
+                      companies: featuredTop,
+                      statsById: companyStatsById,
+                      onViewAll: _openCompaniesDirectory,
+                      onCompanyTap: _openCompanyProfile,
                     ),
                   ),
                 ),
@@ -1118,6 +1267,208 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
     );
   }
+}
+
+class _FeaturedCompaniesSection extends StatelessWidget {
+  final List<Company> companies;
+  final Map<String, _HomeCompanyStats> statsById;
+  final VoidCallback onViewAll;
+  final ValueChanged<Company> onCompanyTap;
+
+  const _FeaturedCompaniesSection({
+    required this.companies,
+    required this.statsById,
+    required this.onViewAll,
+    required this.onCompanyTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (companies.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Expanded(
+                child: Text(
+                  'Featured companies',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.2,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ),
+              TextButton(onPressed: onViewAll, child: const Text('View all')),
+            ],
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 128,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: companies.length,
+              separatorBuilder: (_, index) => const SizedBox(width: 10),
+              itemBuilder: (context, index) {
+                final company = companies[index];
+                final stats =
+                    statsById[company.id] ?? const _HomeCompanyStats();
+                return _FeaturedCompanyTile(
+                  company: company,
+                  stats: stats,
+                  onTap: () => onCompanyTap(company),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FeaturedCompanyTile extends StatelessWidget {
+  final Company company;
+  final _HomeCompanyStats stats;
+  final VoidCallback onTap;
+
+  const _FeaturedCompanyTile({
+    required this.company,
+    required this.stats,
+    required this.onTap,
+  });
+
+  bool get _hasImage {
+    final url = company.profileImageUrl.trim();
+    return url.startsWith('http://') || url.startsWith('https://');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final displayName = company.companyName.trim().isEmpty
+        ? 'Company'
+        : company.companyName.trim();
+    final initials = displayName.substring(0, 1).toUpperCase();
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(18),
+      child: Container(
+        width: 108,
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Column(
+          children: [
+            Stack(
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.accent,
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: _hasImage
+                      ? Image.network(
+                          company.profileImageUrl.trim(),
+                          fit: BoxFit.cover,
+                          alignment: Alignment(
+                            company.profileImageOffsetX.clamp(-1.0, 1.0),
+                            company.profileImageOffsetY.clamp(-1.0, 1.0),
+                          ),
+                          errorBuilder: (context, error, stackTrace) {
+                            return Center(
+                              child: Text(
+                                initials,
+                                style: const TextStyle(
+                                  color: AppColors.primary,
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 18,
+                                ),
+                              ),
+                            );
+                          },
+                        )
+                      : Center(
+                          child: Text(
+                            initials,
+                            style: const TextStyle(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 18,
+                            ),
+                          ),
+                        ),
+                ),
+                if (company.verified)
+                  Positioned(
+                    right: 0,
+                    bottom: 0,
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        color: AppColors.primary,
+                        shape: BoxShape.circle,
+                      ),
+                      padding: const EdgeInsets.all(2),
+                      child: const Icon(
+                        Icons.verified_rounded,
+                        size: 14,
+                        color: AppColors.accent,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              displayName,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '${stats.activeEvents} active',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: stats.activeEvents > 0
+                    ? Colors.green.shade200
+                    : AppColors.textMuted,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HomeCompanyStats {
+  final int totalEvents;
+  final int activeEvents;
+
+  const _HomeCompanyStats({this.totalEvents = 0, this.activeEvents = 0});
 }
 
 class _HomeHeaderDelegate extends SliverPersistentHeaderDelegate {

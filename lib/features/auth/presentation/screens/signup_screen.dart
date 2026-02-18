@@ -66,6 +66,9 @@ class _SignupScreenState extends State<SignupScreen> {
           interests: [],
           name: nameController.text.trim(),
           phoneNumber: phoneController.text.trim(),
+          profileImageOffsetX: 0,
+          profileImageOffsetY: 0,
+          profileImageUrl: '',
           surname: surnameController.text.trim(),
           userName: userNameController.text.trim(),
         );
@@ -86,6 +89,9 @@ class _SignupScreenState extends State<SignupScreen> {
           createdAt: DateTime.now(),
           createdEventIds: const [],
           description: companyDescriptionController.text.trim(),
+          profileImageOffsetX: 0,
+          profileImageOffsetY: 0,
+          profileImageUrl: '',
           verified: false,
         );
         final status = await sokaService.createCompany(user.uid, company);
@@ -166,6 +172,9 @@ class _SignupScreenState extends State<SignupScreen> {
             ? nameController.text.trim()
             : (displayParts.isNotEmpty ? displayParts.first : 'Usuario'),
         phoneNumber: phoneController.text.trim(),
+        profileImageOffsetX: 0,
+        profileImageOffsetY: 0,
+        profileImageUrl: user.photoURL?.trim() ?? '',
         surname: surnameController.text.trim().isNotEmpty
             ? surnameController.text.trim()
             : (displayParts.length > 1
@@ -201,6 +210,9 @@ class _SignupScreenState extends State<SignupScreen> {
       createdAt: DateTime.now(),
       createdEventIds: const [],
       description: companyDescriptionController.text.trim(),
+      profileImageOffsetX: 0,
+      profileImageOffsetY: 0,
+      profileImageUrl: user.photoURL?.trim() ?? '',
       verified: false,
     );
     final status = await sokaService.createCompany(user.uid, company);
