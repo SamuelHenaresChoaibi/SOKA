@@ -459,8 +459,8 @@ class _CompanyEventCard extends StatelessWidget {
         : minPrice <= 0
         ? 'Free'
         : minPrice == maxPrice
-        ? '€$minPrice'
-        : 'From €$minPrice';
+        ? '$minPrice€'
+        : 'From $minPrice€';
     final dateLabel = _formatDateTime(event.date.toLocal());
     final remaining = event.totalRemaining;
 

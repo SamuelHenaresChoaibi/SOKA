@@ -96,8 +96,8 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
         : minPrice <= 0
         ? 'Free'
         : minPrice == maxPrice
-        ? '€$minPrice'
-        : 'From €$minPrice';
+        ? '$minPrice€'
+        : 'From $minPrice€';
 
     final ticketSubtitle = !event.hasTicketTypes
         ? 'No ticket types configured'

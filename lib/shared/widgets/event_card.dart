@@ -60,8 +60,8 @@ class _EventCardState extends State<EventCard>
         : minPrice <= 0
         ? 'Free'
         : minPrice == maxPrice
-        ? 'EUR$minPrice'
-        : 'From EUR$minPrice';
+        ? '$minPrice€'
+        : 'From $minPrice€';
 
     return FadeTransition(
       opacity: _opacityAnimation,
